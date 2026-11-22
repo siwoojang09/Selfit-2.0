@@ -92,6 +92,15 @@ def build_atlas(cfg, work):
         atlas[ys0:ys1, xs0:xs1] = atlas[ys0:ys1, xs0:xs1] * (1 - a) + ink * a
         print('decal at', x0, y0, w, h)
 
+    # The body's u=0 and u=1 are the same centre-front seam; the atlas must
+    # meet itself there or a bright line runs down the chest.
+    def wrap_seam(img, n=32):
+        w = np.linspace(0, 1, n).reshape((1, n) + (1,) * (img.ndim - 2))
+        img[:, -n:] = img[:, -n:] * (1 - w) + img[:, :n] * w
+        return img
+    atlas = wrap_seam(atlas)
+    nrm = wrap_seam(nrm)
+    rgh = wrap_seam(rgh[..., None])[..., 0]
     Image.fromarray(np.clip(atlas, 0, 255).astype(np.uint8)).save(work / 'atlas.png')
     Image.fromarray(((np.clip(nrm, -1, 1) * .5 + .5) * 255).astype(np.uint8)).save(work / 'atlas-normal.png')
     Image.fromarray((rgh * 255).astype(np.uint8)).save(work / 'atlas-rough.png')

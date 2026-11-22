@@ -24,12 +24,12 @@
       243,
       241
     ],
-    "relief": 3.4,
+    "relief": 2.6,
     "fine": 0.6,
     "coarse": 2.6,
     "roughness": 0.88,
-    "tile": 0.075,
-    "colour_detail": 0.15
+    "tile": 0.045,
+    "colour_detail": 0.1
   },
   "atlas": {
     "size": 2048,

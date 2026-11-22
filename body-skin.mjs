@@ -1,8 +1,8 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23n';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23n';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23o';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23o';
 
 export function attachAnatomicalBody(source, root, parts) {
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
@@ -85,7 +85,11 @@ export function attachAnatomicalBody(source, root, parts) {
       visible[i]=y>1.49 || (y>1.423 && x<.058) || (bareWaist && y<topHem && y>waistEdge);
     }
     const a=full.array,kept=[];
-    for(let i=0;i<a.length;i+=3)if(visible[a[i]]||visible[a[i+1]]||visible[a[i+2]])kept.push(a[i],a[i+1],a[i+2]);
+    // A triangle with a single visible corner is a spike: at the neckline it
+    // showed as a sawtooth of skin above a collar that is higher at the sides.
+    // Keeping a triangle only when two of its corners are bare trims the
+    // boundary to something the eye reads as the edge of the garment.
+    for(let i=0;i<a.length;i+=3)if((visible[a[i]]+visible[a[i+1]]+visible[a[i+2]])>=2)kept.push(a[i],a[i+1],a[i+2]);
     geometry.setIndex(new THREE.BufferAttribute(new a.constructor(kept),1));
   }
 
