@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23f';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23f';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23f';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23f';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23f';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23f';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23f';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23f';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23f';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23f';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23g';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23g';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23g';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23g';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23g';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23g';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23g';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23g';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23g';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23g';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -203,8 +203,23 @@ export function createScene(container, opts) {
   backdropCtx.fillRect(0, 0, 4, 256);
   const backdropTex = new THREE.CanvasTexture(backdrop);
   backdropTex.colorSpace = THREE.SRGBColorSpace;
+  // The body study keeps the same sweep, only neutral: the anatomical figure is
+  // grey, and a warm ground behind it reads as a colour cast.
+  const backdropBody = document.createElement('canvas');
+  backdropBody.width = 4; backdropBody.height = 256;
+  const bodyCtx = backdropBody.getContext('2d');
+  const bodySweep = bodyCtx.createLinearGradient(0, 0, 0, 256);
+  bodySweep.addColorStop(0, '#F2F3F1');
+  bodySweep.addColorStop(.5, '#E9EBE8');
+  bodySweep.addColorStop(1, '#E1E3E0');
+  bodyCtx.fillStyle = bodySweep;
+  bodyCtx.fillRect(0, 0, 4, 256);
+  const backdropBodyTex = new THREE.CanvasTexture(backdropBody);
+  backdropBodyTex.colorSpace = THREE.SRGBColorSpace;
   scene.background = backdropTex;
   scene.userData.stageGradient = true;
+  scene.userData.backdrop = backdropTex;
+  scene.userData.backdropBody = backdropBodyTex;
   scene.fog = new THREE.FogExp2('#EFEAE2', .05);
   const cam = new THREE.PerspectiveCamera(29, 1, .025, 40);
   let renderer;
@@ -563,7 +578,7 @@ export function createScene(container, opts) {
       cam.layers.set(opts.bodyOnly?1:0);
       grid.visible=Boolean(opts.grid);
       scene.userData.bodyStudy=Boolean(opts.bodyOnly);
-      if (!scene.userData.stageGradient) scene.background.set(opts.bodyOnly?'#E6E9E6':'#EFEBE4');
+      scene.background = opts.bodyOnly ? scene.userData.backdropBody : scene.userData.backdrop;
       scene.fog.color.set(opts.bodyOnly?'#E2E5E2':'#EFEAE2');
       floor.material.color.set(opts.bodyOnly?'#DDE0DD':'#ECE7DE');
     }
