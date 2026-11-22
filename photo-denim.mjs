@@ -18,14 +18,15 @@ export function loadGarmentAsset(id) {
     cache.set(id, new Promise((resolve, reject) => {
       const loader = new GLTFLoader();
       loader.load(new URL(`./assets/${id}.glb`, import.meta.url).href, gltf => {
-        const parts = [];
-        gltf.scene.traverse(object => {
-          if (!object.isMesh) return;
-          const geometry = object.geometry;
-          parts.push({ geometry, material: object.material, count: geometry.attributes.position.count });
-          // The runtime owns these now; the loader's node stays unparented.
-          object.removeFromParent();
-        });
+        // Collect first: the loader nests one mesh per primitive under the
+        // glTF mesh node, and their order is the order the pattern must wear.
+        const meshes = [];
+        gltf.scene.traverse(object => { if (object.isMesh) meshes.push(object); });
+        const parts = meshes.map(object => ({
+          geometry: object.geometry,
+          material: object.material,
+          count: object.geometry.attributes.position.count
+        }));
         resolve({ id, parts });
       }, undefined, error => {
         cache.delete(id);
