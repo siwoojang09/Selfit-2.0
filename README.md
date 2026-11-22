@@ -33,8 +33,9 @@ reference-store.mjs   내 옷(기준 옷) 실측 저장
 compare-fit.mjs       사이즈 비교 도표(SVG) 생성
 register-fit.mjs      샘플 등록 UI, 택 OCR(Tesseract.js) 연동
 
-photo-denim.mjs       실사 사진 데님 에셋 로더 (assets/washed-denim-medium-blue.glb)
+photo-denim.mjs       실사 사진 하의 에셋 로더 (데님·치노: assets/*.glb)
 photo-hoodie.mjs      실사 사진 집업 에셋 로더 (assets/adidas-kc9315.glb)
+photo-top.mjs         실사 사진 상의 에셋 로더 (나이키 티 등)
 
 scene.mjs             3D 씬 구성(웜 스톤 배경, 턴테이블 대좌), 직물 텍스처, 보행 시뮬레이션
 mannequin.mjs         3D 마네킹 생성
@@ -54,7 +55,7 @@ hoodie-finishes.mjs   후드 집업 마감(지퍼, 소맷단 등)
 hoodie-textile.mjs    직물 타일 텍스처 적용
 software.mjs          WebGL 미지원 시 소프트웨어 렌더러
 
-catalog/              샘플 상품 이미지 (webp)
+catalog/              샘플 상품 이미지 (webp) — 실제 보유 4벌의 썸네일
 discovery-art/        홈 화면 상품/히어로 이미지
 looks/                모델·코디별 착장 사진
 textures/             직물 텍스처 타일
@@ -64,7 +65,9 @@ vendor/GLTFLoader.js  실사 사진 에셋(GLB) 로더
 vendor/ocr/           Tesseract.js OCR 엔진과 한/영 학습 데이터
 assets/               실물 사진으로 구운 의상 에셋 (GLB)
 tools/photo-denim/    청바지 에셋 빌드 파이프라인 (사진 → 아틀라스 → GLB)
+tools/photo-chino/    와이드 치노 에셋 파이프라인 (트윌 노멀 타일 포함)
 tools/photo-hoodie/   아디다스 집업 에셋 빌드 파이프라인
+tools/photo-top/      상의 에셋 파이프라인 (원단 타일 + 그래픽 아틀라스)
 ```
 
 ## 드레싱룸 화면 구성
@@ -73,7 +76,7 @@ tools/photo-hoodie/   아디다스 집업 에셋 빌드 파이프라인
 
 | 영역 | 내용 |
 | --- | --- |
-| 왼쪽 옷장 | 브랜드 헤더(`Selfit 2.0`), 검색, 분류 탭(전체·아우터·상의·하의), 브랜드 칩(ALL·ADIDAS·DRAPE STUDIO), 2열 샘플 카드(하트 위시리스트) |
+| 왼쪽 옷장 | 브랜드 헤더(`Selfit 2.0`), 검색, 분류 탭(전체·아우터·상의·하의), 브랜드 칩(ALL·ADIDAS·NIKE·SIGNATURE·DRAPE STUDIO), 2열 샘플 카드(하트 위시리스트). 카탈로그에는 실제 보유한 옷만 올라갑니다 |
 | 가운데 무대 | 턴테이블 대좌 위의 3D 착장. 상단 알약(착장·3D 체형 / 여성·남성), 왼쪽 도구 레일(전체 화면·확대·축소·기본 시점·정지 착장·환경 설정), 오른쪽 착용 아이템 썸네일, 하단 보행·디테일·`360°` 표시 |
 | 오른쪽 룩 | `Your Look`(착용 상·하의 카드), `Style & Fit`(실측 여유 막대, 사이즈 알약, 신체 치수 설정, 3D 착장 버튼, 실측표), `Recommended` |
 

@@ -1,57 +1,54 @@
-# 실사 사진 기반 데님 에셋 빌드
+# 실사 사진 기반 와이드 치노 에셋 빌드
 
-`assets/washed-denim-medium-blue.glb`는 무신사 실물 사진(정·후면 플랫레이)에서
+`assets/signature-wide-chino.glb`는 무신사 실물 사진(정·후면 플랫레이와 밑단 근접 촬영)에서
 직접 만든 에셋입니다. 앱은 이 파일을 `GLTFLoader`로 읽어 옷의 표면으로 쓰고,
 핏·사이즈·보행 변형은 기존 실측 패턴(`measured-pants.mjs`)이 계산합니다.
 
 ## 파이프라인
 
-    photos.py      사진에서 청바지만 분리하고, 행마다 실루엣·중심·밑위 갈라짐을 잰다
+    photos.py      사진에서 바지만 분리한다. 베이지는 배경(중성 회색)보다 채도가 있다
     dump_pieces.py 실제 패턴 빌더를 헤드리스(QuickJS)로 돌려 조각별 정점/UV를 뽑는다
-    atlas.py       각 행의 안내선에 맞춰 정·후면 사진을 원통형 아틀라스로 굽는다
+    atlas.py       행 안내선에 맞춰 정·후면 사진을 다리별 원통 아틀라스로 굽는다
+    fabric.py      근접 촬영의 트윌에서 원단 타일 노멀·러프니스를 뜬다
     glb.py         메시 + 텍스처를 하나의 바이너리 glTF 2.0으로 묶는다
-    preview.py     GLB를 소프트웨어 래스터라이저로 그려 브라우저 없이 눈으로 검사한다
+    preview.py     GLB를 소프트웨어 래스터라이저로 그려 브라우저 없이 검사한다
 
 ## 실행
 
-    python3 tools/photo-denim/photos.py       # 사진 분리 (원본: attachments/2026-11-22/IMG_2531, IMG_2532)
-    python3 tools/photo-denim/dump_pieces.py  # 패턴 형상 덤프 (esbuild + QuickJS)
-    python3 tools/photo-denim/atlas.py        # 아틀라스·노멀·러프니스
-    python3 tools/photo-denim/glb.py          # assets/washed-denim-medium-blue.glb
-    python3 tools/photo-denim/preview.py front
+    python3 tools/photo-chino/photos.py
+    python3 tools/photo-chino/dump_pieces.py
+    python3 tools/photo-chino/atlas.py
+    python3 tools/photo-chino/fabric.py
+    python3 tools/photo-chino/glb.py
+    python3 tools/photo-chino/preview.py front
 
-중간 산출물은 `.devtest/photo-denim/`에 남습니다(저장소에는 올리지 않음).
+`atlas.py`는 `fabric.py`가 만든 타일이 있으면 아틀라스 노멀에 합성합니다(없으면 매크로 노멀만).
+
+중간 산출물은 `.devtest/photo-chino/`에 남습니다(저장소에는 올리지 않음).
+
+## 원단 배율
+
+아틀라스 2048px가 둘레 약 0.95m·길이 1.07m를 덮으므로 1텍셀 ≈ 0.5mm입니다. 근접 촬영에서
+뜬 트윌 타일(약 16cm)을 316px 주기로 리샘플해 매크로 노멀에 더하고 재정규화하면 리브 간격이
+약 3.6mm가 되어, 실제 코튼 트윌과 같은 결로 보입니다.
 
 ## 아틀라스 규약
 
-한 장의 아틀라스가 다리 하나의 360도를 담습니다. u = 각도/2π 그대로이며
+`tools/photo-denim`과 같습니다. 다리 하나의 360도가 한 장에 담기고 u = 각도/2π,
 
     0.00–0.25  정면, 중심 → 바깥 솔기
     0.25–0.50  후면, 바깥 솔기 → 뒤 중심
     0.50–0.75  후면, 뒤 중심 → 안쪽 솔기
     0.75–1.00  정면, 안쪽 솔기 → 중심
 
-밑위 위(좌판)에서는 한 줄이 정·후면 판 전체 폭을 덮고, 밑위 아래(다리)에서는
-그 다리의 보이는 반쪽만 덮습니다. 두 매핑은 패턴의 fork 값으로 이어 붙입니다.
+밸룬 핏은 다리 두 짝이 밑위 아래에서 서로 닿아 배경 틈이 보이지 않습니다. 틈을 볼 수 없는
+행에서는 중심선을 안쪽 솔기로 씁니다.
 
-## 한 벌뿐인 바지
+## 한 벌뿐인 치노
 
-`washed-denim-medium-blue`는 사진 에셋이 유일한 바지입니다. 실측 패턴은 크기·보행
-변형을 계산할 뿐, 허리·지퍼·포켓을 모델링한 옛 청바지는 이 상품에 짓지 않습니다.
-모델·사이즈·상의를 바꿔 룩이 새로 만들어져도 에셋을 함께 넘기고, 이미 만든
-룩도 에셋이 도착하면 갈아입습니다. 에셋이 아직 없으면 바지를 감추고, 상품이
-아닌 다른 데님 바지(직접 등록한 샘플)는 자기 패턴으로 그립니다.
+`signature-wide-chino`도 사진 에셋이 유일한 바지입니다. 에셋이 도착하기 전에는 바지를
+감추고, 도착하면 그 표면으로 갈아입습니다(`photo-denim.mjs`의 `PHOTO_PANTS`).
 
 ## 캐시와 버전
 
-`photo-denim.mjs`의 `ASSET_VERSION`은 GLB를 다시 구울 때 함께 올립니다. GitHub Pages가
-파일을 10분간 캐시하므로, 버전을 올리지 않으면 새 원단 대신 예전 파일이 로드됩니다.
-
-스크립트도 같은 이유로 빌드 버전을 붙입니다. 지금은 모든 로컬 모듈 import와
-`fitting.html`·`index.html`의 스크립트 태그가 같은 문자열(`?v=...`)을 달고 있습니다.
-이 모듈들을 고쳐 배포할 때는 **모든 파일의 문자열을 함께 올려야** 하며, 같은 URL로 두 번
-배포하면 브라우저가 예전 스크립트를 계속 씁니다.
-
-`document.documentElement.dataset.denim`에 마지막 적용 상태가 남습니다: `loading`
-(에셋을 기다리는 중), `parsing …`, `worn 6`, `mismatch`(조각 수가 맞지 않음),
-`failed …`. 브라우저에서 `document.documentElement.dataset.denim`으로 확인합니다.
+`photo-denim.mjs`의 `ASSET_VERSION`과 모든 모듈의 `?v=` 문자열을 함께 올립니다.
