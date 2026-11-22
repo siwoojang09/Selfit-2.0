@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23d';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23d';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23d';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23d';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23d';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23d';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23d';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23d';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23d';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23d';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23e';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23e';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23e';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23e';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23e';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23e';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23e';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23e';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23e';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23e';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -196,16 +196,16 @@ export function createScene(container, opts) {
   backdrop.width = 4; backdrop.height = 256;
   const backdropCtx = backdrop.getContext('2d');
   const sweep = backdropCtx.createLinearGradient(0, 0, 0, 256);
-  sweep.addColorStop(0, '#F5F1EA');
-  sweep.addColorStop(.55, '#EFEAE2');
-  sweep.addColorStop(1, '#E1D9CD');
+  sweep.addColorStop(0, '#F7F4EF');
+  sweep.addColorStop(.5, '#EFEAE2');
+  sweep.addColorStop(1, '#E9E3D9');
   backdropCtx.fillStyle = sweep;
   backdropCtx.fillRect(0, 0, 4, 256);
   const backdropTex = new THREE.CanvasTexture(backdrop);
   backdropTex.colorSpace = THREE.SRGBColorSpace;
   scene.background = backdropTex;
   scene.userData.stageGradient = true;
-  scene.fog = new THREE.FogExp2('#EAE4DA', .045);
+  scene.fog = new THREE.FogExp2('#EFEAE2', .05);
   const cam = new THREE.PerspectiveCamera(29, 1, .025, 40);
   let renderer;
   try {
@@ -238,7 +238,7 @@ export function createScene(container, opts) {
   scene.add(rim);
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(100,100), new THREE.MeshStandardMaterial({
-    color: '#E4DDD2', roughness: 1
+    color: '#ECE7DE', roughness: 1
   }));
   floor.rotation.x = -Math.PI/2;
   floor.position.y = -.07;
@@ -564,8 +564,8 @@ export function createScene(container, opts) {
       grid.visible=Boolean(opts.grid);
       scene.userData.bodyStudy=Boolean(opts.bodyOnly);
       if (!scene.userData.stageGradient) scene.background.set(opts.bodyOnly?'#E6E9E6':'#EFEBE4');
-      scene.fog.color.set(opts.bodyOnly?'#E2E5E2':'#EAE4DA');
-      floor.material.color.set(opts.bodyOnly?'#D7DAD7':'#E7E1D7');
+      scene.fog.color.set(opts.bodyOnly?'#E2E5E2':'#EFEAE2');
+      floor.material.color.set(opts.bodyOnly?'#DDE0DD':'#ECE7DE');
     }
     if ('view' in changes) {
       const angles = {pants:.08,finish:.24,fit:.22,study:.47,front: .045, side: Math.PI/2, back: Math.PI + .13, left: -Math.PI/2, right:Math.PI/2};

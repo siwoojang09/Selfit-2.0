@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23d';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23d';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23d';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23d';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23d';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23d';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23e';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23e';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23e';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23e';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23e';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23e';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -28,7 +28,9 @@ let samples=[],selected=adidas,size='M',scope='all',filter='all',brand='ALL',que
 let pants=null,activePants=null,activeTop=adidas,referenceSamples=[];
 const isPants=()=>selected.type==='pants';
 const fieldsFor=type=>type==='pants'?pantsMeasurementFields:measurementFields;
-const fittingView=()=>isPants()?'pants':selected.id===adidas.id?'fit':'front';
+// The landing frame is the whole look on its plinth; the torso close-up is
+// the `fit` view the guide and the view picker still reach.
+const fittingView=()=>isPants()?'pants':'front';
 let bodyOnly=window.location.hash==='#body',studyGrid=true;
 let poseWalk=false,loop=true,tickId=0,cameraView=bodyOnly?'study':'front';
 if(bodyOnly){avatar='male';live=true;updateStill();}
@@ -497,7 +499,7 @@ async function initialiseSelection(){
   if(requested){
     selected=requested;
     size=selected.sizes.find(row=>row.label===fittingQuery.get('size'))?.label || selected.sizes.find(row=>row.label==='M')?.label || selected.sizes[0].label;
-    live=true;bodyOnly=false;cameraView=isPants()?'pants':'fit';
+    live=true;bodyOnly=false;cameraView=isPants()?'pants':'front';
   }
   setWornItem();product();renderShelf();sync();
   if(live)apply();
