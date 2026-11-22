@@ -13430,7 +13430,7 @@
   };
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
-  // garment-contact.mjs?v=2026-11-23m
+  // garment-contact.mjs?v=2026-11-24c
   var tau = Math.PI * 2;
   var directions = 32;
   var sectors = 64;
@@ -13541,7 +13541,7 @@
     } };
   }
 
-  // fit-body-sections.mjs?v=2026-11-23m
+  // fit-body-sections.mjs?v=2026-11-24c
   var sections = {
     female: [
       [306, 165, 86, 1624, 165, 166, 168, 171, 176, 182, 191, 202, 216, 232, 250, 264, 274, 281, 286, 291, 295, 300, 303, 306, 307, 307, 301, 294, 281, 267, 254, 234, 216, 202, 191, 182, 176, 171, 168, 166, 165],
@@ -13765,7 +13765,7 @@
     return avatars[model === "male" ? "male" : "female"];
   }
 
-  // hoodie-fit.mjs?v=2026-11-23m
+  // hoodie-fit.mjs?v=2026-11-24c
   var tau2 = 2 * Math.PI;
   var clamp2 = (x2, a2, b2) => Math.min(b2, Math.max(a2, x2));
   var mix2 = (a2, b2, t2) => a2 + (b2 - a2) * t2;
@@ -13906,7 +13906,7 @@
     } };
   }
 
-  // fabric-pbr.mjs?v=2026-11-23m
+  // fabric-pbr.mjs?v=2026-11-24c
   var tau3 = Math.PI * 2;
   var clamp3 = (v2, low, high) => v2 < low ? low : v2 > high ? high : v2;
   var wrapIndex = (i2, n2) => {
@@ -14045,7 +14045,7 @@
     return material;
   }
 
-  // hoodie-textile.mjs?v=2026-11-23m
+  // hoodie-textile.mjs?v=2026-11-24c
   var import_meta = {};
   var textiles = {
     knit: {
@@ -14134,7 +14134,7 @@
     });
   }
 
-  // hoodie-finishes.mjs?v=2026-11-23m
+  // hoodie-finishes.mjs?v=2026-11-24c
   var tau4 = Math.PI * 2;
   var lerp = Qn.lerp;
   function shifted(p2, a2, offset) {
@@ -14256,7 +14256,7 @@
     slider(0.979, 1, true);
   }
 
-  // cloth-dynamics.mjs?v=2026-11-23m
+  // cloth-dynamics.mjs?v=2026-11-24c
   var clamp4 = (v2, a2, b2) => v2 < a2 ? a2 : v2 > b2 ? b2 : v2;
   var fixedStep = 1 / 120;
   var accelerationLimit = 26;
@@ -14428,7 +14428,7 @@
   var _q = new Ii();
   var _identityMatrix = new cr();
 
-  // photo-hoodie.mjs?v=2026-11-23m
+  // photo-hoodie.mjs?v=2026-11-24c
   function pieceKey(name) {
     return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
   }
@@ -14685,11 +14685,14 @@
       const id2 = String(opts.id || opts.sampleId || "");
       const adidas = /kc9315/i.test(id2) || opts.adidas === true;
       const photoHoodie = adidas && opts.photoHoodie !== false;
-      photoParts = photoHoodie && opts.hoodieAsset ? opts.hoodieAsset.byName : null;
+      const photoTop = Boolean(opts.topAsset) || Boolean(photoHoodie && opts.hoodieAsset);
+      photoParts = photoHoodie && opts.hoodieAsset ? opts.hoodieAsset.byName : opts.topAsset ? opts.topAsset.byName : null;
       photoUsed = {};
       const raw = opts.type || opts.template || "ziphoodie";
-      const type = ["ziphoodie", "tee", "shirt", "polo", "sweatshirt"].includes(raw) ? raw : "ziphoodie";
-      const hoodie = type === "ziphoodie", sweat = type === "sweatshirt", long = hoodie || sweat || type === "shirt";
+      const type = ["ziphoodie", "hoodie", "halfzip", "tee", "shirt", "polo", "sweatshirt"].includes(raw) ? raw : "ziphoodie";
+      const hoodie = type === "ziphoodie", pullover = type === "hoodie", halfzip = type === "halfzip";
+      const sweat = type === "sweatshirt" || pullover || halfzip, hooded = hoodie || pullover;
+      const long = hooded || sweat || type === "shirt";
       const striped = type === "tee" && opts.pattern === "stripes";
       const measured = opts.measurements || {};
       const chest = actual(measured.chest, hoodie ? 60.5 : 53, 32, 94);
@@ -14735,9 +14738,11 @@
       }
       const topY = fit?.apex || 1.46, hemY = topY - bodyLength;
       const bodiceRows = [
+        // The neckline spreads to the shoulder over the first centimetres
+        // instead of flaring into a flat shelf at the throat.
         [0, 0.058, 0.051],
-        [0.024, 0.104, 0.065],
-        [0.049, 0.149, 0.079],
+        [0.024, 0.075, 0.06],
+        [0.049, 0.112, 0.074],
         [0.085, Math.max(0.177, Math.min(width, 0.169 + shoulderDrop * 0.63)), 0.092],
         [0.14, width * 0.92, depth * 0.8],
         [0.23, width, depth * 0.99],
@@ -14753,10 +14758,12 @@
         if (pattern) return pattern.point(t2, a2);
         const [rx, rz] = sampleProfile(bodiceRows, t2);
         const s2 = Math.sin(a2), c2 = Math.cos(a2), gather = Math.sin(8 * a2 + 3.2 * t2) + 0.47 * Math.sin(15 * a2 - 6 * t2);
-        const binding = (hoodie || sweat) && t2 > 0.926;
-        const fold = (12e-4 + 43e-4 * t2 * t2) * gather * (binding ? 0.22 : 1);
+        const binding = (hooded || sweat) && t2 > 0.926;
+        const fold = (12e-4 + 43e-4 * t2 * t2) * gather * (binding ? 0.22 : 1) * smooth(t2, 4e-3, 0.07);
         const shoulderSlope = 0.028 * Math.max(0, c2) ** 2 * (1 - smooth(t2, 0, 0.12));
-        return [s2 * (rx + fold), lerp2(topY, hemY, t2) - shoulderSlope, c2 * (rz + fold) + 3e-3];
+        const tail = type === "shirt" ? (0.032 - 0.052 * (0.5 + 0.5 * Math.cos(2 * a2))) * smooth(t2, 0.62, 1) ** 2 : 0;
+        const neckDip = type === "shirt" ? 0.05 * Math.max(0, c2) ** 2 * (1 - smooth(t2, 0, 0.11)) : 0;
+        return [s2 * (rx + fold), lerp2(topY, hemY, t2) - shoulderSlope + tail - neckDip, c2 * (rz + fold) + 3e-3];
       }
       const torsoMesh = panel(upper, frontMat, "Measured garment body", fit ? 48 : 38, fit ? 64 : 68, (t2, u2) => bodyAt(t2, tau5 * u2));
       if (striped) {
@@ -14822,17 +14829,29 @@
         stitches: bodyThread,
         thick: ribHem
       });
-      if (hoodie) {
-        panel(upper, shell, "Folded hood", 14, 64, (v3, u2) => {
+      if (hooded) {
+        panel(upper, shell, "Folded hood", 18, 64, (v3, u2) => {
           const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2), back = (1 - c2) * 0.5;
           const bulge = Math.sin(Math.PI * v3);
-          if (pattern) {
-            const inner = bodyAt(0, a2), outer = bodyAt(0.014 + 0.18 * back ** 1.7, a2);
-            outer[0] = clamp5(outer[0], -0.107, 0.107);
+          if (pullover && !pattern) {
+            const phi = Math.PI * v3;
+            const ring = 0.069 + 0.016 * back, tube = 0.026 + 0.048 * back;
+            const r2 = ring + tube * Math.cos(phi);
+            const front = Math.max(0, c2);
             return [
-              lerp2(inner[0], outer[0], v3) + s2 * (4e-3 + 0.02 * bulge),
-              lerp2(inner[1], outer[1], v3) + bulge * (0.014 + 0.033 * back) / sy,
-              lerp2(inner[2], outer[2], v3) + c2 * (4e-3 + 0.022 * bulge)
+              s2 * r2,
+              1.452 - 0.02 * front + tube * Math.sin(phi) * (1 - 0.28 * front) + 6e-3 * back * (1 - Math.cos(phi)) * 0.5,
+              c2 * r2 - 0.026 * back * (1 - Math.cos(phi)) * 0.5
+            ];
+          }
+          if (pattern) {
+            const drop = 0.014 + 0.28 * Math.max(0, back - 0.06) ** 1.55;
+            const inner = bodyAt(0, a2), outer = bodyAt(drop, a2);
+            outer[0] = clamp5(outer[0], -0.155, 0.155);
+            return [
+              lerp2(inner[0], outer[0], v3) + s2 * (4e-3 + 0.026 * bulge),
+              lerp2(inner[1], outer[1], v3) + bulge * (0.016 + 0.04 * back) / sy,
+              lerp2(inner[2], outer[2], v3) + c2 * (4e-3 + 0.03 * bulge) * Math.max(0.25, back)
             ];
           }
           const rx = lerp2(0.06, 0.08 + 0.035 * back, v3) + 0.019 * bulge;
@@ -14844,7 +14863,12 @@
             rz * c2 - 0.02 * back * v3 + 2e-3 * Math.sin(a2 * 5) * bulge
           ];
         });
-        panel(upper, rib, "Lined hood opening", 6, 60, (v3, u2) => {
+        if (pullover) panel(upper, shell, "Lined hood opening", 6, 44, (v3, u2) => {
+          const a2 = u2 * tau5, c2 = Math.cos(a2);
+          const r2 = lerp2(0.05, 6e-3, smooth(v3, 0, 0.94));
+          return [Math.sin(a2) * r2, 1.472 - 0.02 * Math.max(0, c2) + 0.014 * Math.sin(Math.PI * Math.min(1, v3 * 1.1)), c2 * r2 + 2e-3];
+        });
+        if (hoodie) panel(upper, rib, "Lined hood opening", 6, 60, (v3, u2) => {
           const a2 = u2 * tau5, c2 = Math.cos(a2), back = (1 - c2) * 0.5;
           if (pattern) {
             const p2 = bodyAt(0, a2);
@@ -14852,7 +14876,12 @@
           }
           return [Math.sin(a2) * lerp2(0.054, 0.081 + 0.035 * back, v3), 1.47 - 0.037 * Math.max(c2, 0) ** 2 - 0.132 * back ** 2 * v3, Math.cos(a2) * lerp2(0.048, 0.061 + 0.05 * back, v3) - 0.02 * back * v3];
         });
+        panel(upper, rib, "Neck lining", 4, 48, (v3, u2) => {
+          const a2 = u2 * tau5, c2 = Math.cos(a2);
+          return [Math.sin(a2) * lerp2(0.0575, 0.056, v3), 1.463 - 0.03 * Math.max(c2, 0) ** 2 - 0.024 * v3, Math.cos(a2) * lerp2(0.0495, 0.048, v3) + 3e-3];
+        });
         for (const side of [-1, 1]) {
+          if (pullover) break;
           if (photoHoodie) continue;
           panel(upper, pocketMat, "Split hand pocket", 13, 9, (v3, u2) => {
             const x2 = side * lerp2(0.014, width * lerp2(0.44, 0.77, smooth(v3, 0, 0.8)), u2);
@@ -14873,41 +14902,130 @@
             return frontAt(lerp2(0.712, 0.91, v3), x2, 54e-4);
           });
         }
-        tape("Zip tape", trim, 8e-3, 0.996, -68e-4, 68e-4, 4e-3);
-        const coil = adidas ? material("#68696b", 0.44, 0.28) : shine;
-        tape("Silver coil zipper", coil, 2e-3, 0.996, -16e-4, 16e-4, 65e-4);
-        if (adidas) {
-          addZipHardware({ panel, parent: upper, frontAt, metal: shine, bodyLength: fit.length, stitches: bodyThread });
-        } else {
-          const tp2 = frontAt(0.05, 2e-3, 6e-3);
-          panel(upper, shine, "Zipper slider", 6, 6, (v3, u2) => [tp2[0] + (u2 - 0.5) * 75e-4, tp2[1] - v3 * 9e-3, tp2[2] + 13e-4 * Math.sin(u2 * Math.PI)]);
-          panel(upper, shine, "Zipper pull", 13, 6, (v3, u2) => {
-            const a2 = v3 * tau5;
-            return [tp2[0] + 2e-3 * Math.cos(a2) * (1 + 0.35 * u2), tp2[1] - 0.011 + 6e-3 * Math.sin(a2) * (1 + 0.15 * u2), tp2[2] + 19e-4 + u2 * 5e-4];
+        if (pullover) {
+          panel(upper, pocketMat, "Kangaroo pocket", 16, 40, (v3, u2) => {
+            const x2 = lerp2(-width * 0.6, width * 0.6, u2);
+            const mouth = 0.64 + 0.02 * Math.abs(u2 - 0.5) * 2;
+            const t2 = lerp2(mouth, 0.912, v3);
+            return frontAt(t2, x2, 32e-4 + 34e-4 * Math.sin(Math.PI * u2) * Math.sin(Math.PI * v3));
           });
+          for (const side of [-1, 1]) panel(upper, trim, "Pocket opening lip", 13, 2, (v3, u2) => {
+            const x2 = side * width * lerp2(0.6, 0.3, smooth(v3, 0, 1));
+            return frontAt(lerp2(0.66, 0.64, v3) + 4e-3 * u2, x2, 56e-4);
+          });
+          panel(upper, threadMat, "Pocket mouth topstitch", 2, 40, (v3, u2) => {
+            const x2 = lerp2(-width * 0.6, width * 0.6, u2);
+            const mouth = 0.64 + 0.02 * Math.abs(u2 - 0.5) * 2;
+            return frontAt(mouth + 6e-3 + v3 * 25e-4, x2, 64e-4);
+          });
+          for (const side of [-1, 1]) {
+            const cord = [];
+            for (let k2 = 0; k2 <= 28; k2++) {
+              const s2 = k2 / 28, x2 = side * (0.031 + 0.01 * s2 + 45e-4 * Math.sin(s2 * 3.1)), t2 = 0.012 + 0.255 * s2;
+              const p2 = frontAt(t2, x2, 75e-4);
+              cord.push([p2[0], p2[1] - 4e-3 * s2 * s2, p2[2] + 3e-3]);
+            }
+            panel(upper, trim, "Drawstring", 28, 5, (v3, u2) => {
+              const p2 = cord[Math.min(28, Math.round(v3 * 28))], a2 = u2 * tau5;
+              return [p2[0] + 31e-4 * Math.sin(a2), p2[1], p2[2] + 26e-4 * Math.cos(a2)];
+            });
+            const tip = cord[28];
+            panel(upper, shine, "Drawstring tip", 4, 5, (v3, u2) => {
+              const a2 = u2 * tau5;
+              return [tip[0] + 34e-4 * Math.sin(a2), tip[1] - 0.016 * v3, tip[2] + 29e-4 * Math.cos(a2)];
+            });
+          }
+        }
+        if (hoodie) {
+          tape("Zip tape", trim, 8e-3, 0.996, -68e-4, 68e-4, 4e-3);
+          const coil = adidas ? material("#68696b", 0.44, 0.28) : shine;
+          tape("Silver coil zipper", coil, 2e-3, 0.996, -16e-4, 16e-4, 65e-4);
+          if (adidas) {
+            addZipHardware({ panel, parent: upper, frontAt, metal: shine, bodyLength: fit.length, stitches: bodyThread });
+          } else {
+            const tp2 = frontAt(0.05, 2e-3, 6e-3);
+            panel(upper, shine, "Zipper slider", 6, 6, (v3, u2) => [tp2[0] + (u2 - 0.5) * 75e-4, tp2[1] - v3 * 9e-3, tp2[2] + 13e-4 * Math.sin(u2 * Math.PI)]);
+            panel(upper, shine, "Zipper pull", 13, 6, (v3, u2) => {
+              const a2 = v3 * tau5;
+              return [tp2[0] + 2e-3 * Math.cos(a2) * (1 + 0.35 * u2), tp2[1] - 0.011 + 6e-3 * Math.sin(a2) * (1 + 0.15 * u2), tp2[2] + 19e-4 + u2 * 5e-4];
+            });
+          }
         }
       } else {
         const collar = type === "tee" || sweat;
-        panel(upper, rib, "Neck binding", 5, 40, (v3, u2) => {
+        if (type !== "shirt") panel(upper, rib, "Neck binding", 7, 40, (v3, u2) => {
           const a2 = u2 * tau5, c2 = Math.cos(a2);
-          return [Math.sin(a2) * lerp2(0.057, collar ? 0.069 : 0.072, v3), 1.465 - 0.027 * Math.max(c2, 0) ** 2 - (collar ? 0.011 : 0.025) * v3, Math.cos(a2) * lerp2(0.048, collar ? 0.057 : 0.059, v3) + 2e-3];
+          const phi = Math.PI * v3, rt2 = collar ? 42e-4 : 55e-4, rc2 = 0.0645;
+          const rr2 = rc2 - rt2 * Math.cos(phi);
+          return [
+            Math.sin(a2) * rr2,
+            1.4615 - 0.026 * Math.max(c2, 0) ** 2 + rt2 * Math.sin(phi),
+            Math.cos(a2) * (rr2 - 0.0105) + 34e-4
+          ];
         });
+        if (type === "tee" || type === "polo") panel(upper, rib, "Neck lining", 4, 40, (v3, u2) => {
+          const a2 = u2 * tau5, c2 = Math.cos(a2);
+          return [Math.sin(a2) * lerp2(0.0495, 0.0485, v3), 1.458 - 0.03 * Math.max(c2, 0) ** 2 - 0.02 * v3, Math.cos(a2) * lerp2(0.0415, 0.0405, v3) + 3e-3];
+        });
+        if (halfzip) {
+          panel(upper, rib, "Ribbed stand collar", 9, 48, (v3, u2) => {
+            const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2);
+            const r2 = lerp2(0.0635, 0.0705, smooth(v3, 0, 1));
+            return [s2 * r2, 1.464 - 0.026 * Math.max(c2, 0) ** 2 + v3 * 0.057 - 6e-3 * Math.max(c2, 0) * v3, c2 * r2 + 32e-4];
+          });
+          panel(upper, rib, "Collar fold edge", 5, 48, (v3, u2) => {
+            const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2);
+            const r2 = lerp2(0.0725, 0.0745, smooth(v3, 0, 1));
+            return [s2 * r2, 1.522 - 0.026 * Math.max(c2, 0) ** 2 + 4e-3 * v3 - 0.012 * smooth(v3, 0, 1), c2 * r2 + 32e-4];
+          });
+          tape("Zip tape", trim, 4e-3, 0.3, -6e-3, 6e-3, 44e-4);
+          tape("Zip teeth", shine, 0.01, 0.294, -15e-4, 15e-4, 68e-4);
+          const tp2 = frontAt(0.284, 1e-3, 8e-3);
+          panel(upper, shine, "Zipper slider", 7, 6, (v3, u2) => [tp2[0] + (u2 - 0.5) * 8e-3, tp2[1] - 0.01 * v3, tp2[2] + 14e-4 * Math.sin(u2 * Math.PI)]);
+          panel(upper, shine, "Zipper pull", 13, 5, (v3, u2) => {
+            const a2 = v3 * tau5;
+            return [tp2[0] + 22e-4 * Math.cos(a2), tp2[1] - 8e-3 - 0.015 * v3, tp2[2] + 28e-4 + 1e-3 * Math.sin(a2)];
+          });
+        }
         if (!collar) {
-          for (const sign of [-1, 1]) {
-            panel(upper, shell, "Point collar", 8, 10, (v3, u2) => {
-              const a2 = 0.1 + 1.72 * u2;
-              return [
-                sign * lerp2(0.059 * Math.sin(a2), 0.031 + 0.064 * Math.sin(1.65 * u2), v3),
-                lerp2(1.463 - 0.023 * Math.max(0, Math.cos(a2)) ** 2, 1.37 + 0.071 * smooth(u2, 0.06, 0.9), v3),
-                lerp2(0.054 * Math.cos(a2), 0.103 - 0.125 * u2 ** 1.5, v3) + 2e-3 * Math.sin(v3 * Math.PI)
-              ];
+          if (type === "shirt") {
+            panel(upper, shell, "Collar band", 8, 48, (v3, u2) => {
+              const a2 = tau5 * u2, c2 = Math.cos(a2), s2 = Math.sin(a2);
+              const phi = Math.PI * v3, rt2 = 55e-4, rc2 = 0.0655, rr2 = rc2 - rt2 * Math.cos(phi);
+              return [s2 * rr2, 1.4615 - 0.026 * Math.max(c2, 0) ** 2 + rt2 * Math.sin(phi), c2 * (rr2 - 75e-4) + 32e-4];
             });
+            for (const sign of [-1, 1]) panel(upper, shell, "Point collar", 8, 14, (v3, u2) => {
+              const x2 = sign * lerp2(0.06 * u2, 0.118 * u2, smooth(v3, 0, 1));
+              const t2 = lerp2(6e-3, 0.108 + 0.062 * u2, v3);
+              const lift = 52e-4 + 6e-3 * smooth(v3, 0.15, 1) + 25e-4 * Math.sin(Math.PI * u2);
+              const p2 = frontAt(t2, x2, lift);
+              return [x2, p2[1] - 12e-4 * v3, p2[2]];
+            });
+          } else {
+            for (const sign of [-1, 1]) {
+              panel(upper, shell, "Point collar", 8, 12, (v3, u2) => {
+                const a2 = 0.1 + 1.72 * u2;
+                return [
+                  sign * lerp2(0.059 * Math.sin(a2), 0.031 + 0.064 * Math.sin(1.65 * u2), v3),
+                  lerp2(1.463 - 0.023 * Math.max(0, Math.cos(a2)) ** 2, 1.37 + 0.071 * smooth(u2, 0.06, 0.9), v3),
+                  lerp2(0.054 * Math.cos(a2), 0.103 - 0.125 * u2 ** 1.5, v3) + 2e-3 * Math.sin(v3 * Math.PI)
+                ];
+              });
+            }
           }
           const extent = type === "shirt" ? 0.984 : 0.28;
           tape("Button placket", rib, 0.057, extent, -9e-3, 9e-3, 3e-3);
           for (let t2 = 0.1; t2 < extent; t2 += 0.135) {
             const p2 = frontAt(t2, 2e-4, 5e-3);
             panel(upper, cream, "Button", 7, 3, (v3, u2) => [p2[0] + Math.cos(v3 * tau5) * 3e-3 * u2, p2[1] + Math.sin(v3 * tau5) * 3e-3 * u2, p2[2] + 1e-3]);
+          }
+          if (type === "shirt") {
+            const x0 = width * 0.13, x1 = width * 0.13 + 0.108;
+            panel(upper, shell, "Chest pocket", 10, 10, (v3, u2) => {
+              const x2 = lerp2(x0, x1, u2), t2 = lerp2(0.235, 0.505, v3);
+              return frontAt(t2, x2, 28e-4 + 14e-4 * Math.sin(Math.PI * u2) * Math.sin(Math.PI * v3));
+            });
+            panel(upper, threadMat, "Pocket topstitch", 2, 10, (v3, u2) => frontAt(0.241 + v3 * 3e-3, lerp2(x0, x1, u2), 42e-4));
           }
         }
       }
@@ -14924,7 +15042,7 @@
           return [x2, p2[1] + 2e-3 + i2 * 23e-4 - v3 * 93e-5, frontAt(t0 - 4e-3 * i2, x2, 75e-4)[2]];
         });
       }
-      if (bodyThread.indices.length && !photoHoodie) bodyThread.attach(upper, threadMat, "Body finish topstitching");
+      if (bodyThread.indices.length && !photoTop) bodyThread.attach(upper, threadMat, "Body finish topstitching");
       for (let armIndex = 0; armIndex < arms.length; armIndex++) {
         let sleeveAt = function(t2, a2, lift = 0) {
           let [rx, rz] = sampleProfile(rings, long ? t2 : t2 * 0.36 + 0.02);
@@ -14949,15 +15067,15 @@
           return [x2 * factor + lift * s2, y2, z2 * factor + lift * c2];
         };
         const { shoulder: joint, elbow } = arms[armIndex], sign = armIndex === 0 ? -1 : 1;
-        const mount = group(joint), cap = fit ? shoulderRise + 2e-3 : 0.04, loose = clamp5(chest / 60.5, 0.77, 1.29);
+        const mount = group(joint), cap = fit ? shoulderRise + 2e-3 : long ? 0.014 : 0.017, loose = clamp5(chest / 54, 0.82, 1.3);
         if (fit) mount.scale.set(1 / torso.scale.x, 1, 1 / torso.scale.z);
         const hand = long ? handGuide(body.anatomy?.handPoints?.[armIndex], joint, mount) : null;
         const seamT = fit ? (cap + fit.seamDrop / sy - shoulderRise) / (cap + sleeveLength) : 0;
         const rings = [
-          [0, 0.016, 0.02],
-          [0.03, 0.045, 0.049],
-          [0.075, 0.063, 0.067],
-          [0.14, 0.066, 0.071],
+          [0, 0.014, 0.017],
+          [0.03, 0.04, 0.044],
+          [0.075, 0.06, 0.064],
+          [0.14, 0.065, 0.07],
           [0.28, 0.065, 0.069],
           [0.46, 0.057, 0.064],
           [0.57, 0.055, 0.061],
@@ -15002,7 +15120,7 @@
           stitches: sleeveThread,
           thick: hoodie || sweat
         });
-        if (!photoHoodie) sleeveThread.attach(mount, threadMat, "Cuff join stitching");
+        if (!photoTop) sleeveThread.attach(mount, threadMat, "Cuff join stitching");
         if (striped) {
           for (const t2 of [0.37, 0.66, 0.91]) panel(mount, cream, "Sleeve stripe", 3, 36, (v3, u2) => sleeveAt(t2 + 0.052 * v3, tau5 * u2, 8e-4));
         }
