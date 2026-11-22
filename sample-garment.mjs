@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24c';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24c';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24c';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24c';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24c';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24c';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24e';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24e';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24e';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24e';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24e';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24e';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -306,7 +306,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     }
     const topY=fit?.apex||1.460,hemY=topY-bodyLength;
     const bodiceRows=[
-      [0,.058,.051],[.024,.104,.065],[.049,.149,.079],
+      // The neckline spreads to the shoulder over the first centimetres
+      // instead of flaring into a flat shelf at the throat.
+      [0,.058,.051],[.024,.075,.060],[.049,.112,.074],
       [.085,Math.max(.177,Math.min(width,.169+shoulderDrop*.63)),.092],[.14,width*.92,depth*.8],
       [.23,width,depth*.99],[.39,width*.988,depth],[.60,width*.972,depth*.94],
       [.82,Math.max(width*.96,hemWidth*1.02),Math.max(depth*.92,hemWidth*.61)],
@@ -610,7 +612,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // above it, the cap reads as a puff sleeve rather than a grown-on sleeve.
       const mount=group(joint),cap=fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
       if(fit)mount.scale.set(1/torso.scale.x,1,1/torso.scale.z);
-      const hand=long?handGuide(body.anatomy?.handPoints?.[armIndex],joint,mount):null;
+      // A shirt's cuff ends on the wrist; the hand guide is for a knit's ribbed
+      // cuff, and at the palm it pulls stray facets out of the sleeve.
+      const hand=long&&type!=='shirt'?handGuide(body.anatomy?.handPoints?.[armIndex],joint,mount):null;
       const seamT=fit?(cap+fit.seamDrop/sy-shoulderRise)/(cap+sleeveLength):0;
       const rings=[[0,.014,.017],[.03,.040,.044],[.075,.060,.064],[.14,.065,.070],
         [.28,.065,.069],[.46,.057,.064],[.57,.055,.061],[.64,.058,.062],[.72,.055,.059],
