@@ -33,3 +33,11 @@
 
 밑위 위(좌판)에서는 한 줄이 정·후면 판 전체 폭을 덮고, 밑위 아래(다리)에서는
 그 다리의 보이는 반쪽만 덮습니다. 두 매핑은 패턴의 fork 값으로 이어 붙입니다.
+
+## 캐시와 버전
+
+`photo-denim.mjs`의 `ASSET_VERSION`은 GLB를 다시 구울 때 함께 올립니다. GitHub Pages가
+파일을 10분간 캐시하므로, 버전을 올리지 않으면 새 원단 대신 예전 파일이 로드됩니다.
+
+`document.documentElement.dataset.denim`에 마지막 적용 상태(`parsing …`, `worn 6`,
+`failed …`)가 남습니다. 브라우저에서 `document.documentElement.dataset.denim`으로 확인합니다.
