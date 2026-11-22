@@ -113,6 +113,9 @@ def build():
             'name': 'denim-photo-right' if side < 0 else 'denim-photo-left',
             'doubleSided': True,
             'pbrMetallicRoughness': {
+                # The studio rig lights this scene for pale cloth; scaling the
+                # photographed denim back keeps the wash as dark as the product.
+                'baseColorFactor': [0.72, 0.75, 0.80, 1.0],
                 'baseColorTexture': {'index': colour, 'texCoord': 0},
                 'metallicRoughnessTexture': {'index': mr, 'texCoord': 0},
                 'metallicFactor': 0.0, 'roughnessFactor': 1.0,
