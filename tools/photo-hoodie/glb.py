@@ -212,36 +212,47 @@ def build():
     g = Gltf()
     g.samplers = [{'magFilter': 9729, 'minFilter': 9987, 'wrapS': 10497, 'wrapT': 10497}]
 
-    def photo_material(name, tag, colour, sheen):
+    def photo_material(name, tag, gain):
+        """One matte black cotton surface, lit by the scene instead of the shop.
+
+        The atlas already carries the cloth's own albedo: `build_atlas.flatten`
+        divided the studio's illumination out of it, so the file holds one flat
+        black and the three.js lights decide what the surface looks like. Nothing
+        here may add light back in. A base-colour factor above 1 (the file used
+        to carry 1.9) multiplied every texel and clipped the cream tapes and the
+        trefoil to white, and KHR_materials_sheen laid a broad grey haze over the
+        upper body: together they turned one shade of black into a grey
+        two-tone. The factor now only trims the tone to the scene's lights, and
+        the roughness map keeps the cotton matte so no specular sheet crosses
+        the chest.
+        """
         colour_img = np.asarray(Image.open(WORK / f'{tag}.png').convert('RGB'))
         normal_img = np.asarray(Image.open(WORK / f'normal-{tag}.png').convert('RGB'))
         rough_img = np.asarray(Image.open(WORK / f'rough-{tag}.png').convert('L'))
         mr = np.zeros(rough_img.shape + (3,), np.uint8)
         mr[:, :, 1] = rough_img
-        c = g.texture(g.image(jpeg(colour_img, 90), 'image/jpeg'))
+        c = g.texture(g.image(jpeg(colour_img, 92), 'image/jpeg'))
         n = g.texture(g.image(jpeg(normal_img, 84), 'image/jpeg'))
         m = g.texture(g.image(jpeg(mr, 85), 'image/jpeg'))
         g.materials.append({
             'name': name, 'doubleSided': True,
             'pbrMetallicRoughness': {
-                # The studio lights this scene for pale cloth; the photographed
-                # black cotton is lifted a touch so its knit still reads.
-                'baseColorFactor': colour + [1.0],
+                'baseColorFactor': [gain, gain, gain, 1.0],
                 'baseColorTexture': {'index': c},
                 'metallicRoughnessTexture': {'index': m},
                 'metallicFactor': 0.0, 'roughnessFactor': 1.0,
             },
-            'normalTexture': {'index': n, 'scale': 1.0},
-            'extensions': {'KHR_materials_sheen': {
-                'sheenColorFactor': sheen, 'sheenRoughnessFactor': 1.0}},
+            'normalTexture': {'index': n, 'scale': .55},
         })
         return len(g.materials) - 1
 
+    # 0.62 brings the cotton's black to the tone the product photograph shows
+    # under this scene's two-stop-brighter studio lights.
     material_index = {
-        'body': photo_material('kc9315 cotton photo', 'body', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
-        'sleeve': photo_material('kc9315 sleeve photo', 'sleeve', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
-        'hood': photo_material('kc9315 hood photo', 'hood', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
-        'zip': photo_material('kc9315 zip photo', 'zip', [0.42, 0.42, 0.42], [0.0, 0.0, 0.0]),
+        'body': photo_material('kc9315 cotton photo', 'body', .62),
+        'sleeve': photo_material('kc9315 sleeve photo', 'sleeve', .62),
+        'hood': photo_material('kc9315 hood photo', 'hood', .62),
+        'zip': photo_material('kc9315 zip photo', 'zip', .50),
     }
     # The zip's cloth tape is plain black webbing; only the teeth are metal, so
     # the photographed strip goes on the coil alone and cannot widen the zip.
@@ -301,7 +312,7 @@ def build():
         'accessors': g.accessors,
         'bufferViews': g.views,
         'buffers': [{'byteLength': len(g.bin)}],
-        'extensionsUsed': ['KHR_materials_sheen'],
+        'extensionsUsed': [],
     }
     g.pad()
     js = json.dumps(gltf, separators=(',', ':')).encode('utf-8')

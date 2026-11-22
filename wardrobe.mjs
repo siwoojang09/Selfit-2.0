@@ -1,6 +1,6 @@
 // All garment dimensions and solver distances are in metres.
-import { makeSkirt } from './cloth.mjs?v=2026-11-22m8';
-import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-22m8';
+import { makeSkirt } from './cloth.mjs?v=2026-11-23a';
+import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-23a';
 
 const TAU = 2 * Math.PI;
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));

@@ -7,6 +7,22 @@ along the garment's surface from the centre seam. Rows are laid at the same
 metres-per-pixel as the photograph, calibrated from the garment's own centre
 length (62 cm) and from the sleeve seam to the cuff (58 cm).
 
+The photographs are studio-lit, so the same black cotton is several shades
+lighter across the chest than at the hem and carries a broad sheen down the
+upper body. Baked in as-is and multiplied by the scene's own lights, that
+product-light gradient reads as a grey two-tone on a garment that is one flat
+black. `flatten` divides out the low-frequency illumination of the cloth — the
+knit, the seams and the stitches are high frequency and stay — so every panel
+bakes to one albedo. That is what the cloth is: the shading belongs to the
+three.js light, not to the texture.
+
+The cream sleeve stripes are not read from the photograph row by row. A flat
+lay's sleeve is angled, its silhouette wanders between the stripes and the
+backdrop, and sampling it row by row pinches and ripples the three bands. Their
+geometry is constant instead — parallel tapes a fixed distance from the outer
+fold — so they are painted at arc positions taken from the pattern's own
+circumference, which is also what the UVs are measured in.
+
 Outputs, all in `.devtest/photo-hoodie/`:
 
     body.png     front + back of the torso, hem rib included
@@ -39,110 +55,181 @@ BODY_TOP = 1.506    # apex in the pattern's metres
 BODY_LEN = 0.62
 SLEEVE_SEAM = -0.074
 SLEEVE_END = -0.6034
-SLEEVE_PX = (SLEEVE_SEAM - SLEEVE_END) / 1.0 * 0 + 496.0   # seam -> cuff in px
+
+# The sleeve band in the photographs, row by row: the shoulder seam and the
+# cuff opening sit on the same rows in both flat lays.
+SLEEVE_ROWS = (822.0, 1286.0)
 
 BODY_SIZE = 2048
 SLEEVE_SIZE = (1024, 2048)     # u around the sleeve, v down its length
 HOOD_SIZE = 1024
-
-# Sleeve axes in the photographs: from the middle of the shoulder seam to the
-# middle of the cuff opening.
-SLEEVE_AXIS = {
-    -1: ((300.0, 822.0), (129.0, 1286.0)),
-    1: ((640.0, 822.0), (811.0, 1286.0)),
-}
-# The hood, as laid on the back of the garment: crown and neck.
 HOOD_BOX = (330.0, 700.0, 610.0, 838.0)   # x0, y0, x1, y1
+
+# The three cream tapes, from the closeup and the flat lay: each is 0.95 cm
+# wide, the first sits 1.3 cm in from the outer fold, and the pitch is 1.9 cm.
+STRIPES = tuple(1.3 + 1.9 * i for i in range(3))
+STRIPE_W = 0.95
+STRIPE_STOP = .90      # the tape ends where the ribbed cuff is sewn on
+LUM = np.array([.213, .715, .072], np.float32)
 
 
 def load(path):
     return np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
 
 
-def clean(rgb):
-    """Paint out the shop's white hang tag so the cloth continues under it."""
-    lum = rgb @ np.array([.213, .715, .072], np.float32)
-    sat = rgb.max(2) - rgb.min(2)
-    bright = ((lum > 145) & (sat < 70)).astype(np.uint8)
-    bright[:620] = 0
-    bright[1500:] = 0
+def luma(img):
+    return img @ LUM
+
+
+def blur(img, sigma):
+    return cv2.GaussianBlur(img, (0, 0), sigma)
+
+
+def backdrop(img):
+    """The shop's light backdrop, as the pixels of light grey that lie outside
+    the row's dark cloth. It is the same tone as the cream tapes, so it has to
+    be told apart by where it is, not only by how bright it is."""
+    l = luma(img)
+    light = l > 190
+    cloth = l < 190
+    inside = np.zeros_like(light)
+    rows = np.arange(l.shape[0])
+    for y in range(l.shape[0]):
+        xs = np.where(cloth[y])[0]
+        xs = xs[(xs > 30) & (xs < l.shape[1] - 30)]
+        if len(xs) < 6:
+            continue
+        inside[y, xs.min():xs.max() + 1] = True
+    inside = cv2.morphologyEx(inside.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8)) > 0
+    return light & ~inside
+
+
+def cloth_tone(img, region=None):
+    """The albedo of the garment's black cotton: the median of its dark pixels."""
+    l = luma(img)
+    mask = (l > 6) & (l < 55)
+    if region is not None:
+        mask &= region
+    pixels = img[mask]
+    if not len(pixels):
+        return np.array([22, 21, 26], np.float32)
+    return np.median(pixels, axis=0).astype(np.float32)
+
+
+def flatten(img, sigma=64.0, low=0.72, high=1.55):
+    """Divide out the studio's illumination, keeping the cloth's own detail.
+
+    The field is a normalised blur of the luminance over the dark cloth only, so
+    bright features (the cream tapes, the zipper, the trefoil) do not pull it.
+    Everything is then scaled by `tone/field`, which leaves knit, seams and
+    stitching untouched but makes the panel one flat albedo.
+    """
+    l = luma(img)
+    cloth = (l < 60).astype(np.float32)
+    den = blur(cloth, sigma)
+    if float(den.max()) < .2:
+        return img.copy()
+    field = blur(l * cloth, sigma) / np.maximum(den, 1e-4)
+    tone = float(np.median(field[cloth > .5])) if cloth.any() else float(l.mean())
+    gain = np.clip(tone / np.maximum(field, 1e-3), low, high)
+    return np.clip(img * gain[..., None], 0, 255)
+
+
+def clean_tag(img, tone):
+    """Paint out the shop's white hang tag at the neck with the cloth's tone.
+
+    The tag sits over the front neck opening, where the hood and the collar
+    cover the cloth in wear. Filling it with the garment's own black leaves no
+    white speck to bleed through the collar rings.
+    """
+    out = img.copy()
+    l = luma(out)
+    sat = out.max(2) - out.min(2)
+    bright = ((l > 120) & (sat < 60)).astype(np.uint8)
+    bright[backdrop(out)] = 0
+    zone = np.zeros_like(bright)
+    zone[600:900, int(CX) - 90:int(CX) + 90] = 1
+    bright &= zone
+    if not bright.any():
+        return out
     n, lab, stats, _ = cv2.connectedComponentsWithStats(bright, 8)
     holes = np.zeros_like(bright)
     for i in range(1, n):
         x, y, w, h, area = stats[i]
-        # The hang tag is the only compact bright shape at the neck; the three
-        # stripes are long bands and the zip a narrow column.
-        if 12 <= w <= 70 and 10 <= h <= 130 and area <= 9000 and x + w > 400 and x < 540:
-            holes[max(0, y - 3):y + h + 3, max(0, x - 3):x + w + 3] = 1
-    if holes.any():
-        rgb = cv2.inpaint(rgb.astype(np.uint8), holes, 5, cv2.INPAINT_TELEA).astype(np.float32)
-    return rgb
+        if area < 40:
+            continue
+        holes[max(0, y - 3):y + h + 3, max(0, x - 3):x + w + 3] = 1
+    holes = cv2.dilate(holes, np.ones((5, 5), np.uint8))
+    out[holes > 0] = tone
+    return out
 
 
-def without_logo(rgb):
-    """The chest trefoil belongs to the body, not to the sleeve beside it."""
-    out = rgb.copy()
-    patch = out[912:958, 516:584]
-    mask = np.zeros(out.shape[:2], np.uint8)
-    lum = patch @ np.array([.213, .715, .072], np.float32)
-    mask[912:958, 516:584] = (lum > 70).astype(np.uint8)
-    return cv2.inpaint(out.astype(np.uint8), mask, 6, cv2.INPAINT_TELEA).astype(np.float32)
-
-
-def without_stripes(rgb):
-    """The front lay again, with the three cream sleeve stripes taken out.
-
-    The body's side seams are hidden under the sleeves in a flat lay, so the
-    torso unwrap has to read those columns from the sleeve. Left in, the cream
-    bands would be painted down the sides of the body as bright wedges.
-    """
-    lum = rgb @ np.array([.213, .715, .072], np.float32)
-    sat = rgb.max(2) - rgb.min(2)
-    bright = ((lum > 105) & (sat < 70)).astype(np.uint8)
+def stripe_mask_like(img):
+    """The cream sleeve tapes, as one mask."""
+    l = luma(img)
+    sat = img.max(2) - img.min(2)
+    bright = ((l > 100) & (l < 225) & (sat < 75)).astype(np.uint8)
+    bright[backdrop(img)] = 0
     bright[:620] = 0
     bright[1500:] = 0
     n, lab, stats, _ = cv2.connectedComponentsWithStats(bright, 8)
     mask = np.zeros_like(bright)
     for i in range(1, n):
         x, y, w, h, area = stats[i]
-        # The stripes are long, thin, diagonal bands; the trefoil is compact.
-        if area > 500 and 45 < h < 700 and 12 < w < 320:
-            mask[max(0, y - 4):y + h + 4, max(0, x - 4):x + w + 4] = 1
-    mask = cv2.dilate(mask, np.ones((7, 7), np.uint8))
-    out = cv2.inpaint(rgb.astype(np.uint8), mask, 8, cv2.INPAINT_TELEA).astype(np.float32)
-    # Inpainting a band this wide pulls from the light backdrop above the
-    # shoulder, which would paint a pale patch onto the body's shoulder. Those
-    # columns are under the sleeve in the photograph, so flat cloth is honest.
-    cloth = rgb[lum < 60]
-    fill = np.median(cloth, axis=0) if len(cloth) else np.array([26, 24, 27], np.float32)
-    out[mask > 0] = fill
+        if area < 400 or not (40 < h < 720) or not (10 < w < 340):
+            continue
+        if float(luma(img)[lab == i].mean()) > 221:
+            continue    # a piece of the backdrop trapped between sleeve and body
+        # Long thin diagonal bands are the tapes; a compact blob is the trefoil
+        # or the tag, which the body has its own treatment for.
+        mask[lab == i] = 1
+    return cv2.dilate(mask, np.ones((5, 5), np.uint8)) > 0
+
+
+def without_stripes(img, tone):
+    """The lay with the sleeve tapes taken out: the cloth under them is black.
+
+    The tape sits on the sleeve's outer fold, so an inpaint along the band picks
+    up the light backdrop at its tip; anything brighter than the cloth after the
+    fill is set back to the garment's own tone.
+    """
+    mask = stripe_mask_like(img).astype(np.uint8)
+    if not mask.any():
+        return img.copy()
+    out = cv2.inpaint(img.astype(np.uint8), mask, 5, cv2.INPAINT_TELEA).astype(np.float32)
+    out[luma(out) > luma(tone) * 1.8] = tone
+    return cv2.GaussianBlur(out, (3, 3), 0)
+
+
+def without_zip(img, tone):
+    """The centre front's zipper is its own piece: the body is cloth there."""
+    out = img.copy()
+    l = luma(out)
+    band = np.zeros(l.shape, bool)
+    band[620:1560, int(CX) - 10:int(CX) + 11] = True
+    sel = band & (l > 45)
+    out[sel] = tone
     return out
 
 
 def cloth_mask(img):
-    """Where cloth is: the dark fabric plus the cream stripes that cross it."""
-    lum = img @ np.array([.213, .715, .072], np.float32)
+    l = luma(img)
     sat = img.max(2) - img.min(2)
-    mask = lum < 170
-    bright = ((lum > 105) & (sat < 70)).astype(np.uint8)
-    bright[:620] = 0
-    bright[1500:] = 0
-    n, lab, stats, _ = cv2.connectedComponentsWithStats(bright, 8)
-    for i in range(1, n):
-        x, y, w, h, area = stats[i]
-        if area > 500 and 45 < h < 700 and 12 < w < 320:
-            mask[lab == i] = True
-    return cv2.dilate(mask.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
+    mask = (l < 165) | ((l > 100) & (l <= 165) & (sat > 12))
+    mask[:600] = False
+    mask[1560:] = False
+    return mask
 
 
 def silhouette(img):
-    """Left and right edge of the garment on every row, from the dark cloth."""
-    lum = img @ np.array([.213, .715, .072], np.float32)
-    dark = (lum < 170) & (np.arange(lum.shape[1])[None, :] >= 0)
-    left = np.full(lum.shape[0], np.nan, np.float32)
-    right = np.full(lum.shape[0], np.nan, np.float32)
-    for y in range(lum.shape[0]):
-        xs = np.where(dark[y])[0]
+    """Left and right edge of the garment on every row, cream tapes included."""
+    l = luma(img)
+    cloth = l < 220
+    left = np.full(l.shape[0], np.nan, np.float32)
+    right = np.full(l.shape[0], np.nan, np.float32)
+    for y in range(l.shape[0]):
+        xs = np.where(cloth[y])[0]
+        xs = xs[(xs > 30) & (xs < l.shape[1] - 30)]
         if len(xs) < 6:
             continue
         left[y] = xs.min(); right[y] = xs.max()
@@ -150,22 +237,6 @@ def silhouette(img):
     left[~good] = np.interp(idx[~good], idx[good], left[good])
     right[~good] = np.interp(idx[~good], idx[good], right[good])
     return left, right
-
-
-def _backdrop(img, x, y, dx, dy, limit):
-    """Distance along (dx, dy) until the photograph's light backdrop begins."""
-    lum = img @ np.array([.213, .715, .072], np.float32)
-    h, w = lum.shape
-    step = 2.0
-    d = 0.0
-    while d < limit:
-        xi = int(round(x + dx * d)); yi = int(round(y + dy * d))
-        if xi < 0 or yi < 0 or xi >= w or yi >= h:
-            return d
-        if lum[yi, xi] > 150:
-            return d
-        d += step
-    return limit
 
 
 def bilinear(img, xs, ys):
@@ -176,6 +247,36 @@ def bilinear(img, xs, ys):
     fx = (xs - x0)[..., None]; fy = (ys - y0)[..., None]
     a = img[y0, x0]; b = img[y0, x0 + 1]; c = img[y0 + 1, x0]; d = img[y0 + 1, x0 + 1]
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+
+
+def body_edge(img):
+    """How far the torso itself reaches from the centre, row by row.
+
+    The sleeves hang over the body's sides in a flat lay, with the tapes and the
+    backdrop showing in between, so the last cloth pixel before that is the
+    furthest the photograph can tell us about the body. A wide median keeps
+    bright details (the chest trefoil) from being mistaken for the edge.
+    """
+    l = luma(img)
+    bright = l > 150
+    h, w = bright.shape
+    edge = np.zeros(h, np.float32)
+    cx = int(round(CX))
+    inner = 70          # the zip line itself is bright; start past it
+    for y in range(h):
+        row = bright[y]
+        x = cx + inner
+        while x < w - 1 and not row[x]:
+            x += 1
+        right = x - cx
+        x = cx - inner
+        while x > 0 and not row[x]:
+            x -= 1
+        left = cx - x
+        edge[y] = max(0, min(left, right) - 8)
+    pad = 30
+    padded = np.pad(edge, pad, mode='edge')
+    return np.array([np.median(padded[i:i + 2 * pad + 1]) for i in range(h)])
 
 
 pieces = np.load(WORK / 'pieces.npz')
@@ -192,26 +293,18 @@ def piece(name, frame='torso', nth=0):
     raise KeyError(name)
 
 
-def grid(pos):
-    n = len(pos)
-    for cols in range(30, 100):
-        if n % (cols + 1) == 0:
-            return n // (cols + 1) - 1, cols
-    raise ValueError(n)
-
-
 def ring_perimeter(ring):
     return float(np.linalg.norm(np.diff(ring, axis=0), axis=1).sum() + np.linalg.norm(ring[0] - ring[-1]))
 
 
-def perimeters(name, rows, frame='torso', nth=0, cols=64):
+def perimeters(name, rows, frame='torso', nth=0, cols=34):
     """Perimeter of the section at each of `rows` evenly spaced heights."""
     pos = piece(name, frame, nth)
     panel_rows = len(pos) // (cols + 1) - 1
     rings = pos.reshape(panel_rows + 1, cols + 1, 3)
     out = []
     for r in range(rows):
-        t = r / (rows - 1) * panel_rows
+        t = r / max(1, rows - 1) * panel_rows
         i = min(panel_rows - 1, int(t)); f = t - i
         ring = rings[i] * (1 - f) + rings[i + 1] * f
         ring[-1] = ring[0]
@@ -221,9 +314,9 @@ def perimeters(name, rows, frame='torso', nth=0, cols=64):
 
 def normal_from(img, strength=1.0):
     """Relief from the knit and the seams, read only as a gentle tilt."""
-    lum = img @ np.array([.213, .715, .072], np.float32)
-    fine = lum - cv2.GaussianBlur(lum, (0, 0), 4.0)
-    fine = cv2.GaussianBlur(fine, (0, 0), .7)
+    l = luma(img)
+    fine = l - blur(l, 4.0)
+    fine = blur(fine, .7)
     gy, gx = np.gradient(fine)
     grad = np.maximum(np.hypot(gx, gy), 1e-6)
     scale = .32 * strength / max(float(np.percentile(grad, 90)), 1e-6)
@@ -235,59 +328,32 @@ def normal_from(img, strength=1.0):
 
 
 def roughness_from(img):
-    lum = img @ np.array([.213, .715, .072], np.float32)
-    base = cv2.GaussianBlur(lum, (0, 0), 18)
-    fine = lum - base
-    r = .90 - .05 * (fine / 20.0) - .02 * (base - 40) / 60.0
-    return np.clip(r, .72, .99)
-
-
-def body_edge(img):
-    """How far the torso itself reaches from the centre, row by row.
-
-    The sleeves hang over the body's sides in a flat lay, with backdrop showing
-    in between, so the last cloth pixel before that backdrop is the furthest the
-    photograph can tell us about the body. A wide median keeps bright details
-    (the chest trefoil) from being mistaken for the edge.
-    """
-    lum = img @ np.array([.213, .715, .072], np.float32)
-    bright = lum > 150
-    h, w = bright.shape
-    edge = np.zeros(h, np.float32)
-    cx = int(round(CX))
-    inner = 70          # the zip line itself is bright; start past it
-    for y in range(h):
-        row = bright[y]
-        x = cx + inner
-        while x < w - 1 and not row[x]:
-            x += 1
-        right = x - cx
-        x = cx - inner
-        while x > 0 and not row[x]:
-            x -= 1
-        left = cx - x
-        edge[y] = max(0, min(left, right) - 10)
-    pad = 30
-    padded = np.pad(edge, pad, mode='edge')
-    out = np.array([np.median(padded[i:i + 2 * pad + 1]) for i in range(h)])
-    return out
+    l = luma(img)
+    base = blur(l, 18)
+    fine = l - base
+    r = .94 - .02 * (fine / 20.0)
+    return np.clip(r, .86, .99)
 
 
 def bake_body(front, back, front_edge, back_edge):
+    """u 0 = centre front, 0.25 = right side, 0.5 = centre back, 0.75 = left.
+
+    The two photographs meet at the side seams, which is where the flat lay
+    stops showing the body: the front's right edge and the back's left edge are
+    the same seam, because the back lay is flipped over.
+    """
     us = (np.arange(BODY_SIZE) + .5) / BODY_SIZE
     vs = np.arange(BODY_SIZE) / (BODY_SIZE - 1)
     ys = TOP + vs * BODY_LEN * 100 * PXPCM
-    dist_front = np.where(us < .25, us, -(1.0 - us)) * 4.0
-    dist_back = np.where(us < .5, .5 - us, us - .5) * 4.0
+    dist_front = np.where(us < .25, us, us - 1.0) * 4.0
+    dist_back = (us - .5) * 4.0
     front_side = (us < .25) | (us >= .75)
     rows = np.arange(len(front_edge))
     out = np.zeros((BODY_SIZE, BODY_SIZE, 3), np.float32)
     for r in range(BODY_SIZE):
-        y = np.full(BODY_SIZE, ys[r], np.float32)
-        half = np.interp(ys[r], rows, front_edge)
-        xf = CX + dist_front * half
-        half_b = np.interp(ys[r], rows, back_edge)
-        xb = CX + dist_back * half_b
+        y = np.full(BODY_SIZE, ys[r] if ys[r] < len(front_edge) else rows[-1], np.float32)
+        xf = CX + dist_front * np.interp(y[0], rows, front_edge)
+        xb = CX + dist_back * np.interp(y[0], rows, back_edge)
         out[r, front_side] = bilinear(front, xf[front_side], y[front_side])
         out[r, ~front_side] = bilinear(back, xb[~front_side], y[~front_side])
     # Feather the side seams where the two photographs meet.
@@ -302,67 +368,62 @@ def bake_body(front, back, front_edge, back_edge):
     return out
 
 
-def bake_sleeve(front, back):
+def bake_sleeve(front, back, tone, cream):
     """One sleeve, unwrapped as the flat lay shows it.
 
-    u = 0 is the outer edge of the sleeve, u = 0.5 the inner edge (under the
-    arm), u = 1 the outer edge again. The two photographs each give one half.
-    The strip is anchored on the sleeve's silhouette, so the cream stripes stay
-    at the same fraction of the sleeve's width as on the garment itself.
+    u = 0 is the outer fold of the sleeve, u = 0.5 the inner one (under the
+    arm), u = 1 the outer fold again, so the atlas holds the full circumference
+    and the two photographs each give one face. The row's width comes from the
+    pattern's own section perimeter, in the photograph's pixels-per-centimetre:
+    the flat lay's sleeve is angled and partly hidden by the body, so its
+    silhouette cannot be trusted to say how wide the cloth is.
     """
     w, h = SLEEVE_SIZE
     per = perimeters('Sleeve', h, 'arm0', 0, 34)
     # The first rows are the cap that folds over the shoulder; their section is
-    # a small ring at the neck, which would collapse the strip and smear the
-    # stripes over the whole shoulder. Hold the cap at the sleeve's own width.
-    cap = int(.08 * h)
+    # a small ring at the neck, which would collapse the band and smear the
+    # tapes over the whole shoulder. Hold the cap at the sleeve's own width, and
+    # take the row-to-row noise out of the rest so the tapes run truly straight.
+    cap = int(.07 * h)
     per[:cap] = per[cap]
+    per = cv2.GaussianBlur(per.reshape(-1, 1), (0, 0), 6).ravel()
     us = (np.arange(w) + .5) / w
-    vs = np.arange(h) / (h - 1)
+    vs = (np.arange(h) + .5) / h
+    left_f, right_f = silhouette(front)
+    left_b, right_b = silhouette(back)
+    y0, y1 = SLEEVE_ROWS
     out = np.zeros((h, w, 3), np.float32)
     front_sel = us < .5
     across_front = us * 2.0
     across_back = 1.0 - (us - .5) * 2.0
-    left_edge, right_edge = silhouette(front)
-    mask = cloth_mask(front)
-    cloth_px = front[mask]
-    fill = np.median(cloth_px, axis=0)
-    for arm in (-1, 1):
-        (sx, sy), (ex, ey) = SLEEVE_AXIS[arm]
-        length = np.hypot(ex - sx, ey - sy)
-        dx, dy = (ex - sx) / length, (ey - sy) / length
-        # Across the sleeve, pointing from the outer edge towards the body.
-        px, py = (dy, -dx) if arm < 0 else (-dy, dx)
-        for r in range(h):
-            along = vs[r] * length
-            half = per[r] / 4 * 100 * PXPCM
-            ax, ay = sx + dx * along, sy + dy * along
-            row = int(np.clip(round(ay), 0, len(left_edge) - 1))
-            edge = left_edge[row] if arm < 0 else right_edge[row]
-            ox = edge + (4.0 if arm < 0 else -4.0)
-            oy = ay
-            width = min(2 * half, 170.0)
-            for sel, img, across in ((front_sel, front, across_front),
-                                     (~front_sel, back, across_back)):
-                if not sel.any():
-                    continue
-                off = across[sel] * width
-                xs = ox + px * off
-                ys = oy + py * off
-                # Where the sample runs off the cloth (the backdrop between the
-                # sleeve and the body), the garment itself has nothing to show:
-                # that part of the sleeve is folded under the arm in the photo.
-                # It is filled with the cloth's own tone instead of the backdrop.
-                xi = np.clip(xs.astype(np.int32), 0, mask.shape[1] - 1)
-                yi = np.clip(ys.astype(np.int32), 0, mask.shape[0] - 1)
-                ok = mask[yi, xi]
-                sampled = bilinear(img, xs, ys)
-                sampled[~ok] = fill
-                out[r, sel] = sampled
+    for r in range(h):
+        y = y0 + vs[r] * (y1 - y0)
+        half_px = per[r] / 2 * 100 * PXPCM      # half the circumference, in px
+        row = int(np.clip(round(y), 0, len(left_f) - 1))
+        out[r, front_sel] = bilinear(front, left_f[row] + 3 + across_front[front_sel] * half_px,
+                                     np.full(int(front_sel.sum()), y, np.float32))
+        out[r, ~front_sel] = bilinear(back, left_b[row] + 3 + across_back[~front_sel] * half_px,
+                                      np.full(int((~front_sel).sum()), y, np.float32))
+    # The tapes: three parallel bands a fixed distance from the outer fold. In
+    # arc terms that is a fraction of the row's circumference, so they run
+    # straight down the atlas and stay crisp instead of following the
+    # photograph's wandering silhouette.
+    u = np.arange(w) / w
+    shade = np.ones((h, w), np.float32)
+    for centre in STRIPES:
+        start = centre - STRIPE_W / 2
+        end = centre + STRIPE_W / 2
+        u0 = start / (per * 100)[:, None]
+        u1 = end / (per * 100)[:, None]
+        band = np.clip((u[None, :] - u0) * w, 0, 1) - np.clip((u[None, :] - u1) * w, 0, 1)
+        band *= (vs[:, None] < STRIPE_STOP)
+        shade = np.minimum(shade, 1.0 - band)
+    cloth = np.broadcast_to(tone, out.shape)
+    out = cloth * shade[..., None] + cream * (1.0 - shade[..., None])
     return out
 
 
-def bake_hood(back):
+def bake_hood(back, tone):
     h = HOOD_SIZE
     x0, y0, x1, y1 = HOOD_BOX
     us = (np.arange(h) + .5) / h
@@ -370,8 +431,11 @@ def bake_hood(back):
     xs = x0 + us * (x1 - x0)
     out = np.zeros((h, h, 3), np.float32)
     for r in range(h):
-        y = np.full(h, y0 + vs[r] * (y1 - y0), np.float32)
-        out[r] = bilinear(back, xs, y)
+        out[r] = bilinear(back, xs, np.full(h, y0 + vs[r] * (y1 - y0), np.float32))
+    # The box's corners hold the light backdrop; on the hood every pixel is
+    # cloth, so anything bright is the backdrop showing where the box overruns.
+    l = luma(out)
+    out[l > 70] = tone
     return out
 
 
@@ -384,17 +448,32 @@ def bake_zip():
 
 
 def main():
-    front = clean(load(FRONT))
-    back = clean(load(BACK))
-    plain = without_stripes(front)
+    front_raw = load(FRONT)
+    back_raw = load(BACK)
+    tone = cloth_tone(front_raw)
+    print('cloth tone', tone.round(1))
+
+    cream = np.percentile(front_raw[stripe_mask_like(front_raw)], 72, axis=0)
+    front_tag = clean_tag(front_raw, tone)
+    back_tag = clean_tag(back_raw, tone)
+    front = flatten(front_tag)
+    back = flatten(back_tag)
+    # The tapes are painted from the pattern's own circumference, so the
+    # photograph's own tapes must come out of the base or they show through as
+    # a second, doubled set that follows the flat lay.
+    front_plain = flatten(without_zip(without_stripes(front_tag, tone), tone))
+    back_plain = flatten(without_stripes(back_tag, tone))
+    cream = np.clip(cream * 1.0, 0, 255).astype(np.float32)
+    print('cream', cream.round(1))
+
     Image.fromarray(front.astype(np.uint8)).save(WORK / 'front-clean.png')
     Image.fromarray(back.astype(np.uint8)).save(WORK / 'back-clean.png')
-    Image.fromarray(plain.astype(np.uint8)).save(WORK / 'front-plain.png')
+    Image.fromarray(front_plain.astype(np.uint8)).save(WORK / 'front-plain.png')
 
     jobs = {
-        'body': bake_body(plain, back, body_edge(plain), body_edge(back)),
-        'sleeve': bake_sleeve(without_logo(front), back),
-        'hood': bake_hood(back),
+        'body': bake_body(front_plain, back_plain, body_edge(front_raw), body_edge(back_raw)),
+        'sleeve': bake_sleeve(front_plain, back_plain, tone, cream),
+        'hood': bake_hood(back, tone),
         'zip': bake_zip(),
     }
     for name, img in jobs.items():

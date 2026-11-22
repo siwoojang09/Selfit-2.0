@@ -7,7 +7,7 @@
 // colour image to `bumpMap` only nudged the diffuse term, so the knit read as a
 // flat print: with a normal map the same relief bends the light, and fleece gets
 // the grazing-angle bloom (`sheen`) a plain standard material cannot express.
-import { weaveMapsFor, applySheen } from './fabric-pbr.mjs?v=2026-11-22m8';
+import { weaveMapsFor, applySheen } from './fabric-pbr.mjs?v=2026-11-23a';
 
 const textiles = {
   knit: { tileM: .032, roughness: .90, relief: { radius: 1, strength: 1.35, contrast: .16, crown: 1 },
