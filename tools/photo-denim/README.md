@@ -34,10 +34,25 @@
 밑위 위(좌판)에서는 한 줄이 정·후면 판 전체 폭을 덮고, 밑위 아래(다리)에서는
 그 다리의 보이는 반쪽만 덮습니다. 두 매핑은 패턴의 fork 값으로 이어 붙입니다.
 
+## 한 벌뿐인 바지
+
+`washed-denim-medium-blue`는 사진 에셋이 유일한 바지입니다. 실측 패턴은 크기·보행
+변형을 계산할 뿐, 허리·지퍼·포켓을 모델링한 옛 청바지는 이 상품에 짓지 않습니다.
+모델·사이즈·상의를 바꿔 룩이 새로 만들어져도 에셋을 함께 넘기고, 이미 만든
+룩도 에셋이 도착하면 갈아입습니다. 에셋이 아직 없으면 바지를 감추고, 상품이
+아닌 다른 데님 바지(직접 등록한 샘플)는 자기 패턴으로 그립니다.
+
 ## 캐시와 버전
 
 `photo-denim.mjs`의 `ASSET_VERSION`은 GLB를 다시 구울 때 함께 올립니다. GitHub Pages가
 파일을 10분간 캐시하므로, 버전을 올리지 않으면 새 원단 대신 예전 파일이 로드됩니다.
 
-`document.documentElement.dataset.denim`에 마지막 적용 상태(`parsing …`, `worn 6`,
-`failed …`)가 남습니다. 브라우저에서 `document.documentElement.dataset.denim`으로 확인합니다.
+스크립트도 같은 이유로 빌드 버전을 붙입니다. `fitting.html`(engine.js, app.js),
+`engine.js`(scene.mjs), 그리고 `scene.mjs`·`app.js`(photo-denim.mjs), `scene.mjs`
+(wardrobe.mjs), `wardrobe.mjs`(measured-pants.mjs)의 import에 같은 문자열이 들어
+있습니다(`2026-11-22k2`). 이 모듈들을 고쳐 배포할 때는 **다섯 파일의 문자열을 함께
+올려야** 하며, 같은 URL로 두 번 배포하면 브라우저가 예전 스크립트를 계속 씁니다.
+
+`document.documentElement.dataset.denim`에 마지막 적용 상태가 남습니다: `loading`
+(에셋을 기다리는 중), `parsing …`, `worn 6`, `mismatch`(조각 수가 맞지 않음),
+`failed …`. 브라우저에서 `document.documentElement.dataset.denim`으로 확인합니다.
