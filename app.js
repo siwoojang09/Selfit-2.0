@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23i';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23i';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23i';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23i';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23i';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23i';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23j';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23j';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23j';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23j';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23j';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23j';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -108,7 +108,11 @@ function wornRows(){
   const rows=[];
   const topItem=isPants()?activeTop:selected;
   const topSize=isPants()?(upper?.measurements?.label||'M'):size;
-  if(topItem)rows.push({item:topItem,role:'상의',size:topSize});
+  if(isPants()&&!upper){
+    // Only a lower garment was asked for, so the scene wears the plain studio
+    // crew it builds for that fitting — not the sample last looked at.
+    rows.push({item:{name:'스튜디오 크루넥',brand:'',virtual:true},role:'상의',size:'M'});
+  }else if(topItem)rows.push({item:topItem,role:'상의',size:topSize});
   const bottomItem=isPants()?selected:activePants;
   rows.push(bottomItem?{item:bottomItem,role:'하의',size:isPants()?size:(pants?.measurements?.label||size)}:{item:null,role:'하의',size:null});
   return rows;
@@ -122,13 +126,13 @@ function renderWorn(){
     if(item?.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';thumb.append(image);}
     const meta=document.createElement('div');meta.className='worn-meta';
     const brandEl=document.createElement('small'),nameEl=document.createElement('strong'),sizeEl=document.createElement('span');
-    brandEl.textContent=item?brandName(item):'—';
+    brandEl.textContent=item?(item.virtual?'DRAPE STUDIO':brandName(item)):'—';
     nameEl.textContent=item?item.name:(role==='하의'?'하의를 골라보세요':'선택 없음');
     sizeEl.textContent=item?(role+' · '+size+' 사이즈'):role;
     meta.append(brandEl,nameEl,sizeEl);
     const go=document.createElement('span');go.className='worn-go';go.innerHTML=icon('chevron');
     row.append(thumb,meta,go);
-    if(item)row.onclick=()=>choose(item);
+    if(item&&!item.virtual)row.onclick=()=>choose(item);
     list.append(row);
   }
   const rail=$('wornRail');rail.replaceChildren();
@@ -139,7 +143,7 @@ function renderWorn(){
     button.setAttribute('aria-label',button.title);
     if(item?.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';button.append(image);}
     else button.textContent=role;
-    if(item)button.onclick=()=>choose(item);
+    if(item&&!item.virtual)button.onclick=()=>choose(item);
     rail.append(button);
   }
 }
