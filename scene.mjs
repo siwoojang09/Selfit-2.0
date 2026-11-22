@@ -403,11 +403,16 @@ export function createScene(container, opts) {
     if (hasPhotoGarment(opts.pants) && !wardrobe.denimAsset && !denimRequested) {
       denimRequested = true;
       loadGarmentAsset(opts.pants.id).then(asset => {
-        if (wardrobe.setDenimAsset(asset)) {
+        const worn = wardrobe.setDenimAsset(asset);
+        document.documentElement.dataset.denim = worn ? 'worn ' + asset.parts.length : 'mismatch';
+        if (worn) {
           settle();
           dirty = true;
         }
-      }).catch(error => console.warn('denim asset', error));
+      }).catch(error => {
+        document.documentElement.dataset.denim = 'failed ' + (error && error.message || error);
+        console.warn('denim asset', error);
+      });
     }
     if (opts.pants && (opts.pants.material||'denim')==='denim' && !wardrobe.denimAsset) {
       if(!lower.userData.measuredWash){

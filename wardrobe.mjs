@@ -328,12 +328,16 @@ function applyPhotoAsset(garment,asset){
   const pieces=garment.parts||[];
   if(pieces.length!==asset.parts.length){
     console.warn('denim asset has',asset.parts.length,'pieces, the pattern has',pieces.length);
+    document.documentElement.dataset.denim='pieces '+asset.parts.length+'/'+pieces.length;
     return false;
   }
   let worn=0;
   pieces.forEach((piece,i)=>{
     const part=asset.parts[i];
-    if(!part||part.count!==piece.rest.length/3)return;
+    if(!part||part.count!==piece.rest.length/3){
+      document.documentElement.dataset.denim='verts '+i+' '+part?.count+'/'+(piece.rest.length/3);
+      return;
+    }
     piece.mesh.geometry=part.geometry.clone();
     piece.mesh.material=part.material;
     worn++;
