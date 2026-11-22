@@ -1,8 +1,8 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23o';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23o';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23p';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23p';
 
 export function attachAnatomicalBody(source, root, parts) {
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
@@ -82,7 +82,7 @@ export function attachAnatomicalBody(source, root, parts) {
         visible[i]=y<hemEdge && y>.06 || (bareWaist && y>waistEdge && y<topHem);
         continue;
       }
-      visible[i]=y>1.49 || (y>1.423 && x<.058) || (bareWaist && y<topHem && y>waistEdge);
+      visible[i]=y>1.49 || (y>1.458 && x<.052) || (bareWaist && y<topHem && y>waistEdge);
     }
     const a=full.array,kept=[];
     // A triangle with a single visible corner is a spike: at the neckline it
