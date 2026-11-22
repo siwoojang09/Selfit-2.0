@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-22m4';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22m5';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22m4';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22m5';
 import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-22a';
 import { createSoftwareRenderer } from './software.mjs';
 
@@ -605,6 +605,14 @@ export function createScene(container, opts) {
   }
   update(opts);
   requestAnimationFrame(draw);
+  // A small read-only handle for the asset diagnostics the fitting screen's
+  // `dataset` flags point at (`document.documentElement.dataset.hoodie`).
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, '__selfit', {value: {
+      get top(){ return sampleGarment?.inspect?.() || null; },
+      get hoodie(){ return hoodieAsset ? hoodieAsset.parts.length : 0; }
+    }, configurable: true});
+  }
   return {update, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
     reset() {yaw = targetYaw = .045; pitch = targetPitch = .045;}};
 }

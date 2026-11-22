@@ -709,7 +709,16 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     materials.forEach(m=>{m.wireframe=!!options.wireframe;});
   }
   update(initial);
-  return {update,pose,get hemRise(){return contact?.rise||0;},
+  return {update,pose,
+    inspect(){
+      const out=[];
+      for(const g of members) g.traverse(m=>{ if(m.isMesh) out.push({name:m.name,
+        hasUv:Boolean(m.geometry.attributes.uv), uvCount:m.geometry.attributes.uv?.count||0,
+        count:m.geometry.attributes.position.count, material:m.material?.name||'',
+        map:m.material?.map?.image?.width||0}); });
+      return out;
+    },
+    get hemRise(){return contact?.rise||0;},
     get secondary(){return {hem:hemSolver?hemSolver.hem:0,peak:hemSolver?hemSolver.peak:0,
       sleeve:sleeveSolvers.reduce((m,s)=>Math.max(m,s.peak),0),crease:creaseAmp};},
     get probe(){return probePieces.map(p=>p.index.map(i=>{
