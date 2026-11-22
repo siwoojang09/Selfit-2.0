@@ -108,8 +108,15 @@ def without_stripes(rgb):
         # The stripes are long, thin, diagonal bands; the trefoil is compact.
         if area > 500 and 45 < h < 700 and 12 < w < 320:
             mask[max(0, y - 4):y + h + 4, max(0, x - 4):x + w + 4] = 1
-    mask = cv2.dilate(mask, np.ones((5, 5), np.uint8))
-    return cv2.inpaint(rgb.astype(np.uint8), mask, 8, cv2.INPAINT_TELEA).astype(np.float32)
+    mask = cv2.dilate(mask, np.ones((7, 7), np.uint8))
+    out = cv2.inpaint(rgb.astype(np.uint8), mask, 8, cv2.INPAINT_TELEA).astype(np.float32)
+    # Inpainting a band this wide pulls from the light backdrop above the
+    # shoulder, which would paint a pale patch onto the body's shoulder. Those
+    # columns are under the sleeve in the photograph, so flat cloth is honest.
+    cloth = rgb[lum < 60]
+    fill = np.median(cloth, axis=0) if len(cloth) else np.array([26, 24, 27], np.float32)
+    out[mask > 0] = fill
+    return out
 
 
 def cloth_mask(img):

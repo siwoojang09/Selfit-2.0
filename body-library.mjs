@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {loadAnatomy} from './anatomy-assets/load.mjs?v=2026-11-22m7';
+import {loadAnatomy} from './anatomy-assets/load.mjs?v=2026-11-22m8';
 
 const [female,male]=await Promise.all(['female','male'].map(model=>loadAnatomy(model,THREE)));
 export const anatomyLibrary={female,male};
