@@ -47,11 +47,10 @@
 `photo-denim.mjs`의 `ASSET_VERSION`은 GLB를 다시 구울 때 함께 올립니다. GitHub Pages가
 파일을 10분간 캐시하므로, 버전을 올리지 않으면 새 원단 대신 예전 파일이 로드됩니다.
 
-스크립트도 같은 이유로 빌드 버전을 붙입니다. `fitting.html`(engine.js, app.js),
-`engine.js`(scene.mjs), 그리고 `scene.mjs`·`app.js`(photo-denim.mjs), `scene.mjs`
-(wardrobe.mjs), `wardrobe.mjs`(measured-pants.mjs)의 import에 같은 문자열이 들어
-있습니다(`2026-11-22k3`). 이 모듈들을 고쳐 배포할 때는 **다섯 파일의 문자열을 함께
-올려야** 하며, 같은 URL로 두 번 배포하면 브라우저가 예전 스크립트를 계속 씁니다.
+스크립트도 같은 이유로 빌드 버전을 붙입니다. 지금은 모든 로컬 모듈 import와
+`fitting.html`·`index.html`의 스크립트 태그가 같은 문자열(`?v=...`)을 달고 있습니다.
+이 모듈들을 고쳐 배포할 때는 **모든 파일의 문자열을 함께 올려야** 하며, 같은 URL로 두 번
+배포하면 브라우저가 예전 스크립트를 계속 씁니다.
 
 `document.documentElement.dataset.denim`에 마지막 적용 상태가 남습니다: `loading`
 (에셋을 기다리는 중), `parsing …`, `worn 6`, `mismatch`(조각 수가 맞지 않음),

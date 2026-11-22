@@ -33,6 +33,9 @@ reference-store.mjs   내 옷(기준 옷) 실측 저장
 compare-fit.mjs       사이즈 비교 도표(SVG) 생성
 register-fit.mjs      샘플 등록 UI, 택 OCR(Tesseract.js) 연동
 
+photo-denim.mjs       실사 사진 데님 에셋 로더 (assets/washed-denim-medium-blue.glb)
+photo-hoodie.mjs      실사 사진 집업 에셋 로더 (assets/adidas-kc9315.glb)
+
 scene.mjs             3D 씬 구성, 직물 텍스처, 보행 시뮬레이션
 mannequin.mjs         3D 마네킹 생성
 body-library.mjs      인체 메쉬 로더 (female/male)
@@ -57,7 +60,11 @@ looks/                모델·코디별 착장 사진
 textures/             직물 텍스처 타일
 hero.webp             기준 착장 사진(projection 용)
 vendor/three.module.js  Three.js (r160 계열 단일 모듈 파일)
+vendor/GLTFLoader.js  실사 사진 에셋(GLB) 로더
 vendor/ocr/           Tesseract.js OCR 엔진과 한/영 학습 데이터
+assets/               실물 사진으로 구운 의상 에셋 (GLB)
+tools/photo-denim/    청바지 에셋 빌드 파이프라인 (사진 → 아틀라스 → GLB)
+tools/photo-hoodie/   아디다스 집업 에셋 빌드 파이프라인
 ```
 
 ## 실행 방법
