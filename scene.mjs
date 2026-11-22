@@ -1,12 +1,13 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k8';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22m1';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k8';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22m1';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-22a';
 import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;
@@ -241,6 +242,9 @@ export function createScene(container, opts) {
   // look can wear it, so it is not a per-look request. Until then the pooled
   // jeans hide rather than stand in with the drawn pattern.
   let denimAsset = null, denimLoading = false;
+  // The photographed hoodie is one asset for the scene as well: the first look
+  // that asks for it starts the transfer, and every later look wears it at once.
+  let hoodieAsset = null, hoodieLoading = false;
   const lookCache = new Map();
   let motionSamples = [];
   const worldPoint = new THREE.Vector3();
@@ -306,6 +310,30 @@ export function createScene(container, opts) {
     lookKey=key;
     return true;
   }
+  // The hoodie is only ever the photograph: until the asset is in hand the
+  // garment is not built at all, so the drawn pattern can never appear first.
+  function adoptHoodieAsset() {
+    if (hoodieAsset) return true;
+    hoodieAsset = peekHoodieAsset();
+    if (hoodieAsset) return true;
+    if (!hoodieLoading) {
+      hoodieLoading = true;
+      document.documentElement.dataset.hoodie = 'loading';
+      loadHoodieAsset().then(asset => {
+        hoodieAsset = asset;
+        document.documentElement.dataset.hoodie = 'worn ' + asset.parts.length;
+        if (sampleGarment) sampleGarment.update({ photoHoodie: true, hoodieAsset });
+        else update({});
+        settle();
+        dirty = true;
+      }).catch(error => {
+        document.documentElement.dataset.hoodie = 'failed ' + (error && error.message || error);
+        console.warn('hoodie asset', error);
+      }).finally(() => { hoodieLoading = false; });
+    }
+    return false;
+  }
+
   // Put the photographed jeans on every look the scene holds. The first call
   // may have to wait for the transfer; after that the parsed asset is shared, so
   // a new look, a size change or a model switch wears it immediately.
@@ -439,8 +467,11 @@ export function createScene(container, opts) {
       body.anatomy.setCoverage(Boolean(opts.bodyOnly),{...opts,sample:displayTop});
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'person' in changes){
-      if(displayTop){
-        const upper={...displayTop,person:opts.person,onReady:()=>{dirty=true;}};
+      const photographed=hasPhotoHoodie(displayTop);
+      const readyToWear=!photographed||adoptHoodieAsset();
+      if(displayTop&&readyToWear){
+        const upper={...displayTop,person:opts.person,photoHoodie:photographed,
+          hoodieAsset:photographed?hoodieAsset:null,onReady:()=>{dirty=true;}};
         if(sampleGarment)sampleGarment.update(upper);
         else sampleGarment=attachSample(body,upper,wardrobe.lowerColliders);
         sampleGarment.pose(phase,opts,0);

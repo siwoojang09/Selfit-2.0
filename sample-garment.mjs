@@ -19,6 +19,10 @@ const lerp=T.MathUtils.lerp;
 const smooth=T.MathUtils.smoothstep;
 const point=(x,y,z)=>new T.Vector3(x,y,z);
 
+// The photographed hoodie: each panel takes its surface from the asset. The
+// positions stay the pattern's (so every size and every frame of the walk is
+// cut exactly as measured); the UVs and the material are the photographs'.
+let photoParts=null,photoUsed={};
 function panel(parent,mat,name,rows,cols,at) {
   const positions=[],uvs=[],indices=[];
   for(let i=0;i<=rows;i++)for(let j=0;j<=cols;j++) {
@@ -38,13 +42,21 @@ function panel(parent,mat,name,rows,cols,at) {
   const mesh=new T.Mesh(geometry,mat);
   mesh.name=name;
   mesh.castShadow=mesh.receiveShadow=true;
+  if(photoParts&&photoParts[name]) {
+    const list=photoParts[name],k=photoUsed[name]||0,part=list[k];
+    if(part&&part.uv.count===positions.length/3) {
+      photoUsed[name]=k+1;
+      geometry.setAttribute('uv',part.uv);
+      mesh.material=part.material;
+    }
+  }
   parent.add(mesh);
   return mesh;
 }
 
 function sampleProfile(rows,t) {
   const at=rows.findIndex(r=>r[0]>=t);
-  if(at<1)return (at===0?rows[0]:rows.at(-1)).slice(1);
+  if(at<1)return (at===0?rows[0]:rows[rows.length-1]).slice(1);
   const a=rows[at-1],b=rows[at],u=(t-a[0])/(b[0]-a[0]);
   return a.slice(1).map((v,i)=>lerp(v,b[i+1],u));
 }
@@ -230,6 +242,13 @@ export function attachSample(body,initial={},lowerColliders=[]) {
   function build() {
     const id=String(opts.id||opts.sampleId||'');
     const adidas=/kc9315/i.test(id)||opts.adidas===true;
+    // The photographed hoodie wears only its own asset: the drawn pockets,
+    // stripe tapes, embroidery and topstitching are left out, because every one
+    // of them is in the photograph already and a second set of lines laid over
+    // the photo reads as a ghost of the pattern.
+    const photoHoodie=adidas&&opts.photoHoodie!==false;
+    photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:null;
+    photoUsed={};
     const raw=opts.type||opts.template||'ziphoodie';
     const type=['ziphoodie','tee','shirt','polo','sweatshirt'].includes(raw)?raw:'ziphoodie';
     const hoodie=type==='ziphoodie',sweat=type==='sweatshirt',long=hoodie||sweat||type==='shirt';
@@ -249,7 +268,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       long?Math.max(.075,projectedSleeve):clamp(projectedSleeve,.075,.37);
     // Bearing circumference is twice the flat chest measurement. Convert it to an elliptical section.
     const width=clamp(chest*.00373,.166,.33);
-    const cuffHem=actual(measured.hem,chest*(hoodie?.83:.96),30,95);
+    const cuffHem=actual(measured.hem,chest*(hoodie?.845:.96),30,95);
     const hemWidth=clamp(cuffHem*.00391,.159,.33);
     const depth=clamp(width*.69,.112,.21);
     const upper=group(torso);
@@ -361,6 +380,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         return [Math.sin(a)*lerp(.054,.081+.035*back,v),1.47-.037*Math.max(c,0)**2-.132*back**2*v,Math.cos(a)*lerp(.048,.061+.05*back,v)-.020*back*v];
       });
       for(const side of [-1,1]){
+        if(photoHoodie) continue;
         panel(upper,pocketMat,'Split hand pocket',13,9,(v,u)=>{
           const x=side*lerp(.014,width*lerp(.44,.77,smooth(v,0,.8)),u);
           const t=lerp(.666+.046*u,.91,v);
@@ -405,7 +425,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         }
       }
     }
-    if(adidas){
+    if(adidas&&!photoHoodie){
       // Small three-leaf chest embroidery, cut by three horizontal stitch bars.
       const x0=width*.41,t0=.28,p=frontAt(t0,x0,.006);
       for(const d of [-1,0,1]){
@@ -419,7 +439,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       });
     }
 
-    bodyThread.attach(upper,threadMat,'Body finish topstitching');
+    if(bodyThread.indices.length&&!photoHoodie) bodyThread.attach(upper,threadMat,'Body finish topstitching');
     for(let armIndex=0;armIndex<arms.length;armIndex++){
       const {shoulder:joint,elbow}=arms[armIndex],sign=armIndex===0?-1:1;
       const mount=group(joint),cap=fit?shoulderRise+.002:.040,loose=clamp(chest/60.5,.77,1.29);
@@ -472,11 +492,11 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const sleeveThread=new StitchLines();
       addFoldedEdge({panel,parent:mount,material:cuffMat,name:'Turned cuff edge',around:sleeveAt,
         span:cap+sleeveLength,sewnAt:long?.917:.952,offset:.00095,columns:36,stitches:sleeveThread,thick:hoodie||sweat});
-      sleeveThread.attach(mount,threadMat,'Cuff join stitching');
+      if(!photoHoodie)sleeveThread.attach(mount,threadMat,'Cuff join stitching');
       if(striped){
         for(const t of [.37,.66,.91])panel(mount,cream,'Sleeve stripe',3,36,(v,u)=>sleeveAt(t+.052*v,tau*u,.0008));
       }
-      if(adidas){
+      if(adidas&&!photoHoodie){
         // Lay the tape along the union of the two sewn panels in their standing
         // pose. Its outer end follows the upper arm when the wearer moves.
         const rotation=new T.Quaternion().setFromEuler(new T.Euler(0,sign*.03,sign*(body.group.userData.armClearance||.145)));
@@ -563,7 +583,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
   }
   function update(changes) {
     opts={...opts,...changes};
-    const key=JSON.stringify([opts.id,opts.sampleId,opts.type,opts.template,opts.adidas,opts.pattern,opts.color,opts.material,opts.measurements,opts.person,opts.image||opts.photo]);
+    const key=JSON.stringify([opts.id,opts.sampleId,opts.type,opts.template,opts.adidas,opts.pattern,opts.color,opts.material,opts.measurements,opts.person,opts.image||opts.photo,Boolean(opts.hoodieAsset)]);
     if(key===signature)return;
     signature=key;revision++;clear();build();
   }

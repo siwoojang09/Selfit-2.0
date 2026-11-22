@@ -2,8 +2,8 @@ export const measurementFields=[['length','총장'],['shoulder','어깨너비'],
 export const pantsMeasurementFields=[['length','총장'],['waist','허리단면'],['hip','엉덩이단면'],['thigh','허벅지단면'],['rise','밑위'],['hem','밑단단면']];
 export const garmentTypes={ziphoodie:'후드 집업',tee:'반소매 티셔츠',shirt:'긴소매 셔츠',polo:'폴로셔츠',sweatshirt:'스웨트셔츠',pants:'바지'};
 const sizeRow=([label,length,shoulder,chest,sleeve,hem=null])=>({label,length,shoulder,chest,sleeve,hem});
-export const adidas={id:'KC9315',code:'KC9315',brand:'adidas',name:'후드 집업',colourName:'블랙 / 크림화이트',color:'#1d1c20',type:'ziphoodie',category:'outer',photo:'catalog/hoodie.webp',material:'cotton',source:'제공하신 상품 실측표',sizes:[
-  ['XXS',59,59,56,56],['XS',60,60,56,57,44],['S',61.5,60.5,58.5,57.5],['M',62,62,60.5,58],['L',64,64,62.5,58.5],['XL',66,65,68,59],['2XL',68,65.5,69,59.5],['3XL',68,66,72.5,60],['4XL',70,67,75.5,61]
+export const adidas={id:'KC9315',code:'KC9315',brand:'adidas',name:'후드 집업',colourName:'블랙 / 크림화이트',color:'#1d1c20',type:'ziphoodie',category:'outer',photo:'catalog/hoodie.webp',material:'cotton',source:'무신사 상품 실측표',sizes:[
+  ['2XS',58,58,54,56],['XS',60,60,56,57],['S',61.5,60.5,58.5,57.5],['M',62,62,60.5,58],['L',64,64,62.5,58.5],['XL',66,65,68,59],['2XL',68,65.5,69,59.5],['3XL',69,66,69.5,59.5],['4XL',70,66.5,70,60]
 ].map(sizeRow)};
 export const denim={
   id:'washed-denim-medium-blue',code:'',brand:'',name:'데미지 워시드 데님 팬츠',colourName:'미디엄 블루',

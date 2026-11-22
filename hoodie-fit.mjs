@@ -9,7 +9,7 @@ function blendStops(stops,y){
     const [a,p]=stops[i-1],[b,q]=stops[i],u=clamp((y-a)/(b-a),0,1);
     return mix(p,q,u*u*(3-2*u));
   }
-  return stops.at(-1)[1];
+  return stops[stops.length - 1][1];
 }
 
 export function wearer(model,custom={}){
@@ -24,7 +24,9 @@ export function wearer(model,custom={}){
 }
 
 export function hoodieFit(m,w){
-  const chestM=2*m.chest/100,hemM=2*(m.hem??m.chest*44/56)/100;
+  // 밑단단면은 상품 실측표에 없는 경우가 많아 가슴단면에서 0.845로 잡습니다.
+  // 무신사 플랫레이 실물 사진에서 잰 비율입니다(가슴 60.5 cm, 밑단 51 cm).
+  const chestM=2*m.chest/100,hemM=2*(m.hem??m.chest*.845)/100;
   const ease=m.chest*2-w.chest;
   const shoulderPath=m.shoulder/100,shoulderSurplus=(shoulderPath-w.shoulder/100)/2;
   // The high shoulder point sits at the neck/shoulder junction on this asset,
