@@ -30,12 +30,21 @@ def piece_idx(i):
     return data[f'p{i}_idx'].astype(np.uint32).reshape(-1, 3)
 
 
+# The panel's column count is fixed by the builder, and a vertex count can have
+# more than one divisor: 3185 is both 49x65 and 91x35. Read it from the source of
+# truth rather than guessing, or every UV lands on the wrong meridian.
+COLS = {
+    'Measured garment body': 64, 'Ribbed waistband': 68, 'Folded bottom hem': 64,
+    'Folded hood': 64, 'Lined hood opening': 60, 'Zip tape': 96,
+    'Silver coil zipper': 96, 'Sleeve': 34, 'Dropped shoulder seam': 36,
+    'Sleeve cuff': 36, 'Turned cuff edge': 36,
+}
+
+
 def columns_for(i):
-    n = meta[i]['count']
-    for cols in range(30, 110):
-        if n % (cols + 1) == 0:
-            return cols
-    raise ValueError(n)
+    cols = COLS[meta[i]['name']]
+    assert meta[i]['count'] == (meta[i]['count'] // (cols + 1)) * (cols + 1), meta[i]['count']
+    return cols
 
 
 def ring_arcs(ring):
@@ -128,7 +137,7 @@ RULES = {
     'Folded bottom hem': ('body', uv_ring),
     'Folded hood': ('hood', lambda p, c: uv_hood(p)),
     'Lined hood opening': ('hood', lambda p, c: uv_hood(p)),
-    'Zip tape': ('zip', lambda p, c: uv_zip(p)),
+    'Zip tape': ('@tape', lambda p, c: uv_zip(p)),
     'Silver coil zipper': ('zip', lambda p, c: uv_zip(p)),
     'Sleeve': ('sleeve', uv_sleeve),
     'Dropped shoulder seam': ('sleeve', uv_sleeve),
@@ -234,6 +243,13 @@ def build():
         'hood': photo_material('kc9315 hood photo', 'hood', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
         'zip': photo_material('kc9315 zip photo', 'zip', [0.42, 0.42, 0.42], [0.0, 0.0, 0.0]),
     }
+    # The zip's cloth tape is plain black webbing; only the teeth are metal, so
+    # the photographed strip goes on the coil alone and cannot widen the zip.
+    g.materials.append({
+        'name': 'zip tape', 'doubleSided': True,
+        'pbrMetallicRoughness': {'baseColorFactor': [0.055, 0.055, 0.062, 1.0],
+                                 'metallicFactor': 0.0, 'roughnessFactor': 0.82}})
+    material_index['@tape'] = len(g.materials) - 1
     g.materials.append({
         'name': 'brushed nickel', 'doubleSided': True,
         'pbrMetallicRoughness': {'baseColorFactor': [0.78, 0.78, 0.76, 1.0],
