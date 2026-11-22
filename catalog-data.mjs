@@ -13,17 +13,18 @@ export const denim={
     ['L',106.5,42,59,41,38.5,29],['XL',108,44.5,61,42,39.5,30]
   ].map(([label,length,waist,hip,thigh,rise,hem])=>({label,length,waist,hip,thigh,rise,hem}))
 };
-const basics=[
- ['T01','코튼 크루넥 티셔츠','tee','tee','아이보리','#ede9d9',68,48,54,22],
- ['S02','옥스퍼드 셔츠','shirt','overshirt','파우더 블루','#abc0d0',73,48,56,61],
- ['P03','피케 폴로셔츠','polo','polo','세이지 그린','#8a987b',68,47,53,23],
- ['S04','크루넥 스웨트셔츠','sweatshirt','sweatshirt','헤더 그레이','#a6a5a2',67,54,59,59],
- ['T05','스트라이프 티셔츠','tee','stripe','네이비 / 아이보리','#243143',68,48,54,22]
-];
-export const builtins=[adidas,...basics.map(([code,name,type,file,colourName,color,length,shoulder,chest,sleeve])=>({
-  id:code,code,brand:'Drape Studio',name,type,category:'top',photo:'catalog/'+file+'.webp',colourName,color,pattern:file==='stripe'?'stripes':'',material:'cotton',source:'스튜디오 샘플 예시 치수',
-  sizes:[['S',-2],['M',0],['L',2]].map(([label,d])=>sizeRow([label,length+d,shoulder+d,chest+d,sleeve+d/2]))
-})),denim];
+export const chino={
+  id:'signature-wide-chino',code:'',brand:'SIGNATURE',name:'와이드 치노 팬츠',colourName:'베이지 / 카키',
+  type:'pants',category:'bottom',color:'#c3b696',photo:'catalog/signature-wide-chino.webp',material:'cotton',source:'제공하신 상품 실측표',
+  sizes:[
+    ['S',106,36.5,53,37,35,25],['M',107,39,55,39.5,36,26],
+    ['L',108,41.5,57,41,37,27],['XL',109,44,59,42.5,38,28]
+  ].map(([label,length,waist,hip,thigh,rise,hem])=>({label,length,waist,hip,thigh,rise,hem}))
+};
+// Only the garments the owner actually has: the studio's drawn samples are not
+// products, and a wardrobe of stand-ins makes the fitting room look emptier than
+// it is. The mannequin and the studio crew remain as the body it is fitted on.
+export const builtins=[adidas,chino,denim];
 let connection;
 function openStore(){
   if(connection)return connection;

@@ -13,12 +13,18 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 // Bumped whenever the baked asset changes: GitHub Pages caches files for ten
 // minutes, and a garment that arrives stale reads as the wrong fabric entirely.
-const ASSET_VERSION = '2026-11-22m';
+const ASSET_VERSION = '2026-11-23a';
 const pending = new Map();   // id -> Promise of the parsed asset
 const ready = new Map();     // id -> parsed asset, once the transfer finished
 
+// Every lower garment that has been baked from its own product photographs.
+// The pattern still cuts each size and every frame of the walk; what the list
+// decides is whether the drawn trouser may stand in while the file is in
+// flight. For these it may not: a photographed pair is the only pair.
+const PHOTO_PANTS = new Set(['washed-denim-medium-blue', 'signature-wide-chino']);
+
 export function hasPhotoGarment(pants) {
-  return Boolean(pants && pants.id === 'washed-denim-medium-blue');
+  return Boolean(pants && PHOTO_PANTS.has(pants.id));
 }
 
 // The parsed asset if it is already in hand. The scene reads this before it
