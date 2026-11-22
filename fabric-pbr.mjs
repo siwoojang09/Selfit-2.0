@@ -385,7 +385,9 @@ export function denimMapsFor(T, { across = DENIM_SIZE, along = 1.03, mottle = nu
   roughnessMap.wrapS = roughnessMap.wrapT = T.ClampToEdgeWrapping;
   const result = {
     map, normalMap, roughnessMap, surface,
-    normalScale: new T.Vector2(1.05, 1.05),
+    // The twill and the wash relief have to survive mip-mapping at the size the
+    // legs are drawn on screen, so the relief is a little stronger than life.
+    normalScale: new T.Vector2(1.55, 1.55),
     roughnessCenter: surface.roughnessMean || 1
   };
   surfaceCache.set(key, result);
