@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23q';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23q';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23q';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23q';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23q';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23q';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23r';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23r';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23r';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23r';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23r';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23r';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -409,7 +409,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const collar=type==='tee'||sweat;
       panel(upper,rib,'Neck binding',5,40,(v,u)=>{
         const a=u*tau,c=Math.cos(a);
-        return [Math.sin(a)*lerp(.057,collar?.069:.072,v),1.465-.027*Math.max(c,0)**2-(collar?.011:.025)*v,Math.cos(a)*lerp(.048,collar?.057:.059,v)+.002];
+        // A hair outside the body panel's own top ring: the binding used to sit
+        // on the same circle, and the two coplanar surfaces fizzed into a ring of
+        // teeth around the neck.
+        return [Math.sin(a)*lerp(.0585,collar?.0705:.0735,v),1.465-.027*Math.max(c,0)**2-(collar?.011:.025)*v,Math.cos(a)*lerp(.0495,collar?.0585:.0605,v)+.0026];
       });
       if(!collar){
         for(const sign of [-1,1]){
