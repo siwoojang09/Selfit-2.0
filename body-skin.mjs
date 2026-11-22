@@ -58,12 +58,19 @@ export function attachAnatomicalBody(source, root, parts) {
     const trouser=options.pants?.measurements?pantsFit(options.pants.measurements,options.model,options.person):null;
     const hemEdge=trouser?trouser.hemY+.025:bottom==='shorts'?.60:bottom==='skirt'?.52:.13;
     const waistEdge=trouser?trouser.waistY-.025:1.008;
+    // Skin is only on show between the top's hem and the waistband when the top
+    // really stops above the band. The hem is measured from the same apex the
+    // garment is cut from; a top that overlaps the band leaves no belly to show,
+    // and leaving that strip drawn put a bare patch between the hem and a
+    // waistband the top was already covering.
+    const topHem=1.460-length*.00955;
+    const bareWaist=Boolean(trouser && topHem>trouser.waistY+.004);
     let sleeveEdge=1.402-THREE.MathUtils.clamp(sleeve*.0094,.07,.59)+.065;
     if(sample?.id==='KC9315' && sample.measurements){
       const w=wearer(options.model,options.person),fit=hoodieFit(sample.measurements,w);
       sleeveEdge=w.base.shoulderY-(fit.seamDrop+fit.sleeveProjection)/w.sy+.034;
     }
-    const key=[bare,type,sleeveEdge,length,bottom,hemEdge,waistEdge].join('|');
+    const key=[bare,type,sleeveEdge,length,bottom,hemEdge,waistEdge,bareWaist].join('|');
     if(key===coverageKey)return;
     coverageKey=key;
     if(bare){geometry.setIndex(full);return;}
@@ -72,10 +79,10 @@ export function attachAnatomicalBody(source, root, parts) {
       const x=Math.abs(rest[3*i]),y=rest[3*i+1];
       if(region[i]===1){visible[i]=y<sleeveEdge;continue;}
       if(region[i]===2){
-        visible[i]=y<hemEdge && y>.06 || Boolean(trouser && y>waistEdge && y<1.475-length*.00955);
+        visible[i]=y<hemEdge && y>.06 || (bareWaist && y>waistEdge && y<topHem);
         continue;
       }
-      visible[i]=y>1.49 || (y>1.423 && x<.058) || (y<1.475-length*.00955 && y>waistEdge);
+      visible[i]=y>1.49 || (y>1.423 && x<.058) || (bareWaist && y<topHem && y>waistEdge);
     }
     const a=full.array,kept=[];
     for(let i=0;i<a.length;i+=3)if(visible[a[i]]||visible[a[i+1]]||visible[a[i+2]])kept.push(a[i],a[i+1],a[i+2]);
