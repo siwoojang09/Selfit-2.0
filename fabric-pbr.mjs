@@ -289,7 +289,15 @@ export function denimSurface({
     // A soft shoulder keeps the brightest wash from flattening into a clipped patch.
     const value = shade[i] <= .82 ? shade[i] : .82 + .18 * (1 - Math.exp(-(shade[i] - .82) / .18));
     const j = i * 4;
-    map[j] = map[j + 1] = map[j + 2] = clamp(value, 0, 1) * 255;
+    // A wash does not only brighten the cloth: it rubs the indigo out, so the
+    // abraded places drift towards a pale grey while the base keeps its blue.
+    // The map stays a multiplier over the garment's colour, but the fade now
+    // shifts its hue as well as its value.
+    const worn = clamp((value - .80) / .17, 0, 1);
+    const level = clamp(value, 0, 1) * 255;
+    map[j] = level * (1 + .11 * worn);
+    map[j + 1] = level * (1 + .05 * worn);
+    map[j + 2] = level * (1 - .012 * worn);
     map[j + 3] = 255;
   }
 

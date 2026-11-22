@@ -107,9 +107,12 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   // The leg holds its full circumference past the knee before closing to the
   // hem: the barrel drape of the reference, not a straight cone.
   const legTaper=stops([[0,0],[.17,.03],[.36,.11],[.54,.22],[.70,.41],[.85,.70],[1,1]]);
-  const legShape=stops([[0,1],[.45,.98],[.75,.94],[1,.88]]);
+  // How round the leg is where it is cut: a wide jean's opening collapses
+  // towards a flatter oval over the shoe, so the same tape reads wider from the
+  // front than a circular section of that circumference would.
+  const legShape=stops([[0,1],[.45,1.0],[.72,1.03],[1,1.06]]);
   const legPerimeter=t=>mix(fit.thighCirc,fit.hemCirc,legTaper(t));
-  const legBow=stops([[0,0],[.25,.008],[.5,.011],[.75,.006],[1,0]]);
+  const legBow=stops([[0,0],[.25,.008],[.5,.011],[.75,.010],[1,.009]]);
 
   // Excess length has nowhere to go but sideways above the shoe.
   const buckle=.11+Math.min(.18,Math.max(0,stack)*4);
@@ -482,7 +485,8 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
       mesh.userData.garmentPart=flip?'legLeft':'legRight';
       group.add(mesh);
-      pieces.push({mesh,rest:g.attributes.position.array.slice(),layer:part.layer||'patch'});
+      pieces.push({mesh,rest:g.attributes.position.array.slice(),layer:part.layer||'patch',
+        ring:part.fullRing?[part.vertical,part.horizontal]:null});
     }
     for(const piece of rigid){
       piece.mesh.userData.garmentPart=flip?'legLeft':'legRight';
@@ -625,6 +629,9 @@ export function makeMeasuredPants(T,group,body,mat,opts){
           arr[q2+2]=sn*x+cs*z+mix(fa.z,fb.z,t)+solver.at(r,t,2);
         }
         attr.needsUpdate=true;mesh.geometry.computeVertexNormals();
+        // The ring closes on a duplicated column; without this the seam line
+        // would be shaded as a hard crease down the centre front.
+        if(piece.ring)weldRing(mesh.geometry,piece.ring[0],piece.ring[1]);
       }
     }
   }
