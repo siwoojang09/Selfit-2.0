@@ -84,8 +84,8 @@ def oxford(w, h, tile_m, thread_mm=.52, strength=.55, tone=(176, 178, 174),
     return np.clip(colour, 0, 255), normal
 
 
-def cable(w, h, tile_m, pitch_mm=52.0, ply_mm=13.0, height_mm=3.0, slope=1.3,
-          rope_w=.86, tone=(23, 23, 25), contrast=.16, seed=3):
+def cable(w, h, tile_m, pitch_mm=52.0, ply_mm=13.0, height_mm=5.0, slope=1.3,
+          rope_w=.86, tone=(23, 23, 25), contrast=.34, seed=3):
     """A rope cable: two plies crossing, the ridges of one passing over the other.
 
     The ply lines run diagonally across the cable and cross at its centre, which

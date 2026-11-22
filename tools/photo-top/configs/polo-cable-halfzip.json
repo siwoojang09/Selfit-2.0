@@ -17,15 +17,15 @@
     "tile_px": 640,
     "pitch_mm": 52.0,
     "ply_mm": 42.0,
-    "height_mm": 3.2,
+    "height_mm": 5.0,
     "slope": 2.4,
     "rope_w": 0.86,
     "tone": [
-      23,
-      23,
-      25
+      26,
+      26,
+      28
     ],
-    "contrast": 0.16,
+    "contrast": 0.34,
     "roughness": 0.93
   },
   "atlas": {
@@ -141,7 +141,7 @@
     "depth": 0.3,
     "roughness": 0.93
   },
-  "normal_scale": 1.0,
+  "normal_scale": 1.5,
   "thread": [
     30,
     30,

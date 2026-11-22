@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24b';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24b';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24b';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24b';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24b';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24b';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24c';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24c';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24c';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24c';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24c';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24c';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -608,7 +608,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const {shoulder:joint,elbow}=arms[armIndex],sign=armIndex===0?-1:1;
       // A short sleeve's cap sits inside the bodice's shoulder line. Raised
       // above it, the cap reads as a puff sleeve rather than a grown-on sleeve.
-      const mount=group(joint),cap=fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/60.5,.77,1.29);
+      const mount=group(joint),cap=fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
       if(fit)mount.scale.set(1/torso.scale.x,1,1/torso.scale.z);
       const hand=long?handGuide(body.anatomy?.handPoints?.[armIndex],joint,mount):null;
       const seamT=fit?(cap+fit.seamDrop/sy-shoulderRise)/(cap+sleeveLength):0;
