@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24e';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24e';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24e';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24e';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24e';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24e';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24f';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24f';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24f';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24f';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24f';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24f';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -272,7 +272,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const shoulderRise=fit?anatomy.base.shoulderY-1.402:0;
     const projectedSleeve=sleeve+shoulderDrop*.37;
     const sleeveLength=fit?(fit.seamDrop+fit.sleeveProjection)/sy-shoulderRise:
-      long?Math.max(.075,projectedSleeve):clamp(projectedSleeve,.075,.37);
+      // A shirt's cuff closes on the wrist, so it stops a little above the hand
+      // rather than being dragged over the fingers.
+      long?Math.max(.075,projectedSleeve*(type==='shirt'?.94:1)):clamp(projectedSleeve,.075,.37);
     // Bearing circumference is twice the flat chest measurement. Convert it to an elliptical section.
     const width=clamp(chest*.00373,.166,.33);
     const cuffHem=actual(measured.hem,chest*(hoodie?.845:.96),30,95);
