@@ -245,6 +245,11 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   // The two legs must not share the same wrinkles, so the baked fields are
   // phased per side.
   let sideSign=1;
+  // Above the fork each side builds the same closed hip section, so the two
+  // legs lay one surface inside the other. With a photograph on it, that seam
+  // flickers into a torn edge; the mirrored side tucks itself a millimetre
+  // inside the other and disappears.
+  const seatSink=d=>photo&&sideSign<0?.0012*(1-smooth(forkDrop-.06,forkDrop+.02,d)):0;
   function buildSide(side){
     const flip=side<0;
     sideSign=side;
@@ -257,7 +262,8 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         const item=get(i/vertical,j/horizontal);
         const d=item[0],a=item[1],lift=item[2]||0;
         const p=section(d,a);
-        pos.push(side*(p.x+p.nx*lift),p.y,p.z+p.nz*lift);
+        const lift2=lift-seatSink(d)*(photo?1:0);
+        pos.push(side*(p.x+p.nx*lift2),p.y,p.z+p.nz*lift2);
         ref.push(side*p.nx*refSign,0,p.nz*refSign);
         uv.push(a/tau,1-d/cutLength);
       }
