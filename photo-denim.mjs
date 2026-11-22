@@ -6,6 +6,9 @@
 // the actual pair of jeans rather than a drawn approximation.
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
+// Bumped whenever the baked asset changes: GitHub Pages caches files for ten
+// minutes, and a garment that arrives stale reads as the wrong fabric entirely.
+const ASSET_VERSION = '2026-11-22c';
 const cache = new Map();
 
 export function hasPhotoGarment(pants) {
@@ -18,7 +21,7 @@ function note(state) {
 
 export function loadGarmentAsset(id) {
   if (!cache.has(id)) {
-    const url = new URL(`./assets/${id}.glb`, import.meta.url).href;
+    const url = new URL(`./assets/${id}.glb`, import.meta.url).href + '?v=' + ASSET_VERSION;
     const base = url.slice(0, url.lastIndexOf('/') + 1);
     // Fetch the container here rather than inside the loader so a stalled or
     // refused transfer surfaces as a rejection instead of a load that never ends.
