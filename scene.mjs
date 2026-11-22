@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-22m1';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22m2';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22m1';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22m2';
 import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-22a';
 import { createSoftwareRenderer } from './software.mjs';
 
@@ -322,8 +322,10 @@ export function createScene(container, opts) {
       loadHoodieAsset().then(asset => {
         hoodieAsset = asset;
         document.documentElement.dataset.hoodie = 'worn ' + asset.parts.length;
+        // Nothing was built while the file was in flight, so ask for the same
+        // top again: this time the builder has the photographs.
         if (sampleGarment) sampleGarment.update({ photoHoodie: true, hoodieAsset });
-        else update({});
+        else update({ sample: opts.sample });
         settle();
         dirty = true;
       }).catch(error => {
