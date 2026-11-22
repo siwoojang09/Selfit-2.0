@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23a';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23a';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23a';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23a';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23a';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23a';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23b';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23b';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23b';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23b';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23b';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23b';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -16,12 +16,15 @@ const paths={
  play:'<path d="m8 4 12 8-12 8z" fill="currentColor" stroke="none"/>',pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" stroke="none"/>',
  orbit:'<ellipse cx="12" cy="12" rx="10" ry="4.3" transform="rotate(-28 12 12)"/><path d="M7 13C5 6 7 2 10 3s7 7 7 13"/>',
  sliders:'<path d="M3 6h6m4 0h8M3 12h11m4 0h3M3 18h4m4 0h10"/><circle cx="11" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
- ruler:'<path d="m3 16 13-13 5 5L8 21zM7 12l2 2m1-5 2 2m1-5 2 2"/>',photo:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="16" cy="8" r="1.4"/>'
+ ruler:'<path d="m3 16 13-13 5 5L8 21zM7 12l2 2m1-5 2 2m1-5 2 2"/>',photo:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="16" cy="8" r="1.4"/>',
+ heart:'<path d="M12 20s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.8C19 15.6 12 20 12 20Z"/>',
+ sparkle:'<path d="M12 3.5 13.7 9l5.3 1.7-5.3 1.8L12 18l-1.7-5.5L5 10.7 10.3 9Z"/><path d="M18.5 3v2.4M17.3 4.2h2.4"/>',
+ chevron:'<path d="m9 5 7 7-7 7"/>'
 };
 const icon=name=>'<svg aria-hidden="true" class="ico" viewBox="0 0 24 24">'+paths[name]+'</svg>';
 for(const el of document.querySelectorAll('[data-icon]'))el.innerHTML=icon(el.dataset.icon);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-let samples=[],selected=adidas,size='M',scope='all',filter='all',query='',avatar='female',bottom='trousers',lowerFabric='linen',zoom=1,wire=false,playing=false,live=false,ready=false,loader=null,applied={},upper,toastTimer,loadError='';
+let samples=[],selected=adidas,size='M',scope='all',filter='all',brand='all',query='',avatar='female',bottom='trousers',lowerFabric='linen',zoom=1,wire=false,playing=false,live=false,ready=false,loader=null,applied={},upper,toastTimer,loadError='';
 let pants=null,activePants=null,activeTop=adidas,referenceSamples=[];
 const isPants=()=>selected.type==='pants';
 const fieldsFor=type=>type==='pants'?pantsMeasurementFields:measurementFields;
@@ -43,30 +46,115 @@ const collections=()=>[...builtins,...ownSamples()];
 const canShowPhoto=()=>!pants&&!bodyInputsByModel[avatar]&&!bodyOnly && selected.id===adidas.id && size==='M' && bottom==='trousers' && lowerFabric==='linen';
 const measures=()=>selected.sizes.find(row=>row.label===size)||selected.sizes[0];
 function toast(msg){$('notice').textContent=msg;$('notice').classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('notice').classList.remove('on'),3600);}
+const wishlist=new Set(JSON.parse(localStorage.getItem('selfit.wishlist')||'[]'));
+const saveWishlist=()=>{try{localStorage.setItem('selfit.wishlist',JSON.stringify([...wishlist]));}catch{}};
+function brandName(item){return String(item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'피팅 샘플')).toUpperCase();}
+function renderBrandChips(items){
+  const names=[...new Set(items.map(brandName))].slice(0,4);
+  const chips=$('brandChips');chips.replaceChildren();
+  for(const name of ['ALL',...names]){
+    const button=document.createElement('button');button.type='button';
+    button.textContent=name;button.setAttribute('aria-pressed',String(brand===name||(name==='ALL'&&brand==='ALL')));
+    button.onclick=()=>{brand=name;renderShelf();};
+    chips.append(button);
+  }
+}
+function cardThumb(item){
+  const frame=document.createElement('span');frame.className='sample-photo';
+  if(item.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';frame.append(image);}
+  const heart=document.createElement('button');heart.type='button';heart.className='heart';
+  heart.setAttribute('aria-label','위시리스트에 담기');heart.setAttribute('aria-pressed',String(wishlist.has(item.id)));
+  heart.innerHTML=icon('heart');
+  heart.onclick=event=>{
+    event.stopPropagation();
+    if(wishlist.has(item.id))wishlist.delete(item.id);else wishlist.add(item.id);
+    heart.setAttribute('aria-pressed',String(wishlist.has(item.id)));saveWishlist();
+  };
+  frame.append(heart);
+  return frame;
+}
 function renderShelf(){
   const items=scope==='mine'?ownSamples():collections();
-  const shown=items.filter(item=>(filter==='all'||item.category===filter)&&[item.name,item.brand,item.code].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()));
-  $('shelfName').textContent=scope==='mine'?'내 샘플':'샘플 옷장';$('total').textContent=shown.length;
+  renderBrandChips(items);
+  const shown=items.filter(item=>(filter==='all'||item.category===filter)&&(brand==='ALL'||brandName(item)===brand)&&[item.name,item.brand,item.code].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()));
+  $('shelfName').textContent=scope==='mine'?'내가 등록한 샘플':'새로 들어온 샘플';$('total').textContent=shown.length;
   $('allNav').classList.toggle('nav-on',scope==='all');$('ownNav').classList.toggle('nav-on',scope==='mine');
   document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.filter===filter));
   const shelf=$('samples');shelf.replaceChildren();
   for(const item of shown){
-    const button=document.createElement('button');button.type='button';button.className='sample';button.dataset.item=item.id;
-    button.setAttribute('aria-label',[item.brand,item.name,item.code].filter(Boolean).join(' '));
-    button.setAttribute('aria-pressed',String(selected.id===item.id));
-    const frame=document.createElement('span');frame.className='sample-photo';
-    if(item.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';frame.append(image);}
+    const card=document.createElement('div');
+    card.className='sample';card.dataset.item=item.id;card.tabIndex=0;card.setAttribute('role','button');
+    card.setAttribute('aria-label',[item.brand,item.name,item.code].filter(Boolean).join(' '));
+    card.setAttribute('aria-pressed',String(selected.id===item.id));
+    card.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose(item);}};
     const info=document.createElement('span');info.className='sample-info';
     const b=document.createElement('small'),n=document.createElement('strong'),c=document.createElement('span');
-    b.textContent=item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'피팅 샘플');n.textContent=item.name;c.textContent=item.colourName||garmentTypes[item.type];
-    info.append(b,n,c);button.append(frame,info);shelf.append(button);
+    b.textContent=brandName(item);n.textContent=item.name;c.textContent=item.colourName||garmentTypes[item.type];
+    info.append(b,n,c);card.append(cardThumb(item),info);shelf.append(card);
   }
   if(!shown.length){
     const empty=document.createElement('div');empty.className='empty';
-    const line=document.createElement('p');line.textContent=query||filter!=='all'?'조건에 맞는 샘플이 없습니다.':loadError||'등록한 샘플이 없습니다.';empty.append(line);
-    const action=document.createElement('button');action.className='secondary';
-    if(query||filter!=='all'){action.textContent='필터 초기화';action.onclick=()=>{query='';filter='all';$('search').value='';renderShelf();};}
+    const line=document.createElement('p');line.textContent=query||filter!=='all'||brand!=='ALL'?'조건에 맞는 샘플이 없습니다.':loadError||'등록한 샘플이 없습니다.';empty.append(line);
+    const action=document.createElement('button');
+    if(query||filter!=='all'||brand!=='ALL'){action.textContent='필터 초기화';action.onclick=()=>{query='';filter='all';brand='ALL';$('search').value='';renderShelf();};}
     else{action.textContent='샘플 등록';action.onclick=openRegister;}empty.append(action);shelf.append(empty);
+  }
+}
+function wornRows(){
+  const rows=[];
+  const top=isPants()?activeTop:selected;
+  if(top)rows.push({item:top,role:'상의',size:isPants()?(top.sizes.find(r=>r.label===size)?.label||'M'):size});
+  if(pants)rows.push({item:pants,role:'하의',size:pants.measurements.label||size});
+  else rows.push({item:null,role:'하의',size:null});
+  return rows;
+}
+function renderWorn(){
+  const rows=wornRows();
+  const list=$('wornList');list.replaceChildren();
+  for(const {item,role,size} of rows){
+    const row=document.createElement('div');row.className='worn-row'+(item?'':' empty-row');
+    const thumb=document.createElement('div');thumb.className='worn-thumb-lg';
+    if(item?.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';thumb.append(image);}
+    const meta=document.createElement('div');meta.className='worn-meta';
+    const brandEl=document.createElement('small'),nameEl=document.createElement('strong'),sizeEl=document.createElement('span');
+    brandEl.textContent=item?brandName(item):'—';
+    nameEl.textContent=item?item.name:(role==='하의'?'하의를 골라보세요':'선택 없음');
+    sizeEl.textContent=item?(role+' · '+size+' 사이즈'):role;
+    meta.append(brandEl,nameEl,sizeEl);
+    const go=document.createElement('span');go.className='worn-go';go.innerHTML=icon('chevron');
+    row.append(thumb,meta,go);
+    if(item)row.onclick=()=>choose(item);
+    list.append(row);
+  }
+  const rail=$('wornRail');rail.replaceChildren();
+  for(const {item,role} of rows){
+    const button=document.createElement('button');button.type='button';
+    button.className='worn-thumb'+(item?'':' empty-slot');
+    button.title=item?item.name+' · '+role:role+' 없음';
+    button.setAttribute('aria-label',button.title);
+    if(item?.photo){const image=document.createElement('img');image.src=item.photo;image.alt='';button.append(image);}
+    else button.textContent=role;
+    if(item)button.onclick=()=>choose(item);
+    rail.append(button);
+  }
+}
+function renderRecommended(){
+  const items=collections().filter(item=>item.id!==selected.id&&item.photo);
+  const picked=[];
+  for(const category of ['outer','top','bottom']){
+    const hit=items.find(item=>item.category===category&&!picked.includes(item));
+    if(hit)picked.push(hit);
+  }
+  for(const item of items){if(picked.length>=3)break;if(!picked.includes(item))picked.push(item);}
+  const row=$('recommended');row.replaceChildren();
+  for(const item of picked.slice(0,3)){
+    const button=document.createElement('button');button.type='button';button.className='rec-item';
+    button.onclick=()=>choose(item);
+    const photo=document.createElement('span');photo.className='rec-photo';
+    const image=document.createElement('img');image.src=item.photo;image.alt='';photo.append(image);
+    const brandEl=document.createElement('small'),nameEl=document.createElement('strong');
+    brandEl.textContent=brandName(item);nameEl.textContent=item.name;
+    button.append(photo,brandEl,nameEl);row.append(button);
   }
 }
 function setWornItem(){
@@ -86,12 +174,18 @@ function product(){
   $('sizes').innerHTML=selected.sizes.map(m=>'<button type="button" data-size="'+esc(m.label)+'" aria-pressed="'+(m.label===size)+'">'+esc(m.label)+'</button>').join('');
   const row=measures();
   $('quickMeasures').innerHTML=fieldsFor(selected.type).filter(([key])=>row[key]!=null).map(([key,label])=>'<span>'+label+' <strong>'+row[key]+' cm</strong></span>').join('');
+  renderWorn();renderRecommended();
 }
 function cuffPosition(fit){
   return '손목 '+(fit.cuffOffset<0?'위 ':'아래 ')+fmt(Math.abs(fit.cuffOffset)*100)+' cm';
 }
 function reportCells(stats){
-  return stats.map(([label,value,hint])=>'<div><span>'+label+'</span><strong>'+value+'</strong><small>'+hint+'</small></div>').join('');
+  const clamp=v=>Math.max(4,Math.min(100,Math.round(v*100)));
+  return stats.map(([label,value,hint,ratio,tone])=>{
+    const level=tone||'neutral';
+    return '<div class="fit-stat '+level+'"><div class="row"><span>'+label+'</span><strong>'+value+'</strong></div>'+
+      '<div class="track" role="presentation"><i style="--v:'+clamp(ratio??.3)+'%"></i></div><small>'+hint+'</small></div>';
+  }).join('');
 }
 function renderFitReport(hemLift=0){
   const show=selected.id===adidas.id||isPants();
@@ -101,14 +195,18 @@ function renderFitReport(hemLift=0){
   if(isPants()){
     const f=pantsFit(measures(),avatar,bodyInputsByModel[avatar]);
     $('bodySummary').textContent=(bodyInputsByModel[avatar]?'입력한 체형':'기본 '+(avatar==='male'?'남성':'여성')+' 모델')+' · 키 '+fmt(w.height)+' cm · 허리 '+fmt(w.waist)+' cm · 엉덩이 '+fmt(w.hip)+' cm';
-    const stats=[['허리둘레 여유',signed(f.waistEase)+' cm',f.waistEase<0?'몸의 허리둘레보다 작음':'바지 허리둘레 − 몸 허리둘레'],['엉덩이둘레 여유',signed(f.hipEase)+' cm',f.hipEase<0?'몸의 엉덩이둘레보다 작음':'바지 엉덩이둘레 − 몸 엉덩이둘레'],['밑단에 모이는 길이',fmt(f.stack)+' cm','신발에 닿으며 접히는 길이 추정']];
+    const stats=[['허리둘레 여유',signed(f.waistEase)+' cm',f.waistEase<0?'몸의 허리둘레보다 작음':'바지 허리둘레 − 몸 허리둘레',Math.min(1,Math.abs(f.waistEase)/16),f.waistEase<0?'tight':'good'],['엉덩이둘레 여유',signed(f.hipEase)+' cm',f.hipEase<0?'몸의 엉덩이둘레보다 작음':'바지 엉덩이둘레 − 몸 엉덩이둘레',Math.min(1,Math.abs(f.hipEase)/18),f.hipEase<0?'tight':'good'],['밑단에 모이는 길이',fmt(f.stack)+' cm','신발에 닿으며 접히는 길이 추정',Math.min(1,f.stack/12),'neutral']];
     $('fitNumbers').innerHTML=reportCells(stats);
     $('fitHem').textContent='펴진 밑단 예상 위치 · 발목 '+(f.ankleOffset<0?'위 ':'아래 ')+fmt(Math.abs(f.ankleOffset))+' cm'+(f.waistEase<0||f.hipEase<0?' · 실측상 둘레가 부족해 실제로 잠그기 어려울 수 있습니다.':'');
     return;
   }
   const f=hoodieFit(measures(),w);
   $('bodySummary').textContent=(bodyInputsByModel[avatar]?'입력한 치수':'기본 '+(avatar==='male'?'남성':'여성')+' 모델')+' · 키 '+fmt(w.height)+' cm · 가슴둘레 '+fmt(w.chest)+' cm';
-  $('fitNumbers').innerHTML=reportCells([['가슴둘레 여유',signed(f.ease)+' cm',f.fitLabel],['한쪽 어깨 여분',signed(f.shoulderSurplus*100)+' cm','의류와 몸의 너비 차이 ÷ 2'],['예상 소맷단 위치',cuffPosition(f),'주름에 모이는 길이 '+fmt(f.sleeveStack*100)+' cm']]);
+  const easeTone=f.ease<0?'tight':f.ease>28?'good':'neutral';
+  $('fitNumbers').innerHTML=reportCells([
+    ['가슴둘레 여유',signed(f.ease)+' cm',f.fitLabel,Math.min(1,Math.abs(f.ease)/40),easeTone],
+    ['한쪽 어깨 여분',signed(f.shoulderSurplus*100)+' cm','의류와 몸의 너비 차이 ÷ 2',Math.min(1,f.shoulderSurplus/.16),'neutral'],
+    ['예상 소맷단 위치',cuffPosition(f),'주름에 모이는 길이 '+fmt(f.sleeveStack*100)+' cm',Math.min(1,Math.abs(f.cuffOffset)/.16),f.cuffOffset>0?'tight':'good']]);
   const fromWaist=((w.base.waistY-f.frontHemY)*w.sy-hemLift)*100;
   $('fitHem').textContent='앞 밑단 예상 위치 · 허리선 '+(fromWaist>=0?'아래 ':'위 ')+fmt(Math.abs(fromWaist))+' cm'+(f.ease<0?' · 지퍼를 잠글 수 있는지는 원단 신장률 확인이 필요합니다.':'');
 
@@ -160,8 +258,10 @@ $('bodyInputs').onclick=()=>{
 function sync(){
   const detail=live&&!bodyOnly&&cameraView===(isPants()?'pants':'finish');
   $('finishView').setAttribute('aria-pressed',String(detail));
-  $('finishView').textContent=detail?'착장 전체 보기':isPants()?'하체 핏 확대':'소맷단·밑단 확대';
-  $('fitPreview').hidden=(selected.id!==adidas.id&&!isPants())||(live&&!bodyOnly&&!playing&&!poseWalk);
+  $('finishView').textContent=detail?'착장 전체':isPants()?'하체 핏':'소맷단·밑단';
+  $('fitPreview').hidden=false;
+  $('fitPreview').textContent=bodyOnly?'착장으로 돌아가기':live&&!playing&&!poseWalk?'3D 착장 전체 보기':'3D로 입어보기';
+  $('fitPreview').disabled=(selected.id!==adidas.id&&!isPants())&&!bodyOnly;
 
   $('bodyView').setAttribute('aria-pressed',String(bodyOnly));
   $('dressedView').setAttribute('aria-pressed',String(!bodyOnly));
@@ -226,7 +326,7 @@ function choose(item){
   live=keepPlaying||fromStudy||!canShowPhoto();product();renderShelf();apply();
 }
 function navigate(next){
-  scope=next;query='';filter='all';$('search').value='';renderShelf();
+  scope=next;query='';filter='all';brand='ALL';$('search').value='';renderShelf();
   if(matchMedia('(max-width:680px)').matches)$('closet').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function changeBodyView(show){
@@ -238,9 +338,9 @@ function changeBodyView(show){
 window.addEventListener('hashchange',()=>{if(window.location.hash==='#fit')showFit();else changeBodyView(window.location.hash==='#body');});
 $('bodyView').onclick=()=>changeBodyView(true);
 $('dressedView').onclick=()=>changeBodyView(false);
-$('allNav').onclick=()=>navigate('all');$('ownNav').onclick=()=>navigate('mine');
+$('allNav').onclick=()=>navigate('all');$('ownNav').onclick=()=>navigate('mine');$('ownNavSmall').onclick=()=>navigate(scope==='mine'?'all':'mine');
 $('filters').onclick=e=>{const btn=e.target.closest('[data-filter]');if(btn){filter=btn.dataset.filter;renderShelf();}};
-$('searchToggle').onclick=()=>{const box=$('searchBox');box.hidden=!box.hidden;$('searchToggle').setAttribute('aria-expanded',!box.hidden);if(!box.hidden)$('search').focus();else{query='';$('search').value='';renderShelf();}};
+$('searchToggle').onclick=()=>{const open=document.activeElement!==$('search');$('search').focus();$('searchToggle').setAttribute('aria-expanded',String(open));if(!open&&!$('search').value){query='';renderShelf();}};
 $('search').oninput=e=>{query=e.target.value;renderShelf();};
 $('samples').onclick=e=>{const btn=e.target.closest('[data-item]');if(!btn)return;choose(collections().find(i=>i.id===btn.dataset.item));if(matchMedia('(max-width:680px)').matches)$('fitting').scrollIntoView({behavior:'smooth',block:'start'});};
 $('sizes').onclick=e=>{const btn=e.target.closest('[data-size]');if(!btn||(size===btn.dataset.size&&!bodyOnly&&live))return;size=btn.dataset.size;if(bodyOnly||!live){bodyOnly=false;cameraView=fittingView();}live=true;setWornItem();product();apply();};

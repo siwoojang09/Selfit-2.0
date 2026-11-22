@@ -1,0 +1,34 @@
+dialog.selfit-register{position:fixed;inset:0;box-sizing:border-box;margin:auto;width:min(540px,calc(100% - 28px));max-width:100%;max-height:92dvh;height:auto;padding:0;border:1px solid #dedfd6;border-radius:18px;background:#fbfbf6;color:#182a24;box-shadow:0 22px 100px #10251c33;font-family:inherit}
+.selfit-register::backdrop{background:rgb(13 24 19 / 54%)}
+.selfit-register *{box-sizing:border-box}
+.selfit-register .rg-form{display:flex;max-height:91dvh;flex-flow:column nowrap;margin:0}
+.selfit-register header,.selfit-register footer{padding:20px 24px;background:#fbfbf6;flex:none;position:static}
+.selfit-register header{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #dedfd6}
+.selfit-register header h2{margin:0;font:650 24px/1.3 inherit;font-family:inherit;font-size:24px;font-weight:650;letter-spacing:-.05em}
+.selfit-register header p,.selfit-register .rg-status{font-size:14px;line-height:1.6;margin:6px 0 0;color:#53645b}
+.selfit-register button,.selfit-register input,.selfit-register select{font:inherit;color:inherit}
+.selfit-register button{cursor:pointer}
+.selfit-register .rg-close{width:36px;height:36px;flex:none;background:#edeFE6;border:0;border-radius:100%;font-size:23px;line-height:1}
+.selfit-register .rg-content{overflow:auto;overscroll-behavior:contain;padding:0 24px 12px}
+.selfit-register section{padding:20px 0 8px}
+.selfit-register h3{font-size:18px;line-height:1.25;margin:0 0 12px}
+.selfit-register small{font-size:13px;color:#68756c}
+.selfit-register label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:14px;font-weight:600}
+.selfit-register input:not([hidden]),.selfit-register select{display:block;width:100%;min-width:0;height:42px;border:1px solid #cbd0c5;border-radius:7px;background:#fff;padding:7px 10px;font-size:16px;font-weight:400}
+.selfit-register input[hidden],.selfit-register [hidden]{display:none!important}
+.selfit-register .rg-lookup,.selfit-register .rg-pair,.selfit-register .rg-measures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;gap:12px;margin:12px 0}
+.selfit-register .rg-lookup{grid-template-columns:minmax(0,1fr) auto}
+.selfit-register .rg-soft,.selfit-register .rg-save{min-height:42px;padding:8px 14px;border:1px solid #b6c4b6;border-radius:7px;background:#e8efe5;font-size:14px;font-weight:650}
+.selfit-register .rg-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.selfit-register .rg-section-head h3{margin:0}
+.selfit-register .rg-text{background:transparent;color:#25573f;font-size:14px;font-weight:600;min-height:36px;border:0;text-decoration:underline;text-underline-offset:3px}
+.selfit-register [data-photo] img{display:block;width:auto;max-width:100%;max-height:220px;object-fit:contain;margin:8px auto;border-radius:5px}
+.selfit-register details{font-size:14px;margin:12px 0 0}
+.selfit-register summary{cursor:pointer;color:#355746;min-height:34px;padding:7px 0}
+.selfit-register details canvas{display:block;max-width:100%;height:auto;border-radius:8px}
+.selfit-register details ul{list-style:disc;padding-left:20px;line-height:1.7;color:#53645b}
+.selfit-register footer{padding-block:12px;border-top:1px solid #dedfd6}
+.selfit-register .rg-save{width:100%;min-height:46px;border:0;color:white;background:#214c39;font-size:16px}
+.selfit-register .rg-status:empty{display:none}
+.selfit-register :focus-visible{outline:2px solid #277753;outline-offset:2px}
+@media(max-width:580px){dialog.selfit-register{inset:auto 0 0;width:100%;max-height:94dvh;border-radius:16px 16px 0 0}.selfit-register .rg-form{max-height:93dvh}.selfit-register header,.selfit-register footer{padding-inline:18px}.selfit-register .rg-content{padding-inline:18px}.selfit-register footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}}

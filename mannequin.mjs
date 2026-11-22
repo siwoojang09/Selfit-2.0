@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 
-import {anatomyLibrary} from './body-library.mjs?v=2026-11-23a';
-import {attachAnatomicalBody} from './body-skin.mjs?v=2026-11-23a';
+import {anatomyLibrary} from './body-library.mjs?v=2026-11-23b';
+import {attachAnatomicalBody} from './body-skin.mjs?v=2026-11-23b';
 
 const TAU = Math.PI * 2;
 const point = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);

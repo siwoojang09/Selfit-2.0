@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23a';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23a';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23a';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23a';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23a';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23a';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23a';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23a';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23a';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23a';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23b';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23b';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23b';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23b';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23b';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23b';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23b';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23b';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23b';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23b';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -185,10 +185,13 @@ function makeContactShadow() {
   return mesh;
 }
 
+// The stage is a warm stone studio: a light backdrop with no horizon line, a
+// turntable the wearer stands on, and the light coming from above and slightly
+// left, so a matte black garment keeps its shade instead of turning grey.
 export function createScene(container, opts) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#d9d3ca');
-  scene.fog = new THREE.FogExp2(scene.background, .14);
+  scene.background = new THREE.Color('#EFEBE4');
+  scene.fog = new THREE.FogExp2(scene.background, .085);
   const cam = new THREE.PerspectiveCamera(29, 1, .025, 40);
   let renderer;
   try {
@@ -206,7 +209,7 @@ export function createScene(container, opts) {
   Object.assign(canvas.style, {width: '100%', height: '100%', display: 'block', touchAction: 'none', cursor: 'grab'});
   container.appendChild(canvas);
 
-  scene.add(new THREE.HemisphereLight('#fffcf7', '#cfbdaa', 2.08));
+  scene.add(new THREE.HemisphereLight('#fffdf8', '#d8cdbc', 1.92));
   const key = new THREE.DirectionalLight('#fff7ee', 1.44);
   key.position.set(-2.2, 3.7, 3.4);
   key.castShadow = true;
@@ -221,18 +224,35 @@ export function createScene(container, opts) {
   scene.add(rim);
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(100,100), new THREE.MeshStandardMaterial({
-    color: '#d2cbc1', roughness: 1
+    color: '#E7E1D7', roughness: 1
   }));
   floor.rotation.x = -Math.PI/2;
-  floor.position.y = -.003;
+  floor.position.y = -.07;
   floor.receiveShadow = true;
   floor.userData.floor = true;
-  scene.add(floor, makeContactShadow());
+  scene.add(floor);
+
+  // The turntable: a low stone plinth the wearer stands on. It turns with the
+  // model (the camera orbits, the plinth is round, so one cylinder is enough),
+  // and its top edge catches a lighter line the way the reference does.
+  const plinth = new THREE.Group();
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.615, .635, .068, 96),
+    new THREE.MeshStandardMaterial({color: '#F1EDE6', roughness: .96, metalness: 0}));
+  drum.position.y = -.034; drum.receiveShadow = true; drum.castShadow = true;
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.598, .598, .006, 96),
+    new THREE.MeshStandardMaterial({color: '#F7F4EE', roughness: .98, metalness: 0}));
+  cap.position.y = -.0015; cap.receiveShadow = true;
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(.6, .0035, 8, 128),
+    new THREE.MeshStandardMaterial({color: '#E3DCD1', roughness: 1}));
+  lip.rotation.x = Math.PI / 2; lip.position.y = -.0005;
+  plinth.add(drum, cap, lip);
+  plinth.name = 'turntable';
+  scene.add(plinth, makeContactShadow());
 
   const grid = new THREE.GridHelper(13,52,'#a79e91','#b8b0a3');
   grid.material.transparent = true;
   grid.material.opacity = .25;
-  grid.position.y = -.001;
+  grid.position.y = -.068;
   scene.add(grid);
 
   // The body study isolates the anatomical mesh while reusing the fitting skeleton.
@@ -526,9 +546,9 @@ export function createScene(container, opts) {
       cam.layers.set(opts.bodyOnly?1:0);
       grid.visible=Boolean(opts.grid);
       scene.userData.bodyStudy=Boolean(opts.bodyOnly);
-      scene.background.set(opts.bodyOnly?'#d4d7d7':'#d9d3ca');
+      scene.background.set(opts.bodyOnly?'#E6E9E6':'#EFEBE4');
       scene.fog.color.copy(scene.background);
-      floor.material.color.set(opts.bodyOnly?'#b8bfbd':'#d2cbc1');
+      floor.material.color.set(opts.bodyOnly?'#D7DAD7':'#E7E1D7');
     }
     if ('view' in changes) {
       const angles = {pants:.08,finish:.24,fit:.22,study:.47,front: .045, side: Math.PI/2, back: Math.PI + .13, left: -Math.PI/2, right:Math.PI/2};

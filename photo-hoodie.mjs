@@ -13,7 +13,7 @@
 // body.
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
-const ASSET_VERSION = '2026-11-23a';
+const ASSET_VERSION = '2026-11-23b';
 const pending = new Map();
 const ready = new Map();
 
