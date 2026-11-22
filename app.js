@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23e';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23e';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23e';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23e';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23e';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23e';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23f';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23f';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23f';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23f';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23f';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23f';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -103,11 +103,14 @@ function renderShelf(){
   }
 }
 function wornRows(){
+  // The rows name the samples that are worn, not the scene's option objects:
+  // those carry measurements only, so their name and photo would be blank.
   const rows=[];
-  const top=isPants()?activeTop:selected;
-  if(top)rows.push({item:top,role:'상의',size:isPants()?(top.sizes.find(r=>r.label===size)?.label||'M'):size});
-  if(pants)rows.push({item:pants,role:'하의',size:pants.measurements.label||size});
-  else rows.push({item:null,role:'하의',size:null});
+  const topItem=isPants()?activeTop:selected;
+  const topSize=isPants()?(upper?.measurements?.label||'M'):size;
+  if(topItem)rows.push({item:topItem,role:'상의',size:topSize});
+  const bottomItem=isPants()?selected:activePants;
+  rows.push(bottomItem?{item:bottomItem,role:'하의',size:isPants()?size:(pants?.measurements?.label||size)}:{item:null,role:'하의',size:null});
   return rows;
 }
 function renderWorn(){
@@ -171,7 +174,7 @@ function setWornItem(){
 function product(){
   renderFitReport();
   $('removeSample').hidden=!selected.custom;
-  $('brand').textContent=selected.brand||(selected.reference?'내 기준 옷':selected.custom?'내 샘플':'피팅 샘플');$('sku').textContent=selected.code||'';$('productName').textContent=selected.name;
+  $('brand').textContent=selected.brand||(selected.reference?'내 기준 옷':selected.custom?'내 샘플':'Drape Studio');$('sku').textContent=selected.code||'';$('productName').textContent=selected.name;
   $('colourDot').style.background=selected.color;$('colourName').textContent=selected.colourName||selected.color;
   $('sizes').innerHTML=selected.sizes.map(m=>'<button type="button" data-size="'+esc(m.label)+'" aria-pressed="'+(m.label===size)+'">'+esc(m.label)+'</button>').join('');
   const row=measures();
