@@ -305,6 +305,11 @@ def bake_sleeve(front, back):
     """
     w, h = SLEEVE_SIZE
     per = perimeters('Sleeve', h, 'arm0', 0, 34)
+    # The first rows are the cap that folds over the shoulder; their section is
+    # a small ring at the neck, which would collapse the strip and smear the
+    # stripes over the whole shoulder. Hold the cap at the sleeve's own width.
+    cap = int(.08 * h)
+    per[:cap] = per[cap]
     us = (np.arange(w) + .5) / w
     vs = np.arange(h) / (h - 1)
     out = np.zeros((h, w, 3), np.float32)

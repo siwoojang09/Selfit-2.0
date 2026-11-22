@@ -81,18 +81,26 @@ def uv_ring(pos, cols, top=APEX, length=BODY_LEN):
 
 
 def uv_sleeve(pos, cols, arm):
-    """u = 0 at the sleeve's outer edge, 0.5 at the inner one, 1 outer again."""
+    """u = 0 at the sleeve's outer edge, 0.5 at the inner one, 1 outer again.
+
+    Measured along the section's arc, not its angle: the atlas was unwrapped by
+    arc length, so an elliptical section would otherwise pull the cream stripes
+    towards the outer edge and thin them down the arm.
+    """
     rings = pos.reshape(-1, cols + 1, 3)
     out = np.zeros((len(pos), 2), np.float32)
-    outer = -np.pi / 2 if arm == 0 else np.pi / 2
+    angles = 2 * np.pi * np.arange(cols + 1) / cols
+    outer = (-np.pi / 2 if arm == 0 else np.pi / 2) % (2 * np.pi)
     span = SEAM_Y - SLEEVE_END
     for i, ring in enumerate(rings):
-        x = ring[:, 0]; z = ring[:, 2]
-        a = np.arctan2(x, z)
-        delta = a - outer
-        delta = (delta + np.pi) % (2 * np.pi) - np.pi
-        front = delta >= 0 if arm == 0 else delta <= 0
-        mag = np.abs(delta) / np.pi
+        arc = ring_arcs(ring)
+        P = arc[-1] or 1.0
+        a = (np.arctan2(ring[:, 0], ring[:, 2]) + 2 * np.pi) % (2 * np.pi)
+        s = np.interp(a, angles, arc)
+        s0 = float(np.interp(outer, angles, arc))
+        d = (s - s0 + P / 2) % P - P / 2
+        front = d >= 0 if arm == 0 else d <= 0
+        mag = np.abs(d) / (P / 2)
         u = np.where(front, .5 * mag, .5 + .5 * mag)
         sl = slice(i * (cols + 1), (i + 1) * (cols + 1))
         out[sl, 0] = u
@@ -224,7 +232,7 @@ def build():
         'body': photo_material('kc9315 cotton photo', 'body', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
         'sleeve': photo_material('kc9315 sleeve photo', 'sleeve', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
         'hood': photo_material('kc9315 hood photo', 'hood', [1.9, 1.9, 1.9], [0.10, 0.10, 0.11]),
-        'zip': photo_material('kc9315 zip photo', 'zip', [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]),
+        'zip': photo_material('kc9315 zip photo', 'zip', [0.42, 0.42, 0.42], [0.0, 0.0, 0.0]),
     }
     g.materials.append({
         'name': 'brushed nickel', 'doubleSided': True,
