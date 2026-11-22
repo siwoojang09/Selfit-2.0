@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23s';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23s';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23s';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23s';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23s';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23s';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23t';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23t';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23t';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23t';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23t';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23t';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -249,6 +249,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // of them is in the photograph already and a second set of lines laid over
     // the photo reads as a ghost of the pattern.
     const photoHoodie=adidas&&opts.photoHoodie!==false;
+    const photoTop=Boolean(opts.topAsset)||Boolean(photoHoodie&&opts.hoodieAsset);
     photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:(opts.topAsset?opts.topAsset.byName:null);
     photoUsed={};
     const raw=opts.type||opts.template||'ziphoodie';
@@ -444,7 +445,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       });
     }
 
-    if(bodyThread.indices.length&&!photoHoodie) bodyThread.attach(upper,threadMat,'Body finish topstitching');
+    // The photographs already carry every stitch; a second set of tubes laid
+    // over them reads as a halo of white lines exactly at the seams, and at the
+    // neckline as a ring of teeth. So a photographed garment draws none.
+    if(bodyThread.indices.length&&!photoTop) bodyThread.attach(upper,threadMat,'Body finish topstitching');
     for(let armIndex=0;armIndex<arms.length;armIndex++){
       const {shoulder:joint,elbow}=arms[armIndex],sign=armIndex===0?-1:1;
       const mount=group(joint),cap=fit?shoulderRise+.002:.040,loose=clamp(chest/60.5,.77,1.29);
@@ -497,7 +501,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const sleeveThread=new StitchLines();
       addFoldedEdge({panel,parent:mount,material:cuffMat,name:'Turned cuff edge',around:sleeveAt,
         span:cap+sleeveLength,sewnAt:long?.917:.952,offset:.00095,columns:36,stitches:sleeveThread,thick:hoodie||sweat});
-      if(!photoHoodie)sleeveThread.attach(mount,threadMat,'Cuff join stitching');
+      if(!photoTop)sleeveThread.attach(mount,threadMat,'Cuff join stitching');
       if(striped){
         for(const t of [.37,.66,.91])panel(mount,cream,'Sleeve stripe',3,36,(v,u)=>sleeveAt(t+.052*v,tau*u,.0008));
       }
