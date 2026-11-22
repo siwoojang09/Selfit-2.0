@@ -33,6 +33,20 @@ land = json.loads(np.load(OUT / 'pieces.npz')['landmarks'][0])
 def inpaint(tag, radius=6):
     rgb, mask = photos[tag], edges[tag]['mask']
     holes = (cv2.dilate(mask, np.ones((3, 3), np.uint8)) == 0).astype(np.uint8)
+    # The flat lay carries the shop's white hang tag at the centre of the
+    # waistband and a specular rim along its top edge. Both sit inside the
+    # silhouette, so the silhouette test keeps them, and baked into the atlas
+    # they read as a pale patch and a light line at the waist of the worn jean.
+    # Wide, shallow bright runs are those two; the rivets and the top button
+    # are small enough to survive.
+    lum = rgb @ np.array([.213, .715, .072], np.float32)
+    sat = rgb.max(2) - rgb.min(2)
+    bright = ((lum > 150) & (sat < 40) & (mask > 0)).astype(np.uint8)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(bright, 8)
+    for i in range(1, n):
+        x, y, w, h, area = stats[i]
+        if w >= 20 and h <= 16:
+            holes[max(0, y - 3):y + h + 3, max(0, x - 3):x + w + 3] = 1
     out = cv2.inpaint(rgb.astype(np.uint8), holes, radius, cv2.INPAINT_TELEA)
     return out.astype(np.float32), holes
 
@@ -99,7 +113,7 @@ def build_atlas(side):
     # The waistband's top edge and the hem's underside sit against the empty
     # backdrop in the flat lay; holding those rows at clean denim keeps a light
     # rim from being baked along the garment's own edge.
-    edge = 14
+    edge = 22
     out[:edge] = out[edge]
     out[-edge:] = out[-edge - 1]
     # feather the two side seams between front and back strips
