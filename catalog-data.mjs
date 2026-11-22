@@ -1,6 +1,6 @@
 export const measurementFields=[['length','총장'],['shoulder','어깨너비'],['chest','가슴단면'],['sleeve','소매길이'],['hem','밑단단면']];
 export const pantsMeasurementFields=[['length','총장'],['waist','허리단면'],['hip','엉덩이단면'],['thigh','허벅지단면'],['rise','밑위'],['hem','밑단단면']];
-export const garmentTypes={ziphoodie:'후드 집업',tee:'반소매 티셔츠',shirt:'긴소매 셔츠',polo:'폴로셔츠',sweatshirt:'스웨트셔츠',pants:'바지'};
+export const garmentTypes={ziphoodie:'후드 집업',hoodie:'후드티',halfzip:'하프집업 니트',tee:'반소매 티셔츠',shirt:'긴소매 셔츠',polo:'폴로셔츠',sweatshirt:'스웨트셔츠',pants:'바지'};
 const sizeRow=([label,length,shoulder,chest,sleeve,hem=null])=>({label,length,shoulder,chest,sleeve,hem});
 export const adidas={id:'KC9315',code:'KC9315',brand:'adidas',name:'후드 집업',colourName:'블랙 / 크림화이트',color:'#1d1c20',type:'ziphoodie',category:'outer',photo:'catalog/hoodie.webp',material:'cotton',source:'무신사 상품 실측표',sizes:[
   ['2XS',58,58,54,56],['XS',60,60,56,57],['S',61.5,60.5,58.5,57.5],['M',62,62,60.5,58],['L',64,64,62.5,58.5],['XL',66,65,68,59],['2XL',68,65.5,69,59.5],['3XL',69,66,69.5,59.5],['4XL',70,66.5,70,60]
@@ -29,10 +29,32 @@ export const nikeTee={
     ['XL',72.5,45,55,23.5,54],['2XL',73,46,58,23.5,57]
   ].map(sizeRow)
 };
+export const underoffHoodie={
+  id:'underoff-university-hoodie',code:'',brand:'UNDEROFF',name:'유니버시티 1992 후드티',colourName:'버건디',
+  type:'hoodie',category:'top',color:'#5b2029',photo:'catalog/underoff-university-hoodie.webp',material:'cotton',source:'제공하신 상품 실측표',
+  sizes:[
+    ['S',62,61,61,48,null],['M',65,64,63,50,null],['L',69,66,65,53,null],['XL',73,68,68,54,null]
+  ].map(sizeRow)
+};
+export const poloCable={
+  id:'polo-cable-halfzip',code:'',brand:'POLO RALPH LAUREN',name:'케이블 하프집업 니트',colourName:'블랙',
+  type:'halfzip',category:'top',color:'#141416',photo:'catalog/polo-cable-halfzip.webp',material:'cotton',source:'제공하신 상품 실측표',
+  sizes:[
+    ['XS',65,40,47,61.5,null],['S',66,41.5,49.5,63,null],['M',67.5,42.5,52,64,null],
+    ['L',69,44.5,56,65.5,null],['XL',71,46.5,59.75,66.5,null],['XXL',73,48.5,63.5,68,null]
+  ].map(sizeRow)
+};
+export const trillionOxford={
+  id:'trillion-striped-oxford',code:'',brand:'TRILLION',name:'스트라이프 옥스포드 셔츠',colourName:'블랙 / 화이트',
+  type:'shirt',category:'top',color:'#b9bab4',photo:'catalog/trillion-striped-oxford.webp',material:'cotton',source:'제공하신 상품 실측표',
+  sizes:[
+    ['M',67,53,62,60,null],['L',69,55,64,61,null],['XL',71,57,66,62,null]
+  ].map(sizeRow)
+};
 // Only the garments the owner actually has: the studio's drawn samples are not
 // products, and a wardrobe of stand-ins makes the fitting room look emptier than
 // it is. The mannequin and the studio crew remain as the body it is fitted on.
-export const builtins=[adidas,nikeTee,chino,denim];
+export const builtins=[adidas,nikeTee,underoffHoodie,poloCable,trillionOxford,chino,denim];
 let connection;
 function openStore(){
   if(connection)return connection;

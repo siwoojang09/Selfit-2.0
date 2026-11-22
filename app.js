@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23w';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23w';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23w';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23w';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23w';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23w';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23x';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23x';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23x';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23x';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23x';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23x';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -52,7 +52,7 @@ const wishlist=new Set(JSON.parse(localStorage.getItem('selfit.wishlist')||'[]')
 const saveWishlist=()=>{try{localStorage.setItem('selfit.wishlist',JSON.stringify([...wishlist]));}catch{}};
 function brandName(item){return String(item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'DRAPE STUDIO')).toUpperCase();}
 function renderBrandChips(items){
-  const names=[...new Set(items.map(brandName))].slice(0,4);
+  const names=[...new Set(items.map(brandName))].slice(0,8);
   const chips=$('brandChips');chips.replaceChildren();
   for(const name of ['ALL',...names]){
     const button=document.createElement('button');button.type='button';

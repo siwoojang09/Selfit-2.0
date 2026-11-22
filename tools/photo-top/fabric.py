@@ -18,6 +18,7 @@ import json, pathlib, sys
 import numpy as np
 import cv2
 from PIL import Image
+import weave
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONFIGS = ROOT / 'tools/photo-top/configs'
@@ -45,6 +46,43 @@ def build(name):
     cfg = load_config(name)
     out = ROOT / '.devtest' / 'photo-top' / cfg['id']
     out.mkdir(parents=True, exist_ok=True)
+    fabric = cfg['fabric']
+    if fabric.get('mode') == 'stripes':
+        # The stripe is a yarn-dyed line at a measured pitch, and the cloth's
+        # own weave is a plain oxford: both are described in metres, so the
+        # swatch and the atlas get the same cloth at their own resolution.
+        tile_m = fabric['tile']
+        size = int(fabric.get('tile_px', 512))
+        colour = weave.stripes(size, size, tile_m, fabric.get('period_mm', 5.2),
+                               fabric.get('line_frac', .3),
+                               fabric.get('dark', (62, 64, 61)),
+                               fabric.get('light', (224, 226, 221)))
+        weave_colour, normal = weave.oxford(
+            size, size, tile_m, fabric.get('thread_mm', .52),
+            fabric.get('weave_strength', .55), fabric.get('tone', (176, 178, 174)),
+            fabric.get('weave_contrast', .10))
+        colour = np.clip(colour * (1 + fabric.get('weave_contrast', .10) *
+                                   (weave_colour / max(float(weave_colour.mean()), 1) - 1)), 0, 255)
+        Image.fromarray(colour.astype(np.uint8)).save(out / 'tile-color.png')
+        Image.fromarray((normal * 255).astype(np.uint8)).save(out / 'tile-normal.png')
+        rough = np.full((size, size), fabric.get('roughness', .88), np.float32)
+        Image.fromarray((rough * 255).astype(np.uint8)).save(out / 'tile-rough.png')
+        print(name, 'stripe swatch', colour.shape, 'mean', colour.reshape(-1, 3).mean(0).round(1))
+        return
+    if fabric.get('mode') == 'cable':
+        tile_m = fabric['tile']
+        size = int(fabric.get('tile_px', 512))
+        colour, normal = weave.cable(
+            size, size, tile_m, fabric.get('pitch_mm', 52.0),
+            fabric.get('ply_mm', 13.0), fabric.get('height_mm', 3.0),
+            fabric.get('slope', 1.3), fabric.get('rope_w', .86),
+            tuple(fabric.get('tone', (23, 23, 25))), fabric.get('contrast', .16))
+        Image.fromarray(colour.astype(np.uint8)).save(out / 'tile-color.png')
+        Image.fromarray((normal * 255).astype(np.uint8)).save(out / 'tile-normal.png')
+        rough = np.full((size, size), fabric.get('roughness', .92), np.float32)
+        Image.fromarray((rough * 255).astype(np.uint8)).save(out / 'tile-rough.png')
+        print(name, 'cable swatch', colour.shape, 'mean', colour.reshape(-1, 3).mean(0).round(1))
+        return
     photo = np.asarray(Image.open(pathlib.Path('/workspace/attachments/2026-11-23') / cfg['fabric']['photo']).convert('RGB')).astype(np.float32)
     x0, y0, x1, y1 = cfg['fabric']['crop']
     patch = photo[y0:y1, x0:x1]

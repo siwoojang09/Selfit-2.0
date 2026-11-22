@@ -10,7 +10,7 @@
   window.DrapeEngine = {
     init(container) {
       if (pending) return pending;
-      pending = import(new URL('scene.mjs?v=2026-11-23w', base)).then(({ createScene }) => {
+      pending = import(new URL('scene.mjs?v=2026-11-23x', base)).then(({ createScene }) => {
         engine = createScene(container, options);
         window.dispatchEvent(new CustomEvent('drape:ready', {detail: engine.stats()}));
         return true;

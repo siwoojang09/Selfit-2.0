@@ -1,8 +1,8 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23w';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23w';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23x';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23x';
 
 export function attachAnatomicalBody(source, root, parts) {
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
@@ -52,7 +52,7 @@ export function attachAnatomicalBody(source, root, parts) {
   function setCoverage(bare,options){
     const sample=options.sample;
     const type=sample?.type||(options.outfit==='tailored'?'shirt':'tee');
-    const sleeve=Number(sample?.measurements?.sleeve)||(['shirt','sweatshirt','ziphoodie'].includes(type)?56:20);
+    const sleeve=Number(sample?.measurements?.sleeve)||(['shirt','sweatshirt','ziphoodie','hoodie','halfzip'].includes(type)?56:20);
     const length=Number(sample?.measurements?.length)||63;
     const bottom=options.bottom||(options.outfit==='casual'?'shorts':'trousers');
     const trouser=options.pants?.measurements?pantsFit(options.pants.measurements,options.model,options.person):null;

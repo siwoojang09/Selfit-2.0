@@ -1,0 +1,162 @@
+{
+  "id": "polo-cable-halfzip",
+  "type": "halfzip",
+  "category": "top",
+  "color": "#141416",
+  "material": "cotton",
+  "measurements": {
+    "length": 67.5,
+    "shoulder": 42.5,
+    "chest": 52,
+    "sleeve": 64,
+    "hem": 50
+  },
+  "fabric": {
+    "mode": "cable",
+    "tile": 0.104,
+    "tile_px": 640,
+    "pitch_mm": 52.0,
+    "ply_mm": 42.0,
+    "height_mm": 3.2,
+    "slope": 2.4,
+    "rope_w": 0.86,
+    "tone": [
+      23,
+      23,
+      25
+    ],
+    "contrast": 0.16,
+    "roughness": 0.93
+  },
+  "atlas": {
+    "size": 2048,
+    "circumference": 1.04,
+    "length": 0.675,
+    "decals": [
+      {
+        "photo": "IMG_2576-1fa0f224a10f4fa3b11997f56f764a82.jpg",
+        "crop": [
+          500,
+          858,
+          552,
+          922
+        ],
+        "mode": "red",
+        "threshold": 26,
+        "soft": 30,
+        "center": [
+          0.073,
+          0.279
+        ],
+        "size": [
+          0.036,
+          0.046
+        ],
+        "color": [
+          176,
+          22,
+          30
+        ]
+      }
+    ]
+  },
+  "pieces": {
+    "atlas": [
+      "Measured garment body"
+    ],
+    "tile": [
+      "Sleeve",
+      "Folded bottom hem"
+    ],
+    "rib": [
+      "Neck binding",
+      "Sleeve cuff",
+      "Turned cuff edge",
+      "Ribbed waistband",
+      "Ribbed stand collar",
+      "Collar fold edge",
+      "Neck lining"
+    ],
+    "thread": [
+      "Body finish topstitching",
+      "Cuff join stitching"
+    ],
+    "metal": [
+      "Zip teeth",
+      "Zipper slider",
+      "Zipper pull"
+    ],
+    "button": [
+      "Button"
+    ]
+  },
+  "sleeve_repeat": [
+    7.4,
+    8.4
+  ],
+  "piece_repeat": {
+    "Sleeve cuff": [
+      3.6,
+      0.9
+    ],
+    "Turned cuff edge": [
+      3.6,
+      1.2
+    ],
+    "Ribbed waistband": [
+      16.0,
+      0.9
+    ],
+    "Neck binding": [
+      16.0,
+      0.9
+    ],
+    "Ribbed stand collar": [
+      7.0,
+      1.2
+    ],
+    "Collar fold edge": [
+      7.0,
+      0.5
+    ],
+    "Neck lining": [
+      16.0,
+      0.6
+    ],
+    "Folded bottom hem": [
+      16.0,
+      1.0
+    ],
+    "Zip tape": [
+      0.3,
+      1.0
+    ]
+  },
+  "rib": {
+    "tone": [
+      19,
+      19,
+      21
+    ],
+    "tile": 0.045,
+    "period_mm": 3.6,
+    "depth": 0.3,
+    "roughness": 0.93
+  },
+  "normal_scale": 1.0,
+  "thread": [
+    30,
+    30,
+    33
+  ],
+  "button": [
+    22,
+    22,
+    24
+  ],
+  "gain": [
+    1.0,
+    1.0,
+    1.0
+  ]
+}

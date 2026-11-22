@@ -1,0 +1,183 @@
+{
+  "id": "underoff-university-hoodie",
+  "type": "hoodie",
+  "category": "top",
+  "color": "#5b2029",
+  "material": "cotton",
+  "measurements": {
+    "length": 65,
+    "shoulder": 64,
+    "chest": 63,
+    "sleeve": 50,
+    "hem": 53
+  },
+  "fabric": {
+    "photo": "IMG_2572-5facacf67f5341009b7a3186521ba387.jpg",
+    "crop": [
+      430,
+      1150,
+      830,
+      1450
+    ],
+    "tone": [
+      108,
+      44,
+      48
+    ],
+    "relief": 2.2,
+    "fine": 1.1,
+    "coarse": 4.2,
+    "roughness": 0.94,
+    "tile": 0.05,
+    "colour_detail": 0.14
+  },
+  "atlas": {
+    "size": 2048,
+    "circumference": 1.26,
+    "length": 0.65,
+    "decals": [
+      {
+        "photo": "IMG_2566-a244e6a26930432f8eb8691ece8f80b0.jpg",
+        "crop": [
+          315,
+          540,
+          590,
+          715
+        ],
+        "mode": "light",
+        "threshold": 150,
+        "soft": 40,
+        "patches": [
+          [
+            92,
+            92,
+            104,
+            136
+          ],
+          [
+            168,
+            88,
+            180,
+            136
+          ]
+        ],
+        "center": [
+          0.0,
+          0.271
+        ],
+        "size": [
+          0.49,
+          0.27
+        ],
+        "color": [
+          236,
+          233,
+          226
+        ],
+        "sharpen": 0.3
+      }
+    ]
+  },
+  "pieces": {
+    "atlas": [
+      "Measured garment body"
+    ],
+    "tile": [
+      "Sleeve",
+      "Folded bottom hem",
+      "Folded hood",
+      "Kangaroo pocket",
+      "Drawstring"
+    ],
+    "rib": [
+      "Neck binding",
+      "Sleeve cuff",
+      "Turned cuff edge",
+      "Ribbed waistband",
+      "Lined hood opening",
+      "Neck lining"
+    ],
+    "thread": [
+      "Pocket mouth topstitch",
+      "Body finish topstitching",
+      "Cuff join stitching"
+    ],
+    "metal": [
+      "Drawstring tip",
+      "Zipper slider",
+      "Zipper pull"
+    ],
+    "button": [
+      "Button"
+    ]
+  },
+  "sleeve_repeat": [
+    9.4,
+    10.0
+  ],
+  "piece_repeat": {
+    "Folded hood": [
+      7.0,
+      6.0
+    ],
+    "Kangaroo pocket": [
+      12.0,
+      3.8
+    ],
+    "Drawstring": [
+      0.4,
+      1.2
+    ],
+    "Sleeve cuff": [
+      4.4,
+      1.0
+    ],
+    "Turned cuff edge": [
+      4.4,
+      1.4
+    ],
+    "Ribbed waistband": [
+      17.0,
+      1.0
+    ],
+    "Neck binding": [
+      17.0,
+      1.0
+    ],
+    "Lined hood opening": [
+      13.0,
+      0.6
+    ],
+    "Neck lining": [
+      17.0,
+      0.6
+    ]
+  },
+  "rib": {
+    "tone": [
+      96,
+      39,
+      43
+    ],
+    "tile": 0.045,
+    "period_mm": 5.0,
+    "depth": 0.34,
+    "roughness": 0.94
+  },
+  "normal_scale": 1.15,
+  "thread": [
+    122,
+    62,
+    64
+  ],
+  "button": [
+    28,
+    28,
+    30
+  ],
+  "gain": [
+    1.0,
+    1.0,
+    1.0
+  ]
+}
