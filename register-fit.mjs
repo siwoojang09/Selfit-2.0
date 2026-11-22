@@ -1,4 +1,4 @@
-import {builtins, garmentTypes, pantsMeasurementFields, readProductPhoto} from './catalog-data.mjs';
+import {builtins, garmentTypes, pantsMeasurementFields, readProductPhoto} from './catalog-data.mjs?v=2026-11-22m6';
 
 const topDimensions = [
   ['length','총장','어깨의 가장 높은 곳에서 밑단까지'],

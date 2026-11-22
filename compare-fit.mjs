@@ -1,4 +1,4 @@
-import {pantsMeasurementFields} from './catalog-data.mjs';
+import {pantsMeasurementFields} from './catalog-data.mjs?v=2026-11-22m6';
 const upperFields=[['chest','가슴단면'],['shoulder','어깨너비'],['sleeve','소매길이'],['length','총장']];
 const labels={long:'소매가 길었어요',good:'잘 맞았어요',short:'소매가 짧았어요'};
 const fmt=new Intl.NumberFormat('ko-KR',{maximumFractionDigits:1});

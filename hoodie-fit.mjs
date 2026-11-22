@@ -1,5 +1,5 @@
 // All pattern lengths are metres. Public measurements and wearer inputs use cm.
-import {getAvatarFit} from './fit-body-sections.mjs';
+import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-22m6';
 
 const tau=2*Math.PI;
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
