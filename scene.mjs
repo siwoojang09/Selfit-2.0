@@ -334,6 +334,11 @@ export function createScene(container, opts) {
       for (const look of lookCache.values()) look.wardrobe.setDenimAsset(denimAsset);
     }
     if (!wardrobe.denimAsset) wardrobe.setDenimAsset(denimAsset);
+    // The asset arrived from cache this time, so nothing above announced it.
+    if (wardrobe.denimAsset) {
+      const state = 'worn ' + denimAsset.parts.length;
+      if (document.documentElement.dataset.denim !== state) document.documentElement.dataset.denim = state;
+    }
   }
   let yaw = .045, pitch = .045, targetYaw = yaw, targetPitch = pitch;
   let frameTime = Number(opts.time) || 0, phase = frameTime * tau * .83 * limit(Number(opts.speed) || 0, 0, 4) + .8;

@@ -355,7 +355,7 @@ export function createWardrobe(T,body,materials,opts) {
   // be what the body wears, not even for the frames before the file arrives.
   const photoPants=Boolean(opts.photoPants);
   const skirted=!measured && classic && (opts.bottom==='skirt' || (!opts.bottom && opts.model!=='male'));
-  let denimAsset=opts.photoAsset||null,lastOptions=opts;
+  let denimAsset=photoPants?(opts.photoAsset||null):null,lastOptions=opts;
   const syncPhotoVisibility=()=>{group.visible=!(photoPants&&!denimAsset);};
   const buildMeasured=options=>{
     const built=makeMeasuredPants(T,group,body,materials.lower,{...options,photoDenim:photoPants||Boolean(denimAsset)});
@@ -399,7 +399,9 @@ export function createWardrobe(T,body,materials,opts) {
     group.traverse(mesh=>{if(mesh.isMesh)lowerColliders.push(mesh);});
   }
   function setDenimAsset(asset){
-    if(!measured||denimAsset===asset)return false;
+    // Only the photographed pair may wear it: a registered sample that happens
+    // to be a denim trouser is cut and shaded from its own pattern.
+    if(!measured||!photoPants||denimAsset===asset)return false;
     denimAsset=asset;key='';
     updatePants(lastOptions);
     syncPhotoVisibility();
