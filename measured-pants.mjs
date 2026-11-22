@@ -124,7 +124,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   // down over the stomach instead of cutting a horizontal line. The arch stays
   // shallow: a deep dip at the centre front is read as a V-notch cut into the
   // band, because the eye follows the two halves of the top edge down to it.
-  const edgeCurve=a=>.0016-.0050*Math.cos(a)-.0012*Math.cos(a)**2;
+  const edgeCurve=a=>.0035-.0035*Math.cos(a);
   function surfaceY(d,a){
     const h=d/cutLength;
     const gather=Math.max(0,stack)*smooth(1-buckleFrac,1,h);

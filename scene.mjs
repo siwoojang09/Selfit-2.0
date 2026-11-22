@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k4';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k5';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k4';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k5';
 import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;
@@ -416,7 +416,7 @@ export function createScene(container, opts) {
       // that stops exactly at the band leaves a strip of bare waist when the
       // body moves.
       displayTop={id:'pants-studio-crew',type:'sweatshirt',color:'#24252a',material:'cotton',
-        measurements:{length:Math.max(30,(1.475-f.waistY)*100+1.2),
+        measurements:{length:Math.max(30,(1.475-f.waistY)*100+2.1),
           chest:Math.max(47,w.chest*.5+8),shoulder:Math.max(41,w.shoulder+4),sleeve:54}};
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'bodyOnly' in changes || 'person' in changes){
