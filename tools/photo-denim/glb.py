@@ -115,11 +115,11 @@ def build():
             'pbrMetallicRoughness': {
                 'baseColorTexture': {'index': colour, 'texCoord': 0},
                 'metallicRoughnessTexture': {'index': mr, 'texCoord': 0},
-                'metallicFactor': 1.0, 'roughnessFactor': 1.0,
+                'metallicFactor': 0.0, 'roughnessFactor': 1.0,
             },
-            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 1.0},
+            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 0.9},
             'extensions': {'KHR_materials_sheen': {
-                'sheenColorFactor': [0.85, 0.89, 0.94], 'sheenRoughnessFactor': 0.6}},
+                'sheenColorFactor': [0.55, 0.62, 0.70], 'sheenRoughnessFactor': 0.82}},
         })
         return len(g.materials) - 1
 

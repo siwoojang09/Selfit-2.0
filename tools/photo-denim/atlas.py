@@ -109,14 +109,23 @@ def build_atlas(side):
     return out
 
 
-def normal_from(img, strength=1.6):
+def normal_from(img, strength=1.0):
+    """Relief from the weave and stitches, read only as a gentle tilt.
+
+    A normal map made from raw gradients turns the fabric into sandpaper: every
+    twill line tips the surface almost sideways and the lit render turns grey and
+    noisy. The gradient is therefore scaled against its own 90th percentile so
+    the grain stays a few degrees of tilt, which is what the eye reads as cloth.
+    """
     lum = img @ np.array([.213, .715, .072], np.float32)
-    fine = lum - cv2.GaussianBlur(lum, (0, 0), 5.0)
-    fine = cv2.GaussianBlur(fine, (0, 0), .7) * 2.2
+    fine = lum - cv2.GaussianBlur(lum, (0, 0), 4.0)
+    fine = cv2.GaussianBlur(fine, (0, 0), .6)
     gy, gx = np.gradient(fine)
-    scale = 5.0 * strength
-    nz = np.ones_like(lum)
-    nx, ny = -gx * scale, gy * scale
+    grad = np.maximum(np.hypot(gx, gy), 1e-6)
+    scale = .30 * strength / max(float(np.percentile(grad, 90)), 1e-6)
+    nx = np.clip(-gx * scale, -1, 1)
+    ny = np.clip(gy * scale, -1, 1)
+    nz = np.ones_like(nx)
     ln = np.sqrt(nx * nx + ny * ny + nz * nz)
     return np.dstack([nx / ln, ny / ln, nz / ln])
 
