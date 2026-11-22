@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23l';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23l';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23l';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23l';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23l';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23l';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23m';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23m';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23m';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23m';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23m';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23m';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each

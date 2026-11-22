@@ -219,6 +219,31 @@ def normal_from(img, strength=1.0):
     return np.dstack([nx / ln, ny / ln, nz / ln])
 
 
+def weave_tile(size):
+    """The twill tile, resampled so one repeat covers the same cloth in the atlas.
+
+    The atlas spans about a metre of cloth across and down, so a repeat of 16 cm
+    lands near 320 texels. Tiling it here (rather than on a second UV set) keeps
+    the rib at its true size on the same texture the colour uses, where the
+    engine has no choice about which coordinate set it reads.
+    """
+    src = Image.open(OUT / 'weave-normal.png').convert('RGB').resize((size, size), Image.LANCZOS)
+    tile = np.asarray(src).astype(np.float32) / 255.0
+    return tile * 2.0 - 1.0
+
+
+def composite_normal(base, tile, strength=.85):
+    """Add the weave's tilt to the photograph's macro relief."""
+    h, w = base.shape[:2]
+    reps_y = max(1, int(round(h / tile.shape[0])))
+    reps_x = max(1, int(round(w / tile.shape[1])))
+    grid = np.tile(tile, (reps_y + 1, reps_x + 1, 1))[:h, :w]
+    macro = base.copy()
+    macro[:, :, :2] = np.clip(macro[:, :, :2] + grid[:, :, :2] * strength, -1, 1)
+    ln = np.linalg.norm(macro, axis=2, keepdims=True)
+    return macro / np.maximum(ln, 1e-6)
+
+
 def roughness_from(img):
     lum = img @ np.array([.213, .715, .072], np.float32)
     base = cv2.GaussianBlur(lum, (0, 0), 24)
@@ -233,6 +258,8 @@ if __name__ == '__main__':
         tag = 'right' if side < 0 else 'left'
         Image.fromarray(np.clip(col, 0, 255).astype(np.uint8)).save(OUT / f'atlas-{tag}.png')
         nrm = normal_from(col)
+        if (OUT / 'weave-normal.png').exists():
+            nrm = composite_normal(nrm, weave_tile(316))
         Image.fromarray(((nrm * .5 + .5) * 255).astype(np.uint8)).save(OUT / f'normal-{tag}.png')
         rough = roughness_from(col)
         Image.fromarray((np.clip(rough, 0, 1) * 255).astype(np.uint8)).save(OUT / f'rough-{tag}.png')
