@@ -4,7 +4,6 @@
 // response. The fitting rig still places every vertex (so each size is cut from
 // the measurement table and the walk deforms it), but the surface you look at is
 // the actual pair of jeans rather than a drawn approximation.
-import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 const cache = new Map();
@@ -13,26 +12,43 @@ export function hasPhotoGarment(pants) {
   return Boolean(pants && pants.id === 'washed-denim-medium-blue');
 }
 
+function note(state) {
+  if (typeof document !== 'undefined') document.documentElement.dataset.denim = state;
+}
+
 export function loadGarmentAsset(id) {
   if (!cache.has(id)) {
-    cache.set(id, new Promise((resolve, reject) => {
-      const loader = new GLTFLoader();
-      loader.load(new URL(`./assets/${id}.glb`, import.meta.url).href, gltf => {
-        // Collect first: the loader nests one mesh per primitive under the
-        // glTF mesh node, and their order is the order the pattern must wear.
-        const meshes = [];
-        gltf.scene.traverse(object => { if (object.isMesh) meshes.push(object); });
-        const parts = meshes.map(object => ({
-          geometry: object.geometry,
-          material: object.material,
-          count: object.geometry.attributes.position.count
-        }));
-        resolve({ id, parts });
-      }, undefined, error => {
+    const url = new URL(`./assets/${id}.glb`, import.meta.url).href;
+    const base = url.slice(0, url.lastIndexOf('/') + 1);
+    // Fetch the container here rather than inside the loader so a stalled or
+    // refused transfer surfaces as a rejection instead of a load that never ends.
+    const job = fetch(url)
+      .then(response => {
+        if (!response.ok) throw new Error(`denim asset HTTP ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then(buffer => new Promise((resolve, reject) => {
+        note('parsing ' + buffer.byteLength);
+        new GLTFLoader().parse(buffer, base, gltf => {
+          // Collect first: the loader nests one mesh per primitive under the
+          // glTF mesh node, and their order is the order the pattern wears them.
+          const meshes = [];
+          gltf.scene.traverse(object => { if (object.isMesh) meshes.push(object); });
+          resolve({
+            id,
+            parts: meshes.map(object => ({
+              geometry: object.geometry,
+              material: object.material,
+              count: object.geometry.attributes.position.count
+            }))
+          });
+        }, reject);
+      }))
+      .catch(error => {
         cache.delete(id);
-        reject(error);
+        throw error;
       });
-    }));
+    cache.set(id, job);
   }
   return cache.get(id);
 }
