@@ -96,6 +96,12 @@ def build_atlas(side):
             xs = a[:, None] * (1 - t)[None, :] + b[:, None] * t[None, :]
             ys = np.repeat(py[:, None], xs.shape[1], axis=1)
             out[:, lo:hi] = sample(filled[tag], xs, ys)
+    # The waistband's top edge and the hem's underside sit against the empty
+    # backdrop in the flat lay; holding those rows at clean denim keeps a light
+    # rim from being baked along the garment's own edge.
+    edge = 14
+    out[:edge] = out[edge]
+    out[-edge:] = out[-edge - 1]
     # feather the two side seams between front and back strips
     soft = 28
     r = np.linspace(0, np.pi / 2, soft)[:, None]
