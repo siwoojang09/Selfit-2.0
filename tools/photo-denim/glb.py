@@ -119,7 +119,7 @@ def build():
             },
             'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 1.15},
             'extensions': {'KHR_materials_sheen': {
-                'sheenColorFactor': [0.30, 0.35, 0.42], 'sheenRoughnessFactor': 0.92}},
+                'sheenColorFactor': [0.12, 0.14, 0.17], 'sheenRoughnessFactor': 1.0}},
         })
         return len(g.materials) - 1
 
