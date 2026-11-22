@@ -1,10 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-22m6';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-22m6';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-22m6';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-22m6';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-22m6';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-22m7';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-22m7';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-22m7';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-22m7';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-22m7';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-22m7';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -42,10 +43,11 @@ function panel(parent,mat,name,rows,cols,at) {
   const mesh=new T.Mesh(geometry,mat);
   mesh.name=name;
   mesh.castShadow=mesh.receiveShadow=true;
-  if(photoParts&&photoParts[name]) {
-    const list=photoParts[name],k=photoUsed[name]||0,part=list[k];
+  const photoKey=photoParts?pieceKey(name):'';
+  if(photoParts&&photoParts[photoKey]) {
+    const list=photoParts[photoKey],k=photoUsed[photoKey]||0,part=list[k];
     if(part&&part.uv.count===positions.length/3) {
-      photoUsed[name]=k+1;
+      photoUsed[photoKey]=k+1;
       geometry.setAttribute('uv',part.uv);
       mesh.material=part.material;
     }

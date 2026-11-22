@@ -25,6 +25,12 @@ export function peekHoodieAsset() {
   return ready.get('KC9315') || null;
 }
 
+// glTF node names arrive with spaces turned into underscores and the index
+// suffix still attached, so pieces are matched on their letters alone.
+export function pieceKey(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
 function note(state) {
   if (typeof document !== 'undefined') document.documentElement.dataset.hoodie = state;
 }
@@ -54,8 +60,9 @@ export function loadHoodieAsset() {
             }
             if (material) material.needsUpdate = true;
             const part = { name, uv, material };
+            const key = pieceKey(name);
             parts.push(part);
-            (byName[name] = byName[name] || []).push(part);
+            (byName[key] = byName[key] || []).push(part);
           });
           resolve({ id: 'KC9315', parts, byName });
         }, reject);
