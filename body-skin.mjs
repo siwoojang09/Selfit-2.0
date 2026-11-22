@@ -1,8 +1,8 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23p';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23p';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23q';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23q';
 
 export function attachAnatomicalBody(source, root, parts) {
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
@@ -26,7 +26,9 @@ export function attachAnatomicalBody(source, root, parts) {
   const position=geometry.attributes.position,normal=geometry.attributes.normal;
   position.setUsage(THREE.DynamicDrawUsage);normal.setUsage(THREE.DynamicDrawUsage);
   const rest=position.array.slice(),restNormal=normal.array.slice();
-  const material=new THREE.MeshStandardMaterial({color:'#d7d8d5',roughness:.8,metalness:0});
+  // Double-sided: through a crew neckline the eye sees the inside of the chest,
+  // and a culled backface there reads as a jagged hole around the collarbone.
+  const material=new THREE.MeshStandardMaterial({color:'#d7d8d5',roughness:.8,metalness:0,side:THREE.DoubleSide});
   material.userData.clay=true;
   const mesh=new THREE.Mesh(geometry,material);
   mesh.name='Anatomical fitting form';mesh.userData.anatomicalBody=true;

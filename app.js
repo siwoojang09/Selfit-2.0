@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23p';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23p';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23p';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23p';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23p';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23p';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23q';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23q';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23q';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23q';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23q';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23q';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
