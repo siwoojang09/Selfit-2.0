@@ -50,9 +50,38 @@ def inpaint(tag, radius=6):
     out = cv2.inpaint(rgb.astype(np.uint8), holes, radius, cv2.INPAINT_TELEA)
     return out.astype(np.float32), holes
 
+
+def button_holes(tag, top_frac=.10):
+    """The pale fly button of the flat lay, as a patch to paint out.
+
+    A disc a couple of centimetres across is the only compact, bright shape at
+    the centre of the waist in these photographs. Painted round the waist it
+    reads as a hole through the denim, so the pattern models a button instead.
+    """
+    rgb = photos[tag]
+    lum = rgb @ np.array([.213, .715, .072], np.float32)
+    sat = rgb.max(2) - rgb.min(2)
+    mask = edges[tag]['mask']
+    bright = ((lum > 130) & (sat < 55) & (mask > 0)).astype(np.uint8)
+    top = int(edges[tag]['top'])
+    crop = np.zeros_like(bright)
+    crop[top:top + int(bright.shape[0] * top_frac)] = 1
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(bright * crop, 8)
+    holes = np.zeros_like(bright)
+    for i in range(1, n):
+        x, y, w, h, area = stats[i]
+        if 9 <= w <= 70 and 9 <= h <= 70 and 120 <= area <= 4000:
+            holes[max(0, y - 4):y + h + 4, max(0, x - 4):x + w + 4] = 1
+    return holes
+
 filled = {}
+BUTTON = {}
 for tag in photos:
     filled[tag], _ = inpaint(tag)
+    BUTTON[tag] = button_holes(tag)
+    filled[tag] = cv2.inpaint(filled[tag].astype(np.uint8), BUTTON[tag], 8,
+                              cv2.INPAINT_TELEA).astype(np.float32)
+    print(tag, 'button px', int(BUTTON[tag].sum()))
 
 def sample(img, xs, ys):
     """Bilinear sample rows: xs, ys are float arrays of the same length."""
@@ -129,6 +158,33 @@ def build_atlas(side):
     return out
 
 
+def draw_button(atlas):
+    """A shank button at the top of the fly, in the atlas' own texel scale.
+
+    The photo's own button is a flat pale disc that reads as a hole once it is
+    wrapped round the waist, so the atlas carries a drawn one instead: it keeps
+    the metal's roundness at every zoom and needs no extra mesh.
+    """
+    h, w, _ = atlas.shape
+    cy = .022 / 1.05 * h                  # 2.2 cm below the waistband top
+    rx = .011 * (w / 4) / .1975           # 2.2 cm across, in texels
+    ry = .011 / 1.05 * h
+    yy, xx = np.mgrid[0:h, 0:w]
+    for centre in (0.0, float(w)):
+        dx = (xx - centre) / rx
+        dy = (yy - cy) / ry
+        r = np.sqrt(dx * dx + dy * dy)
+        near = r < 1.02
+        if not near.any():
+            continue
+        shade = .40 + .18 * np.clip(1 - r * r, 0, 1) - .10 * np.clip((r - .82) / .18, 0, 1)
+        shade += .10 * np.exp(-(((r - .78) / .10) ** 2))
+        metal = np.stack([shade * .98, shade * .97, shade * .92], -1) * 255
+        alpha = np.clip((1.02 - r) / .12, 0, 1)[..., None]
+        atlas[near] = atlas[near] * (1 - alpha[near]) + metal[near] * alpha[near]
+    return atlas
+
+
 def normal_from(img, strength=1.0):
     """Relief from the weave and stitches, read only as a gentle tilt.
 
@@ -162,6 +218,7 @@ if __name__ == '__main__':
     for side in (-1, 1):
         col = build_atlas(side)
         tag = 'right' if side < 0 else 'left'
+        col = draw_button(col)
         Image.fromarray(np.clip(col, 0, 255).astype(np.uint8)).save(OUT / f'atlas-{tag}.png')
         nrm = normal_from(col)
         Image.fromarray(((nrm * .5 + .5) * 255).astype(np.uint8)).save(OUT / f'normal-{tag}.png')
