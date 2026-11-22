@@ -485,8 +485,8 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     if(photo){
       parts.length=0;
       parts.push(shell);
-      parts.push(Object.assign(emit(4,columns,(v,u)=>[v*.024,tau*u,-.0012-.0018*v],-1,true),{layer:'lining'}));
-      parts.push(Object.assign(emit(3,columns,(v,u)=>[cutLength-v*.016,tau*u,-.0010-.0016*v],-1,true),{layer:'lining'}));
+      parts.push(Object.assign(emit(4,columns,(v,u)=>[.006+v*.022,tau*u,-.0026-.0022*v],-1,true),{layer:'lining'}));
+      parts.push(Object.assign(emit(3,columns,(v,u)=>[cutLength-.005-v*.013,tau*u,-.0022-.0018*v],-1,true),{layer:'lining'}));
     }
 
     // ---- meshes

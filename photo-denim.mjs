@@ -8,7 +8,7 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 // Bumped whenever the baked asset changes: GitHub Pages caches files for ten
 // minutes, and a garment that arrives stale reads as the wrong fabric entirely.
-const ASSET_VERSION = '2026-11-22e';
+const ASSET_VERSION = '2026-11-22f';
 const cache = new Map();
 
 export function hasPhotoGarment(pants) {
@@ -37,6 +37,17 @@ export function loadGarmentAsset(id) {
           // glTF mesh node, and their order is the order the pattern wears them.
           const meshes = [];
           gltf.scene.traverse(object => { if (object.isMesh) meshes.push(object); });
+          // A trouser leg is read almost edge-on: without anisotropy the
+          // photograph smears into one flat tone along every curve.
+          for (const object of meshes) {
+            const material = object.material;
+            if (!material) continue;
+            for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap']) {
+              const texture = material[key];
+              if (texture) texture.anisotropy = 8;
+            }
+            material.needsUpdate = true;
+          }
           resolve({
             id,
             parts: meshes.map(object => ({
