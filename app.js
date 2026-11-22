@@ -79,7 +79,7 @@ function renderShelf(){
   const items=scope==='mine'?ownSamples():collections();
   renderBrandChips(items);
   const shown=items.filter(item=>(filter==='all'||item.category===filter)&&(brand==='ALL'||brandName(item)===brand)&&[item.name,item.brand,item.code].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()));
-  $('shelfName').textContent=scope==='mine'?'내가 등록한 샘플':'새로 들어온 샘플';$('total').textContent=shown.length;
+  $('shelfName').textContent=scope==='mine'?'내 샘플':'샘플 옷장';$('total').textContent=shown.length;
   $('allNav').classList.toggle('nav-on',scope==='all');$('ownNav').classList.toggle('nav-on',scope==='mine');
   document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.filter===filter));
   const shelf=$('samples');shelf.replaceChildren();
