@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23v';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23v';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23v';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23v';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23v';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23v';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23w';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23w';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23w';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23w';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23w';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23w';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -363,10 +363,17 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const a=u*tau,s=Math.sin(a),c=Math.cos(a),back=(1-c)*.5;
         const bulge=Math.sin(Math.PI*v);
         if(pattern){
-          const inner=bodyAt(0,a),outer=bodyAt(.014+.18*back**1.7,a);
-          outer[0]=clamp(outer[0],-.107,.107);
-          return [lerp(inner[0],outer[0],v)+s*(.004+.020*bulge),lerp(inner[1],outer[1],v)+bulge*(.014+.033*back)/sy,
-            lerp(inner[2],outer[2],v)+c*(.004+.022*bulge)];
+          // The hood is worn down, so what the back shows is the shell laid
+          // over the shoulder blades: a wide triangle, its top edge along the
+          // shoulder line and its point at the middle of the back, standing a
+          // few centimetres off the cloth. The drop is deeper at the centre
+          // back and shallower at the sides, which is what makes the triangle.
+          const drop=.014+.28*Math.max(0,back-.06)**1.55;
+          const inner=bodyAt(0,a),outer=bodyAt(drop,a);
+          outer[0]=clamp(outer[0],-.155,.155);
+          return [lerp(inner[0],outer[0],v)+s*(.004+.026*bulge),
+            lerp(inner[1],outer[1],v)+bulge*(.016+.040*back)/sy,
+            lerp(inner[2],outer[2],v)+c*(.004+.030*bulge)*Math.max(.25,back)];
         }
         const rx=lerp(.060,.080+.035*back,v)+.019*bulge;
         const rz=lerp(.050,.060+.05*back,v)+.027*bulge;

@@ -13430,7 +13430,7 @@
   };
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
-  // garment-contact.mjs
+  // garment-contact.mjs?v=2026-11-23v
   var tau = Math.PI * 2;
   var directions = 32;
   var sectors = 64;
@@ -13541,7 +13541,7 @@
     } };
   }
 
-  // fit-body-sections.mjs
+  // fit-body-sections.mjs?v=2026-11-23v
   var sections = {
     female: [
       [306, 165, 86, 1624, 165, 166, 168, 171, 176, 182, 191, 202, 216, 232, 250, 264, 274, 281, 286, 291, 295, 300, 303, 306, 307, 307, 301, 294, 281, 267, 254, 234, 216, 202, 191, 182, 176, 171, 168, 166, 165],
@@ -13765,7 +13765,7 @@
     return avatars[model === "male" ? "male" : "female"];
   }
 
-  // hoodie-fit.mjs
+  // hoodie-fit.mjs?v=2026-11-23v
   var tau2 = 2 * Math.PI;
   var clamp2 = (x2, a2, b2) => Math.min(b2, Math.max(a2, x2));
   var mix2 = (a2, b2, t2) => a2 + (b2 - a2) * t2;
@@ -13906,7 +13906,7 @@
     } };
   }
 
-  // fabric-pbr.mjs
+  // fabric-pbr.mjs?v=2026-11-23v
   var tau3 = Math.PI * 2;
   var clamp3 = (v2, low, high) => v2 < low ? low : v2 > high ? high : v2;
   var wrapIndex = (i2, n2) => {
@@ -14045,7 +14045,7 @@
     return material;
   }
 
-  // hoodie-textile.mjs
+  // hoodie-textile.mjs?v=2026-11-23v
   var import_meta = {};
   var textiles = {
     knit: {
@@ -14134,7 +14134,7 @@
     });
   }
 
-  // hoodie-finishes.mjs
+  // hoodie-finishes.mjs?v=2026-11-23v
   var tau4 = Math.PI * 2;
   var lerp = Qn.lerp;
   function shifted(p2, a2, offset) {
@@ -14256,7 +14256,7 @@
     slider(0.979, 1, true);
   }
 
-  // cloth-dynamics.mjs
+  // cloth-dynamics.mjs?v=2026-11-23v
   var clamp4 = (v2, a2, b2) => v2 < a2 ? a2 : v2 > b2 ? b2 : v2;
   var fixedStep = 1 / 120;
   var accelerationLimit = 26;
@@ -14424,6 +14424,15 @@
     };
   }
 
+  // vendor/GLTFLoader.js
+  var _q = new Ii();
+  var _identityMatrix = new cr();
+
+  // photo-hoodie.mjs?v=2026-11-23v
+  function pieceKey(name) {
+    return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
+  }
+
   // sample-garment.mjs
   var tau5 = 2 * Math.PI;
   var hemBands = 10;
@@ -14458,10 +14467,11 @@
     const mesh = new Xs(geometry, mat);
     mesh.name = name;
     mesh.castShadow = mesh.receiveShadow = true;
-    if (photoParts && photoParts[name]) {
-      const list = photoParts[name], k2 = photoUsed[name] || 0, part = list[k2];
+    const photoKey = photoParts ? pieceKey(name) : "";
+    if (photoParts && photoParts[photoKey]) {
+      const list = photoParts[photoKey], k2 = photoUsed[photoKey] || 0, part = list[k2];
       if (part && part.uv.count === positions.length / 3) {
-        photoUsed[name] = k2 + 1;
+        photoUsed[photoKey] = k2 + 1;
         geometry.setAttribute("uv", part.uv);
         mesh.material = part.material;
       }
@@ -14675,7 +14685,8 @@
       const id2 = String(opts.id || opts.sampleId || "");
       const adidas = /kc9315/i.test(id2) || opts.adidas === true;
       const photoHoodie = adidas && opts.photoHoodie !== false;
-      photoParts = photoHoodie && opts.hoodieAsset ? opts.hoodieAsset.byName : null;
+      const photoTop = Boolean(opts.topAsset) || Boolean(photoHoodie && opts.hoodieAsset);
+      photoParts = photoHoodie && opts.hoodieAsset ? opts.hoodieAsset.byName : opts.topAsset ? opts.topAsset.byName : null;
       photoUsed = {};
       const raw = opts.type || opts.template || "ziphoodie";
       const type = ["ziphoodie", "tee", "shirt", "polo", "sweatshirt"].includes(raw) ? raw : "ziphoodie";
@@ -14817,12 +14828,13 @@
           const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2), back = (1 - c2) * 0.5;
           const bulge = Math.sin(Math.PI * v3);
           if (pattern) {
-            const inner = bodyAt(0, a2), outer = bodyAt(0.014 + 0.18 * back ** 1.7, a2);
-            outer[0] = clamp5(outer[0], -0.107, 0.107);
+            const drop = 0.014 + 0.28 * Math.max(0, back - 0.06) ** 1.55;
+            const inner = bodyAt(0, a2), outer = bodyAt(drop, a2);
+            outer[0] = clamp5(outer[0], -0.155, 0.155);
             return [
-              lerp2(inner[0], outer[0], v3) + s2 * (4e-3 + 0.02 * bulge),
-              lerp2(inner[1], outer[1], v3) + bulge * (0.014 + 0.033 * back) / sy,
-              lerp2(inner[2], outer[2], v3) + c2 * (4e-3 + 0.022 * bulge)
+              lerp2(inner[0], outer[0], v3) + s2 * (4e-3 + 0.026 * bulge),
+              lerp2(inner[1], outer[1], v3) + bulge * (0.016 + 0.04 * back) / sy,
+              lerp2(inner[2], outer[2], v3) + c2 * (4e-3 + 0.03 * bulge) * Math.max(0.25, back)
             ];
           }
           const rx = lerp2(0.06, 0.08 + 0.035 * back, v3) + 0.019 * bulge;
@@ -14880,7 +14892,7 @@
         const collar = type === "tee" || sweat;
         panel(upper, rib, "Neck binding", 5, 40, (v3, u2) => {
           const a2 = u2 * tau5, c2 = Math.cos(a2);
-          return [Math.sin(a2) * lerp2(0.057, collar ? 0.069 : 0.072, v3), 1.465 - 0.027 * Math.max(c2, 0) ** 2 - (collar ? 0.011 : 0.025) * v3, Math.cos(a2) * lerp2(0.048, collar ? 0.057 : 0.059, v3) + 2e-3];
+          return [Math.sin(a2) * lerp2(0.0615, collar ? 0.0735 : 0.0765, v3), 1.465 - 0.027 * Math.max(c2, 0) ** 2 - (collar ? 0.011 : 0.025) * v3, Math.cos(a2) * lerp2(0.0525, collar ? 0.0615 : 0.0635, v3) + 34e-4];
         });
         if (!collar) {
           for (const sign of [-1, 1]) {
@@ -14914,7 +14926,7 @@
           return [x2, p2[1] + 2e-3 + i2 * 23e-4 - v3 * 93e-5, frontAt(t0 - 4e-3 * i2, x2, 75e-4)[2]];
         });
       }
-      if (bodyThread.indices.length && !photoHoodie) bodyThread.attach(upper, threadMat, "Body finish topstitching");
+      if (bodyThread.indices.length && !photoTop) bodyThread.attach(upper, threadMat, "Body finish topstitching");
       for (let armIndex = 0; armIndex < arms.length; armIndex++) {
         let sleeveAt = function(t2, a2, lift = 0) {
           let [rx, rz] = sampleProfile(rings, long ? t2 : t2 * 0.36 + 0.02);
@@ -14992,7 +15004,7 @@
           stitches: sleeveThread,
           thick: hoodie || sweat
         });
-        if (!photoHoodie) sleeveThread.attach(mount, threadMat, "Cuff join stitching");
+        if (!photoTop) sleeveThread.attach(mount, threadMat, "Cuff join stitching");
         if (striped) {
           for (const t2 of [0.37, 0.66, 0.91]) panel(mount, cream, "Sleeve stripe", 3, 36, (v3, u2) => sleeveAt(t2 + 0.052 * v3, tau5 * u2, 8e-4));
         }
@@ -15237,6 +15249,20 @@
     return {
       update,
       pose,
+      inspect() {
+        const out = [];
+        for (const g2 of members) g2.traverse((m2) => {
+          if (m2.isMesh) out.push({
+            name: m2.name,
+            hasUv: Boolean(m2.geometry.attributes.uv),
+            uvCount: m2.geometry.attributes.uv?.count || 0,
+            count: m2.geometry.attributes.position.count,
+            material: m2.material?.name || "",
+            map: m2.material?.map?.image?.width || 0
+          });
+        });
+        return out;
+      },
       get hemRise() {
         return contact?.rise || 0;
       },
@@ -15315,7 +15341,11 @@
       material: "cotton",
       measurements,
       adidas: true,
-      photo: true
+      photo: true,
+      // The runtime hands the builder its baked asset, and a photographed hoodie
+      // draws no stitch tubes of its own; the dump must build the same pieces.
+      photoHoodie: true,
+      hoodieAsset: { byName: {} }
     }, []);
     body.group.updateMatrixWorld(true);
     const pieces = [];

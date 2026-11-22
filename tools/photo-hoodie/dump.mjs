@@ -51,7 +51,10 @@ globalThis.__dumpHoodie = () => {
   const body = stubBody();
   attachSample(body, {
     id: 'KC9315', type: 'ziphoodie', category: 'outer', color: '#1d1c20',
-    material: 'cotton', measurements, adidas: true, photo: true
+    material: 'cotton', measurements, adidas: true, photo: true,
+    // The runtime hands the builder its baked asset, and a photographed hoodie
+    // draws no stitch tubes of its own; the dump must build the same pieces.
+    photoHoodie: true, hoodieAsset: { byName: {} }
   }, []);
   body.group.updateMatrixWorld(true);
   const pieces = [];
