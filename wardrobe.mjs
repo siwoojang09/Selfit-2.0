@@ -320,13 +320,40 @@ function makePants(T,group,body,mat,opts){
   return {pose,reset,vertices:2*(rows+1)*(cols+1)};
 }
 
+// Wear the photo-mapped mesh in place of the drawn one. The pattern still
+// supplies the rest pose and every frame's deformation, so fit, size and walk
+// stay exactly as measured; only the surface (and its unwrapped photograph)
+// comes from the asset.
+function applyPhotoAsset(garment,asset){
+  const pieces=garment.parts||[];
+  if(pieces.length!==asset.parts.length){
+    console.warn('denim asset has',asset.parts.length,'pieces, the pattern has',pieces.length);
+    return false;
+  }
+  let worn=0;
+  pieces.forEach((piece,i)=>{
+    const part=asset.parts[i];
+    if(!part||part.count!==piece.rest.length/3)return;
+    piece.mesh.geometry=part.geometry.clone();
+    piece.mesh.material=part.material;
+    worn++;
+  });
+  return worn===pieces.length;
+}
+
 export function createWardrobe(T,body,materials,opts) {
   const group=new T.Group();
   group.name='Garment assembly';
   const classic=opts.outfit==='classic' || !opts.outfit;
   const measured=Boolean(opts.pants);
   const skirted=!measured && classic && (opts.bottom==='skirt' || (!opts.bottom && opts.model!=='male'));
-  let main=measured?makeMeasuredPants(T,group,body,materials.lower,opts):
+  let denimAsset=null,lastOptions=opts;
+  const buildMeasured=options=>{
+    const built=makeMeasuredPants(T,group,body,materials.lower,{...options,photoDenim:Boolean(denimAsset)});
+    if(denimAsset)applyPhotoAsset(built,denimAsset);
+    return built;
+  };
+  let main=measured?buildMeasured(opts):
     skirted?makeSkirt(materials.lower):makePants(T,group,body,materials.lower,opts);
   if(skirted){
     main.mesh.userData.garmentPart='lower';
@@ -351,16 +378,24 @@ export function createWardrobe(T,body,materials,opts) {
   let key=measured?JSON.stringify([opts.pants,opts.person]):'';
   function updatePants(options){
     if(!measured)return;
+    lastOptions=options;
     const next=JSON.stringify([options.pants,options.person]);
     if(next===key)return;
     key=next;main.dispose();
     // The deformation palette is bound in the standing pose for every size.
     body.pose(0,false);
-    main=makeMeasuredPants(T,group,body,materials.lower,options);
+    main=buildMeasured(options);
     lowerColliders.length=0;
     group.traverse(mesh=>{if(mesh.isMesh)lowerColliders.push(mesh);});
   }
-  return {group,pose,reset,lowerColliders,updatePants,get secondary(){return main.secondary||null;},
+  function setDenimAsset(asset){
+    if(!measured||denimAsset===asset)return false;
+    denimAsset=asset;key='';
+    updatePants(lastOptions);
+    return true;
+  }
+  return {group,pose,reset,lowerColliders,updatePants,setDenimAsset,
+    get denimAsset(){return denimAsset;},get secondary(){return main.secondary||null;},
     get probe(){return main.probe||null;},
     get vertices(){return skirted?main.mesh.geometry.attributes.position.count:main.vertices;}};
 }

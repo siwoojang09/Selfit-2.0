@@ -58,6 +58,7 @@ const limbAngle=(upper,lower)=>{
 };
 
 export function makeMeasuredPants(T,group,body,mat,opts){
+  const photo=Boolean(opts.photoDenim);
   const fit=pantsFit(opts.pants.measurements,opts.model,opts.person);
   const w=fit.w, S=w.base, sy=w.sy;
   const {waistY,cutLength,forkDrop,hipDrop}=fit;
@@ -65,7 +66,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   const bandH=Math.min(.043,cutLength*.055);
   const hipLevel=clamp(S.hipY,.60,waistY-.05);
   const legX=.091, legZ=-.008;      // hip joint in the rest rig
-  const web=.0024;                  // half the fold left between the two legs
+  const web=photo?.0012:.0024;                  // half the fold left between the two legs
   const legLength=cutLength-forkDrop;
 
   // ---- tape ---------------------------------------------------------------
@@ -129,7 +130,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     y+=edgeCurve(a)*(1-smooth(0,.11,d));
     const hemBlend=smooth(cutLength-.17,cutLength,d);
     const front=Math.max(0,Math.cos(a));
-    y+=(.034*front**1.7-.008*Math.max(0,-Math.cos(a)))*hemBlend;
+    y+=(.034*front**1.7-.008*Math.max(0,-Math.cos(a)))*hemBlend*(photo?.36:1);
     return y;
   }
   function legGeom(d){
@@ -183,11 +184,11 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     const pleatMask=.35+.65*smooth(.05,.42,t);
     const kneeFold=.0042*gauss(d,forkDrop+.44,.075)*Math.sin(a*1.9+2.2+sideSign*.8);
     const roll=smooth(cutLength-.26,cutLength-.075,d)*(1-smooth(cutLength-.055,cutLength,d));
-    const stacking=.0082*roll*Math.sin((cutLength-d)*86+a*1.35+2.6+sideSign*1.7);
+    const stacking=.0082*(photo?.34:1)*roll*Math.sin((cutLength-d)*86+a*1.35+2.6+sideSign*1.7);
     const frontDrape=.0026*smooth(.05,.30,t)*(1-smooth(.55,.95,t))
       *Math.sin(2.6*a-1.1+d*3.1)*Math.max(0,Math.cos(a))**.8;
-    const wobble=(pleat*pleatMask+kneeFold+stacking)*calm*(.55+.45*Math.max(0,Math.cos(a)))
-      +frontDrape;
+    const wobble=((pleat*pleatMask+kneeFold+stacking)*calm*(.55+.45*Math.max(0,Math.cos(a)))
+      +frontDrape)*(photo?.5:1);
     return {x:x+nx*wobble,z:z+nz*wobble,y:surfaceY(d,a)+stacking*.5,nx,nz,rad,cz:acz};
   }
   // ---- materials ----------------------------------------------------------
@@ -398,7 +399,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     }
 
     // ---- top button
-    if(flip){
+    if(flip&&!photo){
       const d=bandH*.52, p=section(d,0);
       const disk=new T.CylinderGeometry(.0080,.0082,.0034,22);
       disk.rotateX(Math.PI/2);disk.translate(0,p.y,p.z+.0044);
@@ -474,6 +475,18 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         ribbon(t=>[cutLength-up,t*tau],columns,{width:.0013,lift:.0030,bulge:.0005});
       }
       ribbon(t=>[cutLength-.0150,t*tau],columns,{width:.0015,lift:.0014,bulge:.0004,layer:'shadow'});
+    }
+
+    // ---- photo garment
+    // The photograph already carries the waistband, fly, both pocket shapes,
+    // the rivets, the topstitch and the hem, so the mesh keeps only the cloth
+    // shell plus two narrow facings that close its top and bottom edges. Adding
+    // modelled detail on top would draw a second, competing set of lines.
+    if(photo){
+      parts.length=0;
+      parts.push(shell);
+      parts.push(Object.assign(emit(4,columns,(v,u)=>[v*.024,tau*u,-.0012-.0018*v],-1,true),{layer:'lining'}));
+      parts.push(Object.assign(emit(3,columns,(v,u)=>[cutLength-v*.016,tau*u,-.0010-.0016*v],-1,true),{layer:'lining'}));
     }
 
     // ---- meshes
@@ -639,12 +652,33 @@ export function makeMeasuredPants(T,group,body,mat,opts){
 
   const counts=legs.reduce((n,leg)=>n+leg.pieces.reduce((t,p)=>t+p.rest.length/3,0),0);
   return {pose,reset(){time=0;hem=0;peak=0;creaseAmp=0;for(const leg of legs)leg.solver.reset();},
+    // The photo unwrap needs the same section geometry the cloth is built from:
+    // where the front/back centre lines sit, how far the seam reaches, and how
+    // much of the row is still the seat rather than a single leg. Packed so the
+    // texture builder reads the pattern from one source of truth.
+    rowGuide(samples=192){
+      const out=[];
+      for(let k=0;k<=samples;k++){
+        const d=cutLength*k/samples;
+        const f=smooth(forkDrop-.10,forkDrop+.035,d);
+        const front=section(d,0),back=section(d,Math.PI),inner=section(d,3*Math.PI/2);
+        let outer=0;
+        for(let i=0;i<=24;i++)outer=Math.max(outer,section(d,Math.PI*i/48).x);
+        out.push([d/cutLength,f,front.x,back.x,inner.x,outer]);
+      }
+      return out;
+    },
+    landmarks:{cutLength,waistY,forkDrop,bandH,legX,columns,rows,length:fit.cutLength},
     get secondary(){return {hem,peak,crease:creaseAmp,knee:kneeBend};},
     get probe(){return legs.map(leg=>leg.probeIndex.map(v=>{
       const a=leg.shell.mesh.geometry.attributes.position.array;
       return [a[v*3],a[v*3+1],a[v*3+2]];
     }));},
     vertices:counts,
+    // The cloth pieces in build order: the photo-mapped asset supplies one
+    // geometry per piece, so the runtime can wear the baked texture mesh while
+    // the solver keeps placing its vertices.
+    get parts(){return legs.flatMap(leg=>leg.pieces.filter(p=>!p.rigid));},
     dispose(){
       for(const leg of legs)for(const p of leg.pieces){p.mesh.removeFromParent();p.mesh.geometry.dispose();}
       for(const material of new Set(Object.values(materials)))if(material!==mat)material.dispose();

@@ -6,6 +6,7 @@ import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
+import { loadGarmentAsset, hasPhotoGarment } from './photo-denim.mjs';
 import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;
@@ -236,6 +237,7 @@ export function createScene(container, opts) {
   // The body study isolates the anatomical mesh while reusing the fitting skeleton.
   scene.traverse(object=>object.layers.enable(1));
   let body, wardrobe, top, lower, lookKey, sampleGarment;
+  let denimRequested = false;
   const lookCache = new Map();
   let motionSamples = [];
   const worldPoint = new THREE.Vector3();
@@ -397,7 +399,17 @@ export function createScene(container, opts) {
         sampleGarment.pose(phase,opts,0);
       }else if(sampleGarment){sampleGarment.dispose();sampleGarment=null;}
     }
-    if (opts.pants && (opts.pants.material||'denim')==='denim') {
+    // The photographed garment replaces the drawn denim once it has loaded.
+    if (hasPhotoGarment(opts.pants) && !wardrobe.denimAsset && !denimRequested) {
+      denimRequested = true;
+      loadGarmentAsset(opts.pants.id).then(asset => {
+        if (wardrobe.setDenimAsset(asset)) {
+          settle();
+          dirty = true;
+        }
+      }).catch(error => console.warn('denim asset', error));
+    }
+    if (opts.pants && (opts.pants.material||'denim')==='denim' && !wardrobe.denimAsset) {
       if(!lower.userData.measuredWash){
         // The wash layer is one shaded surface per leg size, woven at a true
         // metre pitch: colour, normal and micro-roughness together, so the
