@@ -364,8 +364,10 @@ export function createScene(container, opts) {
     let displayTop=opts.sample;
     if(opts.pants && !displayTop){
       const f=pantsFit(opts.pants.measurements,opts.model,opts.person),w=f.w;
+      // Cropped just above the waistband so the band, its loops and the fly are
+      // what the fitting view is looking at.
       displayTop={id:'pants-studio-crew',type:'sweatshirt',color:'#24252a',material:'cotton',
-        measurements:{length:Math.max(34,(1.46-f.waistY)/.00955+1.3),
+        measurements:{length:Math.max(30,(1.475-f.waistY)*100-1.3),
           chest:Math.max(47,w.chest*.5+8),shoulder:Math.max(41,w.shoulder+4),sleeve:54}};
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'bodyOnly' in changes || 'person' in changes){
@@ -375,7 +377,11 @@ export function createScene(container, opts) {
       body.group.scale.y=heightRatio;
       const width=displayTop?.measurements?.chest||0;
       const bodyChest=opts.sample?.id==='KC9315'?(user||wearer(opts.model)).chest:2*width;
-      body.group.userData.armClearance=.145+Math.min(.13,Math.max(0,2*width-bodyChest)*.002)+Math.max(0,(user?.chest||0)-(user?.base.chest||0))*.004;
+      body.group.userData.armClearance=.145+Math.min(.13,Math.max(0,2*width-bodyChest)*.002)+Math.max(0,(user?.chest||0)-(user?.base.chest||0))*.004
+        // A wide-hip trouser stands off the body by the tape's own ease, so the
+        // hanging arms step aside instead of disappearing into the cloth.
+        +(opts.pants?Math.min(.10,Math.max(0,(pantsFit(opts.pants.measurements,opts.model,opts.person).hipCirc
+          -(user?.hip||wearer(opts.model,opts.person).hip)/100))*.30):0);
       const hipScale=user&&!opts.pants?user.hip/user.base.hip:1;
       wardrobe.group.scale.set(hipScale,heightRatio,hipScale);
       body.anatomy.setWearer(user);
