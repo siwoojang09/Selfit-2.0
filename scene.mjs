@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23c';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23c';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23c';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23c';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23c';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23c';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23c';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23c';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23c';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23c';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23d';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23d';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23d';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23d';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23d';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23d';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23d';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23d';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23d';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23d';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -190,8 +190,22 @@ function makeContactShadow() {
 // left, so a matte black garment keeps its shade instead of turning grey.
 export function createScene(container, opts) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#EFEBE4');
-  scene.fog = new THREE.FogExp2(scene.background, .085);
+  // A soft top-down studio gradient rather than a flat colour: the backdrop
+  // falls off towards the plinth the way a paper sweep does.
+  const backdrop = document.createElement('canvas');
+  backdrop.width = 4; backdrop.height = 256;
+  const backdropCtx = backdrop.getContext('2d');
+  const sweep = backdropCtx.createLinearGradient(0, 0, 0, 256);
+  sweep.addColorStop(0, '#F5F1EA');
+  sweep.addColorStop(.55, '#EFEAE2');
+  sweep.addColorStop(1, '#E1D9CD');
+  backdropCtx.fillStyle = sweep;
+  backdropCtx.fillRect(0, 0, 4, 256);
+  const backdropTex = new THREE.CanvasTexture(backdrop);
+  backdropTex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = backdropTex;
+  scene.userData.stageGradient = true;
+  scene.fog = new THREE.FogExp2('#EAE4DA', .045);
   const cam = new THREE.PerspectiveCamera(29, 1, .025, 40);
   let renderer;
   try {
@@ -224,7 +238,7 @@ export function createScene(container, opts) {
   scene.add(rim);
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(100,100), new THREE.MeshStandardMaterial({
-    color: '#E7E1D7', roughness: 1
+    color: '#E4DDD2', roughness: 1
   }));
   floor.rotation.x = -Math.PI/2;
   floor.position.y = -.07;
@@ -236,14 +250,14 @@ export function createScene(container, opts) {
   // model (the camera orbits, the plinth is round, so one cylinder is enough),
   // and its top edge catches a lighter line the way the reference does.
   const plinth = new THREE.Group();
-  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.615, .635, .068, 96),
-    new THREE.MeshStandardMaterial({color: '#F1EDE6', roughness: .96, metalness: 0}));
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.64, .66, .07, 96),
+    new THREE.MeshStandardMaterial({color: '#EDE6DB', roughness: .96, metalness: 0}));
   drum.position.y = -.034; drum.receiveShadow = true; drum.castShadow = true;
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.598, .598, .006, 96),
-    new THREE.MeshStandardMaterial({color: '#F7F4EE', roughness: .98, metalness: 0}));
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.622, .622, .007, 96),
+    new THREE.MeshStandardMaterial({color: '#F8F5EF', roughness: .98, metalness: 0}));
   cap.position.y = -.0015; cap.receiveShadow = true;
-  const lip = new THREE.Mesh(new THREE.TorusGeometry(.6, .0035, 8, 128),
-    new THREE.MeshStandardMaterial({color: '#E3DCD1', roughness: 1}));
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(.624, .0035, 8, 128),
+    new THREE.MeshStandardMaterial({color: '#D8D0C2', roughness: 1}));
   lip.rotation.x = Math.PI / 2; lip.position.y = -.0005;
   plinth.add(drum, cap, lip);
   plinth.name = 'turntable';
@@ -402,8 +416,8 @@ export function createScene(container, opts) {
     // The stage is a full-height column, so the frame holds the wearer and the
     // turntable under them: about 2.5 m of height at the focus, not the 2 m a
     // short landscape panel needed.
-    const distance = Math.max(detail?1.62:closePants?3.05:closeFit?2.75:opts.model==='male'?4.98:4.78, (detail?1.62:2.02) / Math.max(.25, cam.aspect)) * heightRatio / zoom;
-    const focus = (detail?.98:closePants?.62:closeFit?1.19:.93) * heightRatio + Math.max(0, zoom - 1) * .1;
+    const distance = Math.max(detail?1.62:closePants?3.35:closeFit?2.95:opts.model==='male'?5.72:5.5, (detail?1.62:2.02) / Math.max(.25, cam.aspect)) * heightRatio / zoom;
+    const focus = (detail?.98:closePants?.64:closeFit?1.19:1.0) * heightRatio + Math.max(0, zoom - 1) * .1;
     cam.position.set(Math.sin(yaw) * Math.cos(pitch) * distance, focus + Math.sin(pitch) * distance, Math.cos(yaw) * Math.cos(pitch) * distance);
     cam.up.copy(worldUp);
     cam.lookAt(0, focus, 0);
@@ -549,8 +563,8 @@ export function createScene(container, opts) {
       cam.layers.set(opts.bodyOnly?1:0);
       grid.visible=Boolean(opts.grid);
       scene.userData.bodyStudy=Boolean(opts.bodyOnly);
-      scene.background.set(opts.bodyOnly?'#E6E9E6':'#EFEBE4');
-      scene.fog.color.copy(scene.background);
+      if (!scene.userData.stageGradient) scene.background.set(opts.bodyOnly?'#E6E9E6':'#EFEBE4');
+      scene.fog.color.set(opts.bodyOnly?'#E2E5E2':'#EAE4DA');
       floor.material.color.set(opts.bodyOnly?'#D7DAD7':'#E7E1D7');
     }
     if ('view' in changes) {
