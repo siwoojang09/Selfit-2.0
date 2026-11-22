@@ -178,6 +178,10 @@ def stripe_mask_like(img):
         x, y, w, h, area = stats[i]
         if area < 400 or not (40 < h < 720) or not (10 < w < 340):
             continue
+        # The tapes are on the sleeves, which lie outside the body. The chest
+        # trefoil is the only other cream mark and it belongs to the body.
+        if abs(x + w / 2 - CX) < 150:
+            continue
         if float(luma(img)[lab == i].mean()) > 221:
             continue    # a piece of the backdrop trapped between sleeve and body
         # Long thin diagonal bands are the tapes; a compact blob is the trefoil
@@ -197,7 +201,8 @@ def without_stripes(img, tone):
     if not mask.any():
         return img.copy()
     out = cv2.inpaint(img.astype(np.uint8), mask, 5, cv2.INPAINT_TELEA).astype(np.float32)
-    out[luma(out) > luma(tone) * 1.8] = tone
+    near = cv2.dilate(mask, np.ones((11, 11), np.uint8)) > 0
+    out[near & (luma(out) > luma(tone) * 1.8)] = tone
     return cv2.GaussianBlur(out, (3, 3), 0)
 
 
