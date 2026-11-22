@@ -157,7 +157,11 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     // is what keeps the crotch from reading as one smooth apron.
     const skirt=(1-f)*smooth(.12,.30,d)*(.0085+ .006*smooth(.30,.40,d))
       *(Math.sin(6.1*a+2.2)*.60+Math.sin(9.4*a-1.3)*.40);
-    const seatR=bodyR+easeAt(d)*easeWeight(a)+folds+skirt;
+    // A photographed waistband has no modelled band to hide behind: the cloth
+    // itself has to clear the wearer's stomach, or the body shows through the
+    // top edge in patches. A few extra millimetres at the waist, tapering out
+    // below it, keeps the fabric in front of the skin.
+    const seatR=bodyR+easeAt(d)*easeWeight(a)+folds+skirt+(photo?.0045*smooth(.06,0,d):0);
     const sx=seatR*Math.sin(a), sz=seatCz+seatR*Math.cos(a);
     const g=legGeom(d);
     const lx=g.cx+g.rx*Math.sin(a), lz=g.cz+g.rz*Math.cos(a);
