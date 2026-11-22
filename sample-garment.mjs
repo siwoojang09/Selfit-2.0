@@ -186,7 +186,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
   let swayX=0,swayZ=0,velX=0,velZ=0,disposed=false;
   const v=new T.Vector3(),rotated=new T.Vector3(),bridgeMatrix=new T.Matrix4();
   function material(color,roughness=.92,metalness=0) {
-    const mat=new T.MeshStandardMaterial({color,roughness,metalness,side:T.DoubleSide});
+    // Physical materials give every cloth piece the grazing-angle sheen veil;
+    // metal hardware stays standard-looking with sheen off.
+    const mat=new T.MeshPhysicalMaterial({color,roughness,metalness,side:T.DoubleSide});
+    if(!metalness){mat.sheen=.5;mat.sheenRoughness=.85;mat.sheenColor=new T.Color('#c9ccd4');}
     materials.push(mat);
     return mat;
   }
@@ -200,7 +203,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       g.traverse(mesh=>mesh.geometry?.dispose());
       g.removeFromParent();
     }
-    materials.forEach(m=>{m.map?.dispose();m.dispose();});
+    materials.forEach(m=>{m.map?.dispose();m.normalMap?.dispose();m.roughnessMap?.dispose();m.dispose();});
     members=[];materials=[];flexing=[];blowing=[];shoulderBridges=[];
   }
   function build() {

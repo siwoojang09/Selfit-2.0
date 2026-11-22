@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
 import { createWardrobe } from './wardrobe.mjs';
 import { projectWardrobe, garmentColors } from './projection.mjs';
@@ -9,34 +10,36 @@ import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
+// normalScale/relief describe how strongly each weave bends the light; sheenColor
+// is the grazing-angle bloom of that cloth (cool for fleece, warm for silk).
 const fabrics = {
-  linen: { repeat: 35, roughness: .88, sheen: .26, bump: .00032, weave: 'plain' },
-  cotton: { repeat: 48, roughness: .93, sheen: .14, bump: .00024, weave: 'knit' },
-  denim: { repeat: 32, roughness: .87, sheen: .16, bump: .00042, weave: 'twill' },
-  silk: { repeat: 70, roughness: .38, sheen: .91, bump: .00006, weave: 'satin' },
-  wool: { repeat: 22, roughness: 1, sheen: .4, bump: .00056, weave: 'knit' }
+  linen: { repeat: 35, roughness: .88, sheen: .26, weave: 'plain', normalScale: .7, relief: { radius: 1, strength: 1.0, contrast: .14, crown: -1 }, sheenColor: '#f2ead9' },
+  cotton: { repeat: 48, roughness: .93, sheen: .18, weave: 'knit', normalScale: .75, relief: { radius: 1, strength: 1.15, contrast: .16, crown: 1 }, sheenColor: '#c9ccd4' },
+  denim: { repeat: 32, roughness: .87, sheen: .2, weave: 'twill', normalScale: .85, relief: { radius: 1, strength: 1.25, contrast: .13, crown: -1 }, sheenColor: '#dfe6ee' },
+  silk: { repeat: 70, roughness: .38, sheen: .91, weave: 'satin', normalScale: .35, relief: { radius: 1, strength: .6, contrast: .08, crown: -1 }, sheenColor: '#fff6e8' },
+  wool: { repeat: 22, roughness: 1, sheen: .4, weave: 'knit', normalScale: .9, relief: { radius: 1, strength: 1.3, contrast: .17, crown: 1 }, sheenColor: '#e8e2d6' }
 };
 
 function makeWeave(type) {
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
+  canvas.width = canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  const data = ctx.createImageData(128, 128);
+  const data = ctx.createImageData(256, 256);
   let s = 427;
   const noise = () => (s = (1664525 * s + 1013904223) >>> 0) / 4294967296;
   const warp = Array.from({length: 32}, () => noise());
   const weft = Array.from({length: 32}, () => noise());
-  for (let y = 0; y < 128; y++) {
-    for (let x = 0; x < 128; x++) {
-      const col = x >> 2;
-      const row = y >> 2;
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 256; x++) {
+      const col = x >> 3;
+      const row = y >> 3;
       const over = type === 'twill' ? (col + row) % 4 < 3 : (col + row) % 2 === 0;
-      const fiber = over ? (x + weft[row] * .5) % 4 : (y + warp[col] * .5) % 4;
-      let light = 216 + 20 * Math.sin(Math.PI * fiber / 4);
+      const fiber = over ? (x + weft[row] * .5) % 8 : (y + warp[col] * .5) % 8;
+      let light = 216 + 20 * Math.sin(Math.PI * fiber / 8);
       light += 12 * ((over ? warp[col] : weft[row]) - .5) + 10 * (noise() - .5);
-      if (type === 'knit') light += 7 * Math.cos(tau * (x / 8 + Math.sin(tau * y / 8) * .2));
+      if (type === 'knit') light += 7 * Math.cos(tau * (x / 16 + Math.sin(tau * y / 16) * .2));
       if (type === 'satin') light = 238 + (light - 220) * .35;
-      const i = (y * 128 + x) * 4;
+      const i = (y * 256 + x) * 4;
       data.data[i] = data.data[i + 1] = data.data[i + 2] = light;
       data.data[i + 3] = 255;
     }
@@ -97,6 +100,37 @@ function photographedWeave(name, repeats) {
   return textileSamples.get(name);
 }
 
+// Normal + micro-roughness derived from the procedural weave canvas, cached per
+// weave type. They carry the same repeat as the colour map they accompany.
+const weaveMaps = new Map();
+function proceduralWeaveMaps(type, repeatX, repeatY) {
+  if (!weaveMaps.has(type)) {
+    const size = 256;
+    const source = makeWeave(type).image;
+    const ctx = source.getContext('2d');
+    const pixels = ctx.getImageData(0, 0, size, size);
+    const field = luminanceField(pixels.data, size, size);
+    const normal = reliefNormals(field, size, size, { radius: 1, strength: 1.1 });
+    const rough = reliefRoughness(field, size, size, { radius: 1, contrast: .12, crown: -1 });
+    weaveMaps.set(type, { normal, roughness: rough.map, mean: rough.mean });
+  }
+  const cached = weaveMaps.get(type);
+  const textureFor = rgba => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    canvas.getContext('2d').putImageData(new ImageData(rgba, 256, 256), 0, 0);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.anisotropy = 4;
+    return texture;
+  };
+  return {
+    normalMap: textureFor(cached.normal), roughnessMap: textureFor(cached.roughness),
+    normalScale: new THREE.Vector2(1, 1), roughnessCenter: cached.mean
+  };
+}
+
 function setTextile(material, name, invalidate = () => {}) {
   if (material.userData.fabric === name) return;
   material.userData.fabric = name;
@@ -106,15 +140,26 @@ function setTextile(material, name, invalidate = () => {}) {
   if (material.map?.userData.transient) material.map.dispose();
   map.userData.transient = true;
   material.map = map;
-  material.bumpMap = map;
-  material.bumpScale = spec.bump;
+  applySheen(material, { amount: spec.sheen, roughness: .8, color: spec.sheenColor }, THREE);
   material.roughness = spec.roughness;
-  material.sheen = spec.sheen;
+  const weave = proceduralWeaveMaps(spec.weave, spec.repeat, spec.repeat * .75);
+  material.normalMap = weave.normalMap;
+  material.normalScale = weave.normalScale.multiplyScalar(spec.normalScale);
+  material.roughnessMap = weave.roughnessMap;
+  material.roughness = Math.min(1, spec.roughness / weave.roughnessCenter);
   material.needsUpdate = true;
   photographedWeave(name, spec.repeat).then(texture => {
     if (!texture || material.map !== map) return;
-    material.map = material.bumpMap = texture;
+    material.map = texture;
     map.dispose();
+    const maps = weaveMapsFor(THREE, texture.image, name, texture.repeat.x, texture.repeat.y,
+      { relief: spec.relief, normalScale: spec.normalScale });
+    if (maps) {
+      material.normalMap = maps.normalMap;
+      material.normalScale = maps.normalScale;
+      material.roughnessMap = maps.roughnessMap;
+      material.roughness = Math.min(1, spec.roughness / maps.roughnessCenter);
+    }
     material.needsUpdate = true;
     invalidate();
   });
@@ -347,10 +392,25 @@ export function createScene(container, opts) {
     }
     if (opts.pants && (opts.pants.material||'denim')==='denim') {
       if(!lower.userData.measuredWash){
-        lower.userData.measuredWash=true;
-        lower.map=new THREE.TextureLoader().load(new URL('./textures/washed-jean-twill.webp',import.meta.url).href,()=>{dirty=true;});
-        lower.map.colorSpace=THREE.SRGBColorSpace;lower.map.anisotropy=4;
-        lower.bumpMap=lower.map;lower.bumpScale=.00032;lower.needsUpdate=true;
+        // The wash layer is one shaded surface per leg size, woven at a true
+        // metre pitch: colour, normal and micro-roughness together, so the
+        // denim reads as twill under light instead of a printed photograph.
+        lower.userData.measuredWash='pending';
+        applySheen(lower, { amount: .34, roughness: .62, color: '#dfe6ee' }, THREE);
+        const applyMaps = maps => {
+          if (!maps || lower.userData.measuredWash !== 'pending') return;
+          lower.userData.measuredWash = maps;
+          lower.map = maps.map;
+          lower.normalMap = maps.normalMap;
+          lower.normalScale = maps.normalScale;
+          lower.roughnessMap = maps.roughnessMap;
+          lower.roughness = Math.min(1, .855 / maps.roughnessCenter);
+          lower.needsUpdate = true;
+          dirty = true;
+        };
+        applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, fade:1}));
+        loadTwillField(new URL('./textures/washed-jean-twill.webp',import.meta.url).href)
+          .then(mottle => applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, mottle, fade:1})));
       }
       lower.color.set(opts.pants.color||'#596e74').multiplyScalar(1.56);
     } else {

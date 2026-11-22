@@ -131,7 +131,12 @@ function buildSide(T,group,materials,fit,side){
 export function makeMeasuredPants(T,group,body,mat,opts){
   const fit=pantsFit(opts.pants.measurements,opts.model,opts.person);
   const tint=new T.Color(opts.pants.color||'#596e74');
-  const material=(color,roughness=.88,metalness=0)=>new T.MeshStandardMaterial({color,roughness,metalness,side:T.DoubleSide});
+  // Denim trim keeps the physical sheen of the shell; hardware does not.
+  const material=(color,roughness=.88,metalness=0)=>{
+    const m=new T.MeshPhysicalMaterial({color,roughness,metalness,side:T.DoubleSide});
+    if(!metalness){m.sheen=.34;m.sheenRoughness=.62;m.sheenColor=new T.Color('#dfe6ee');}
+    return m;
+  };
   const materials={shell:mat,patch:mat,band:material(tint.clone().multiplyScalar(.90)),
     lining:material(tint.clone().multiplyScalar(.66)),thread:material(tint.clone().lerp(new T.Color('#a79a72'),.36)),
     metal:material('#a8a399',.51,.48)};
