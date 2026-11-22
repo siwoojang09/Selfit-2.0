@@ -121,8 +121,10 @@ export function makeMeasuredPants(T,group,body,mat,opts){
 
   // ---- sections -----------------------------------------------------------
   // The back of a waistband sits higher than the front, and the front arches
-  // down over the stomach instead of cutting a horizontal line.
-  const edgeCurve=a=>.003-.0092*Math.cos(a)-.0035*Math.cos(a)**2;
+  // down over the stomach instead of cutting a horizontal line. The arch stays
+  // shallow: a deep dip at the centre front is read as a V-notch cut into the
+  // band, because the eye follows the two halves of the top edge down to it.
+  const edgeCurve=a=>.0016-.0050*Math.cos(a)-.0012*Math.cos(a)**2;
   function surfaceY(d,a){
     const h=d/cutLength;
     const gather=Math.max(0,stack)*smooth(1-buckleFrac,1,h);
@@ -168,7 +170,12 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     let x=mix(sx,lx,f), z=mix(sz,lz,f);
     // The inner wall folds flat against the other leg; the fold softens as the
     // legs part, so they separate below the knee without a crease.
-    const inner=smooth(.02,.34,-Math.sin(a));
+    // The folded inner wall belongs to the leg. Above the fork it would stand
+    // as a flat sheet down the middle of the seat, and its own top edge rises
+    // to the back of the waist, which reads from the front as a spike sticking
+    // up out of the band. The fold is therefore absent at the waist and only
+    // gathers in by the crotch, where the leg actually needs it.
+    const inner=smooth(.02,.34,-Math.sin(a))*smooth(.02,forkDrop*.82,d);
     if(inner>0){
       const dx=x-web;
       x=mix(x,web+.5*(dx+Math.sqrt(dx*dx+4e-6)),inner);
@@ -251,9 +258,10 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   let sideSign=1;
   // Above the fork each side builds the same closed hip section, so the two
   // legs lay one surface inside the other. With a photograph on it, that seam
-  // flickers into a torn edge; the mirrored side tucks itself a millimetre
-  // inside the other and disappears.
-  const seatSink=d=>photo&&sideSign<0?.0012*(1-smooth(forkDrop-.06,forkDrop+.02,d)):0;
+  // flickers into a torn edge; the mirrored half tucks itself a millimetre
+  // inside the other and disappears. The sink follows the folded half, since
+  // that is the half that duplicates the opposite side.
+  const seatSink=(d,a)=>.0012*smooth(0,.10,-Math.sin(a))*(1-smooth(forkDrop-.06,forkDrop+.02,d));
   function buildSide(side){
     const flip=side<0;
     sideSign=side;
@@ -266,7 +274,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         const item=get(i/vertical,j/horizontal);
         const d=item[0],a=item[1],lift=item[2]||0;
         const p=section(d,a);
-        const lift2=lift-seatSink(d)*(photo?1:0);
+        const lift2=lift-seatSink(d,a);
         pos.push(side*(p.x+p.nx*lift2),p.y,p.z+p.nz*lift2);
         ref.push(side*p.nx*refSign,0,p.nz*refSign);
         uv.push(a/tau,1-d/cutLength);
