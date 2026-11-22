@@ -116,14 +116,14 @@ def build():
                 # The studio rig lights this scene for pale cloth, and the
                 # chino photograph was shot under its own soft sweep. The tone
                 # factor only trims the beige to the scene's lights.
-                'baseColorFactor': [0.90, 0.90, 0.90, 1.0],
+                'baseColorFactor': [0.94, 0.93, 0.95, 1.0],
                 'baseColorTexture': {'index': colour, 'texCoord': 0},
                 'metallicRoughnessTexture': {'index': mr, 'texCoord': 0},
                 'metallicFactor': 0.0, 'roughnessFactor': 1.0,
             },
             # The twill is baked into this atlas normal at its real repeat, so
             # the beige shows its rib under a raking light instead of plastic.
-            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 1.0},
+            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 0.72},
             'extensions': {'KHR_materials_sheen': {
                 'sheenColorFactor': [0.16, 0.15, 0.12], 'sheenRoughnessFactor': 1.0}},
         })

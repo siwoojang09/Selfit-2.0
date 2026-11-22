@@ -232,7 +232,7 @@ def weave_tile(size):
     return tile * 2.0 - 1.0
 
 
-def composite_normal(base, tile, strength=.85):
+def composite_normal(base, tile, strength=.6):
     """Add the weave's tilt to the photograph's macro relief."""
     h, w = base.shape[:2]
     reps_y = max(1, int(round(h / tile.shape[0])))
