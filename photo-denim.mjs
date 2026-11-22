@@ -4,15 +4,27 @@
 // response. The fitting rig still places every vertex (so each size is cut from
 // the measurement table and the walk deforms it), but the surface you look at is
 // the actual pair of jeans rather than a drawn approximation.
+//
+// This asset is the ONLY pair for `washed-denim-medium-blue`: the drawn pattern
+// with its modelled waistband, fly, pockets and topstitch is never worn for that
+// item, so a slow or failed transfer can delay the jeans but cannot put an older
+// stand-in on the body.
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 // Bumped whenever the baked asset changes: GitHub Pages caches files for ten
 // minutes, and a garment that arrives stale reads as the wrong fabric entirely.
 const ASSET_VERSION = '2026-11-22j';
-const cache = new Map();
+const pending = new Map();   // id -> Promise of the parsed asset
+const ready = new Map();     // id -> parsed asset, once the transfer finished
 
 export function hasPhotoGarment(pants) {
   return Boolean(pants && pants.id === 'washed-denim-medium-blue');
+}
+
+// The parsed asset if it is already in hand. The scene reads this before it
+// builds a look, so a pair of jeans is never created from the drawn pattern.
+export function peekGarment(id) {
+  return ready.get(id) || null;
 }
 
 function note(state) {
@@ -20,7 +32,7 @@ function note(state) {
 }
 
 export function loadGarmentAsset(id) {
-  if (!cache.has(id)) {
+  if (!pending.has(id)) {
     const url = new URL(`./assets/${id}.glb`, import.meta.url).href + '?v=' + ASSET_VERSION;
     const base = url.slice(0, url.lastIndexOf('/') + 1);
     // Fetch the container here rather than inside the loader so a stalled or
@@ -58,11 +70,16 @@ export function loadGarmentAsset(id) {
           });
         }, reject);
       }))
+      .then(asset => {
+        ready.set(id, asset);
+        return asset;
+      })
       .catch(error => {
-        cache.delete(id);
+        pending.delete(id);
+        ready.delete(id);
         throw error;
       });
-    cache.set(id, job);
+    pending.set(id, job);
   }
-  return cache.get(id);
+  return pending.get(id);
 }

@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, hasPhotoGarment } from './photo-denim.mjs';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k';
 import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;
@@ -237,7 +237,10 @@ export function createScene(container, opts) {
   // The body study isolates the anatomical mesh while reusing the fitting skeleton.
   scene.traverse(object=>object.layers.enable(1));
   let body, wardrobe, top, lower, lookKey, sampleGarment;
-  let denimRequested = false;
+  // The photograph is one asset for the whole scene: once it is in hand every
+  // look can wear it, so it is not a per-look request. Until then the pooled
+  // jeans hide rather than stand in with the drawn pattern.
+  let denimAsset = null, denimLoading = false;
   const lookCache = new Map();
   let motionSamples = [];
   const worldPoint = new THREE.Vector3();
@@ -275,7 +278,10 @@ export function createScene(container, opts) {
   function selectLook() {
     const model=opts.model==='male'?'male':'female';
     const outfit=['tailored','casual'].includes(opts.outfit)?opts.outfit:'classic';
-    const key=[model,outfit,opts.bottom||'',Boolean(opts.sample),opts.pants?(opts.pants.material||'denim'):'default'].join('-');
+    // Take the already-parsed asset before the look is built, so a fresh look
+    // starts out wearing it instead of being rebuilt one frame later.
+    if(!denimAsset && hasPhotoGarment(opts.pants)) denimAsset=peekGarment(opts.pants.id);
+    const key=[model,outfit,opts.bottom||'',Boolean(opts.sample),opts.pants?opts.pants.id:'none',opts.pants?(opts.pants.material||'denim'):'default'].join('-');
     if(key===lookKey)return false;
     if(body){sampleGarment?.dispose();sampleGarment=null;scene.remove(body.group,wardrobe.group);}
     let look=lookCache.get(key);
@@ -283,7 +289,8 @@ export function createScene(container, opts) {
       const colors=garmentColors(outfit);
       const shirt=clothMaterial(colors.top), bottom=clothMaterial(colors.lower);
       const figure=makeMannequin(shirt,model);
-      const clothes=createWardrobe(THREE,figure,{top:shirt,lower:bottom},{...opts,model,outfit});
+      const clothes=createWardrobe(THREE,figure,{top:shirt,lower:bottom},{...opts,model,outfit,
+        photoPants:hasPhotoGarment(opts.pants),photoAsset:denimAsset});
       figure.pose(0,false);
       clothes.pose(0,{...opts,walking:false},0);
       if(!opts.sample && !opts.pants)projectWardrobe(figure,clothes,model,outfit,{top:shirt,lower:bottom},()=>{dirty=true;});
@@ -292,9 +299,41 @@ export function createScene(container, opts) {
       lookCache.set(key,look);
     }
     ({body,wardrobe,top,lower}=look);
+    // A look pooled before the asset finished loading takes it now instead of
+    // staying on the drawn stand-in it was built with.
+    if(denimAsset && !wardrobe.denimAsset) wardrobe.setDenimAsset(denimAsset);
     scene.add(body.group,wardrobe.group);
     lookKey=key;
     return true;
+  }
+  // Put the photographed jeans on every look the scene holds. The first call
+  // may have to wait for the transfer; after that the parsed asset is shared, so
+  // a new look, a size change or a model switch wears it immediately.
+  function adoptDenimAsset() {
+    if (!denimAsset) {
+      denimAsset = peekGarment(opts.pants.id);
+      if (!denimAsset) {
+        if (denimLoading) return;
+        denimLoading = true;
+        document.documentElement.dataset.denim = 'loading';
+        loadGarmentAsset(opts.pants.id).then(asset => {
+          denimAsset = asset;
+          let worn = false;
+          for (const look of lookCache.values()) worn = look.wardrobe.setDenimAsset(asset) || worn;
+          document.documentElement.dataset.denim = worn ? 'worn ' + asset.parts.length : 'mismatch';
+          if (worn) {
+            settle();
+            dirty = true;
+          }
+        }).catch(error => {
+          document.documentElement.dataset.denim = 'failed ' + (error && error.message || error);
+          console.warn('denim asset', error);
+        }).finally(() => { denimLoading = false; });
+        return;
+      }
+      for (const look of lookCache.values()) look.wardrobe.setDenimAsset(denimAsset);
+    }
+    if (!wardrobe.denimAsset) wardrobe.setDenimAsset(denimAsset);
   }
   let yaw = .045, pitch = .045, targetYaw = yaw, targetPitch = pitch;
   let frameTime = Number(opts.time) || 0, phase = frameTime * tau * .83 * limit(Number(opts.speed) || 0, 0, 4) + .8;
@@ -399,49 +438,43 @@ export function createScene(container, opts) {
         sampleGarment.pose(phase,opts,0);
       }else if(sampleGarment){sampleGarment.dispose();sampleGarment=null;}
     }
-    // The photographed garment replaces the drawn denim once it has loaded.
-    if (hasPhotoGarment(opts.pants) && !wardrobe.denimAsset && !denimRequested) {
-      denimRequested = true;
-      loadGarmentAsset(opts.pants.id).then(asset => {
-        const worn = wardrobe.setDenimAsset(asset);
-        document.documentElement.dataset.denim = worn ? 'worn ' + asset.parts.length : 'mismatch';
-        if (worn) {
-          settle();
-          dirty = true;
+    // The photographed garment is the only surface this pair is drawn with.
+    // Both the look that is on screen and every pooled look settle on it once
+    // the file is in hand, so switching model, size or top cannot bring back a
+    // drawn stand-in.
+    if (hasPhotoGarment(opts.pants)) adoptDenimAsset();
+    // A photographed pair wears its own material on every piece, so the shared
+    // cloth material is never painted for it.
+    if (!hasPhotoGarment(opts.pants)) {
+      if (opts.pants && (opts.pants.material||'denim')==='denim' && !wardrobe.denimAsset) {
+        if(!lower.userData.measuredWash){
+          // The wash layer is one shaded surface per leg size, woven at a true
+          // metre pitch: colour, normal and micro-roughness together, so the
+          // denim reads as twill under light instead of a printed photograph.
+          lower.userData.measuredWash='pending';
+          applySheen(lower, { amount: .34, roughness: .62, color: '#dfe6ee' }, THREE);
+          // The measured pieces share this material object, so the maps land on
+          // every shell, band, patch and thread mesh at once.
+          const applyMaps = maps => {
+            if (!maps || lower.userData.measuredWash !== 'pending') return;
+            lower.userData.measuredWash = maps;
+            lower.map = maps.map;
+            lower.normalMap = maps.normalMap;
+            lower.normalScale = maps.normalScale;
+            lower.roughnessMap = maps.roughnessMap;
+            lower.roughness = Math.min(1, .855 / maps.roughnessCenter);
+            lower.needsUpdate = true;
+            dirty = true;
+          };
+          applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, fade:1}));
+          loadTwillField(new URL('./textures/washed-jean-twill.webp',import.meta.url).href)
+            .then(mottle => applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, mottle, fade:1})));
         }
-      }).catch(error => {
-        document.documentElement.dataset.denim = 'failed ' + (error && error.message || error);
-        console.warn('denim asset', error);
-      });
-    }
-    if (opts.pants && (opts.pants.material||'denim')==='denim' && !wardrobe.denimAsset) {
-      if(!lower.userData.measuredWash){
-        // The wash layer is one shaded surface per leg size, woven at a true
-        // metre pitch: colour, normal and micro-roughness together, so the
-        // denim reads as twill under light instead of a printed photograph.
-        lower.userData.measuredWash='pending';
-        applySheen(lower, { amount: .34, roughness: .62, color: '#dfe6ee' }, THREE);
-        // The measured pieces share this material object, so the maps land on
-        // every shell, band, patch and thread mesh at once.
-        const applyMaps = maps => {
-          if (!maps || lower.userData.measuredWash !== 'pending') return;
-          lower.userData.measuredWash = maps;
-          lower.map = maps.map;
-          lower.normalMap = maps.normalMap;
-          lower.normalScale = maps.normalScale;
-          lower.roughnessMap = maps.roughnessMap;
-          lower.roughness = Math.min(1, .855 / maps.roughnessCenter);
-          lower.needsUpdate = true;
-          dirty = true;
-        };
-        applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, fade:1}));
-        loadTwillField(new URL('./textures/washed-jean-twill.webp',import.meta.url).href)
-          .then(mottle => applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, mottle, fade:1})));
+        lower.color.set(opts.pants.color||'#596e74').multiplyScalar(1.99);
+      } else {
+        if (changedLook || 'fabric' in changes) setTextile(lower, opts.fabric, () => { dirty = true; });
+        if (changedLook || 'color' in changes) lower.color.set(opts.color || garmentColors(opts.outfit || 'classic').lower);
       }
-      lower.color.set(opts.pants.color||'#596e74').multiplyScalar(1.99);
-    } else {
-      if (changedLook || 'fabric' in changes) setTextile(lower, opts.fabric, () => { dirty = true; });
-      if (changedLook || 'color' in changes) lower.color.set(opts.color || garmentColors(opts.outfit || 'classic').lower);
     }
     if (changedLook || 'topColor' in changes) top.color.set(opts.topColor && opts.topColor !== '#b4532e' ? opts.topColor : garmentColors(opts.outfit || 'classic').top);
     if (changedLook || 'wireframe' in changes) {

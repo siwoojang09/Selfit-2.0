@@ -1,6 +1,6 @@
 // All garment dimensions and solver distances are in metres.
 import { makeSkirt } from './cloth.mjs';
-import { makeMeasuredPants } from './measured-pants.mjs';
+import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-22k';
 
 const TAU = 2 * Math.PI;
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));
@@ -350,11 +350,17 @@ export function createWardrobe(T,body,materials,opts) {
   group.name='Garment assembly';
   const classic=opts.outfit==='classic' || !opts.outfit;
   const measured=Boolean(opts.pants);
+  // A photo garment is only ever the photograph: its pattern pieces carry no
+  // modelled waistband, fly, pockets or topstitch, so the drawn jeans can never
+  // be what the body wears, not even for the frames before the file arrives.
+  const photoPants=Boolean(opts.photoPants);
   const skirted=!measured && classic && (opts.bottom==='skirt' || (!opts.bottom && opts.model!=='male'));
-  let denimAsset=null,lastOptions=opts;
+  let denimAsset=opts.photoAsset||null,lastOptions=opts;
+  const syncPhotoVisibility=()=>{group.visible=!(photoPants&&!denimAsset);};
   const buildMeasured=options=>{
-    const built=makeMeasuredPants(T,group,body,materials.lower,{...options,photoDenim:Boolean(denimAsset)});
+    const built=makeMeasuredPants(T,group,body,materials.lower,{...options,photoDenim:photoPants||Boolean(denimAsset)});
     if(denimAsset)applyPhotoAsset(built,denimAsset);
+    syncPhotoVisibility();
     return built;
   };
   let main=measured?buildMeasured(opts):
@@ -396,6 +402,7 @@ export function createWardrobe(T,body,materials,opts) {
     if(!measured||denimAsset===asset)return false;
     denimAsset=asset;key='';
     updatePants(lastOptions);
+    syncPhotoVisibility();
     return true;
   }
   return {group,pose,reset,lowerColliders,updatePants,setDenimAsset,

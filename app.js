@@ -3,6 +3,7 @@ import {pantsFit} from './pants-fit.mjs';
 import {getReference,listReferences} from './reference-store.mjs';
 import {wearer,hoodieFit} from './hoodie-fit.mjs';
 import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-22k';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -180,6 +181,15 @@ function options(){
 async function apply(){
   sync();
   if(!live&&!loader)return;
+  // The photo denim has no drawn stand-in, so the scene is held until its own
+  // surface is in hand. Once it is cached this costs one microtask.
+  if(hasPhotoGarment(pants)){
+    try{await loadGarmentAsset(pants.id);}
+    catch(error){
+      document.documentElement.dataset.denim='failed '+(error&&error.message||error);
+      toast('데님 사진을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+  }
   if(!loader){
     const opts=options();window.DrapeEngine.set(opts);applied=opts;
     loader=window.DrapeEngine.init($('liveScene'));
