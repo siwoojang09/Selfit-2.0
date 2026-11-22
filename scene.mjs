@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23b';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23b';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23b';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23b';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23b';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23b';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23b';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23b';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23b';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23b';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23c';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23c';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23c';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23c';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23c';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23c';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23c';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23c';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23c';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23c';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -399,8 +399,11 @@ export function createScene(container, opts) {
   const updateCamera = () => {
     const zoom = limit(Number(opts.zoom)||1, .46, 3.3);
     const closePants=opts.view==='pants',closeFit=opts.view==='fit',detail=opts.view==='finish';
-    const distance = Math.max(detail?1.40:closePants?2.68:closeFit?2.42:opts.model==='male'?4.15:3.96, (detail?1.49:1.76) / Math.max(.25, cam.aspect)) * heightRatio / zoom;
-    const focus = (detail?.98:closePants?.60:closeFit?1.19:opts.model==='male'?.93:.88) * heightRatio + Math.max(0, zoom - 1) * .1;
+    // The stage is a full-height column, so the frame holds the wearer and the
+    // turntable under them: about 2.5 m of height at the focus, not the 2 m a
+    // short landscape panel needed.
+    const distance = Math.max(detail?1.62:closePants?3.05:closeFit?2.75:opts.model==='male'?4.98:4.78, (detail?1.62:2.02) / Math.max(.25, cam.aspect)) * heightRatio / zoom;
+    const focus = (detail?.98:closePants?.62:closeFit?1.19:.93) * heightRatio + Math.max(0, zoom - 1) * .1;
     cam.position.set(Math.sin(yaw) * Math.cos(pitch) * distance, focus + Math.sin(pitch) * distance, Math.cos(yaw) * Math.cos(pitch) * distance);
     cam.up.copy(worldUp);
     cam.lookAt(0, focus, 0);

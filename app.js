@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23b';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23b';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23b';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23b';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23b';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23b';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23c';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23c';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23c';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23c';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23c';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23c';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -24,7 +24,7 @@ const paths={
 const icon=name=>'<svg aria-hidden="true" class="ico" viewBox="0 0 24 24">'+paths[name]+'</svg>';
 for(const el of document.querySelectorAll('[data-icon]'))el.innerHTML=icon(el.dataset.icon);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-let samples=[],selected=adidas,size='M',scope='all',filter='all',brand='all',query='',avatar='female',bottom='trousers',lowerFabric='linen',zoom=1,wire=false,playing=false,live=false,ready=false,loader=null,applied={},upper,toastTimer,loadError='';
+let samples=[],selected=adidas,size='M',scope='all',filter='all',brand='ALL',query='',avatar='female',bottom='trousers',lowerFabric='linen',zoom=1,wire=false,playing=false,live=false,ready=false,loader=null,applied={},upper,toastTimer,loadError='';
 let pants=null,activePants=null,activeTop=adidas,referenceSamples=[];
 const isPants=()=>selected.type==='pants';
 const fieldsFor=type=>type==='pants'?pantsMeasurementFields:measurementFields;
@@ -48,7 +48,7 @@ const measures=()=>selected.sizes.find(row=>row.label===size)||selected.sizes[0]
 function toast(msg){$('notice').textContent=msg;$('notice').classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('notice').classList.remove('on'),3600);}
 const wishlist=new Set(JSON.parse(localStorage.getItem('selfit.wishlist')||'[]'));
 const saveWishlist=()=>{try{localStorage.setItem('selfit.wishlist',JSON.stringify([...wishlist]));}catch{}};
-function brandName(item){return String(item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'피팅 샘플')).toUpperCase();}
+function brandName(item){return String(item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'DRAPE STUDIO')).toUpperCase();}
 function renderBrandChips(items){
   const names=[...new Set(items.map(brandName))].slice(0,4);
   const chips=$('brandChips');chips.replaceChildren();

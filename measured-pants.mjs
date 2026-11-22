@@ -12,8 +12,8 @@
 // pockets, rivets and the hem cuff are surfaces offset from that same grid, so
 // they inherit the pose deformation, the solver's secondary motion and the wash
 // UVs of the cloth underneath them.
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23b';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23b';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23c';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23c';
 
 const tau=2*Math.PI, columns=64, rows=96;
 const hipJoint=.93,kneeFromHip=.438;
