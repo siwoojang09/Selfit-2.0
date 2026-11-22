@@ -117,9 +117,9 @@ def build():
                 'metallicRoughnessTexture': {'index': mr, 'texCoord': 0},
                 'metallicFactor': 0.0, 'roughnessFactor': 1.0,
             },
-            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 0.9},
+            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 1.15},
             'extensions': {'KHR_materials_sheen': {
-                'sheenColorFactor': [0.55, 0.62, 0.70], 'sheenRoughnessFactor': 0.82}},
+                'sheenColorFactor': [0.30, 0.35, 0.42], 'sheenRoughnessFactor': 0.92}},
         })
         return len(g.materials) - 1
 
@@ -135,7 +135,7 @@ def build():
     cloth = {-1: cloth_material(-1), 1: cloth_material(1)}
     stitch = plain_material('tonal topstitch', (0.30, 0.36, 0.40), .78)
     shadow = plain_material('seam shadow', (0.09, 0.12, 0.14), .95)
-    lining = plain_material('denim lining', (0.16, 0.20, 0.23), .95)
+    lining = plain_material('denim lining', (0.26, 0.30, 0.33), .95)
     metal = plain_material('brushed nickel', (0.72, 0.73, 0.72), .34, .9)
     by_layer = {'shell': cloth, 'band': cloth, 'patch': cloth,
                 'thread': stitch, 'shadow': shadow, 'lining': lining, 'metal': metal}
