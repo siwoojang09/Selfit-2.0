@@ -13,6 +13,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORK = ROOT / '.devtest' / 'photo-chino'
 ASSET = ROOT / 'assets' / 'signature-wide-chino.glb'
 
+TILE = 0.16          # metres of cloth covered by one repeat of the weave tile
+TILE_OFFSET = 1.041  # the waist line, so v runs down from the band
+
 data = np.load(WORK / 'pieces.npz')
 meta = [json.loads(s) for s in data['meta']]
 land = json.loads(data['landmarks'][0])
@@ -46,6 +49,25 @@ def compute_normals(pos, idx):
     ln = np.linalg.norm(n, axis=1, keepdims=True)
     n = np.divide(n, np.maximum(ln, 1e-9))
     return n.astype(np.float32)
+
+
+def weave_uv(pos, cols):
+    """A second UV set in metres: the twill repeats at its real size.
+
+    The pattern's own UV wraps the whole leg, so a weave on it would stretch with
+    the size and the fold. This set measures the cloth instead: u is the arc
+    around the section, v the drop from the waist, both divided by the tile's
+    physical width. The sampler mirrors, so the tile needs no seam.
+    """
+    rings = pos.reshape(-1, cols + 1, 3)
+    out = np.zeros((len(pos), 2), np.float32)
+    for i, ring in enumerate(rings):
+        steps = np.linalg.norm(np.diff(ring[:, [0, 2]], axis=0), axis=1)
+        arc = np.concatenate([[0.0], np.cumsum(steps)])
+        sl = slice(i * (cols + 1), (i + 1) * (cols + 1))
+        out[sl, 0] = arc / TILE
+        out[sl, 1] = (TILE_OFFSET - ring[:, 1]) / TILE
+    return out
 
 
 class Gltf:
@@ -101,8 +123,17 @@ class Gltf:
 def build():
     g = Gltf()
     atlas = {-1: load_atlas(-1), 1: load_atlas(1)}
+    weave = {
+        'normal': g.texture(g.image(jpeg(np.asarray(Image.open(WORK / 'weave-normal.png').convert('RGB')), 92), 'image/jpeg'), 1),
+        'rough': g.texture(g.image(jpeg(np.asarray(Image.open(WORK / 'weave-rough.png').convert('L')), 88, gray=True), 'image/jpeg'), 1),
+    }
     # one sampler: repeat, mipmapped, trilinear
-    g.samplers = [{'magFilter': 9729, 'minFilter': 9987, 'wrapS': 10497, 'wrapT': 10497}]
+    g.samplers = [
+        {'magFilter': 9729, 'minFilter': 9987, 'wrapS': 10497, 'wrapT': 10497},
+        # Mirrored repeat: the weave tile is a cut from a photograph, and its
+        # edges reflect instead of meeting, so no seam grid shows.
+        {'magFilter': 9729, 'minFilter': 9987, 'wrapS': 33648, 'wrapT': 33648},
+    ]
 
     def cloth_material(side):
         tex = atlas[side]
@@ -116,12 +147,14 @@ def build():
                 # The studio rig lights this scene for pale cloth, and the
                 # chino photograph was shot under its own soft sweep. The tone
                 # factor only trims the beige to the scene's lights.
-                'baseColorFactor': [0.94, 0.94, 0.94, 1.0],
+                'baseColorFactor': [0.90, 0.90, 0.90, 1.0],
                 'baseColorTexture': {'index': colour, 'texCoord': 0},
                 'metallicRoughnessTexture': {'index': mr, 'texCoord': 0},
                 'metallicFactor': 0.0, 'roughnessFactor': 1.0,
             },
-            'normalTexture': {'index': normal, 'texCoord': 0, 'scale': 1.15},
+            # The close-up's twill, on the metre-scaled UV set: this is what
+            # gives the beige its rib under a raking light instead of plastic.
+            'normalTexture': {'index': weave['normal'], 'texCoord': 1, 'scale': 1.0},
             'extensions': {'KHR_materials_sheen': {
                 'sheenColorFactor': [0.16, 0.15, 0.12], 'sheenRoughnessFactor': 1.0}},
         })
@@ -145,6 +178,7 @@ def build():
                 'thread': stitch, 'shadow': shadow, 'lining': lining, 'metal': metal}
 
     used_layers = []
+    col_count = 64
     for i, m in enumerate(meta):
         pos = data[f'p{i}_pos'].astype(np.float32)
         uv = data[f'p{i}_uv'].astype(np.float32).copy()
@@ -162,6 +196,7 @@ def build():
                 'POSITION': g.accessor(pos, 'POSITION', 34962, 'VEC3', True),
                 'NORMAL': g.accessor(nrm, 'NORMAL', 34962, 'VEC3'),
                 'TEXCOORD_0': g.accessor(uv, 'TEXCOORD_0', 34962, 'VEC2'),
+                'TEXCOORD_1': g.accessor(weave_uv(pos, col_count), 'TEXCOORD_1', 34962, 'VEC2'),
             },
             'indices': g.accessor(idx.reshape(-1).astype(dtype), 'INDICES', 34963),
             'material': material, 'mode': 4,

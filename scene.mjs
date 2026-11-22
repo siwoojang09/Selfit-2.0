@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23k';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23k';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23k';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23k';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23k';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23k';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23k';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23k';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23k';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23k';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23l';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23l';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23l';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23l';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23l';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23l';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23l';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23l';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23l';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23l';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;

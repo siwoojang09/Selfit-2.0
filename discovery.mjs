@@ -1,8 +1,8 @@
-import {listReferences,saveReference} from './reference-store.mjs?v=2026-11-23k';
-import {adidas,denim,pantsMeasurementFields,garmentTypes,listSamples} from './catalog-data.mjs?v=2026-11-23k';
-import {products,recommend} from './fit-matches.mjs?v=2026-11-23k';
-import {openRegistration} from './register-fit.mjs?v=2026-11-23k';
-import {openComparison} from './compare-fit.mjs?v=2026-11-23k';
+import {listReferences,saveReference} from './reference-store.mjs?v=2026-11-23l';
+import {adidas,denim,pantsMeasurementFields,garmentTypes,listSamples} from './catalog-data.mjs?v=2026-11-23l';
+import {products,recommend} from './fit-matches.mjs?v=2026-11-23l';
+import {openRegistration} from './register-fit.mjs?v=2026-11-23l';
+import {openComparison} from './compare-fit.mjs?v=2026-11-23l';
 
 const paths={
   home:'<path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/>',wardrobe:'<path d="M10 6a2 2 0 1 1 3 2c-1 .7-1 1-1 3l9 6v2H3v-2l9-6"/>',
