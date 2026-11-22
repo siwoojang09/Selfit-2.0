@@ -1,0 +1,36 @@
+dialog.fit-comparison{box-sizing:border-box;width:min(540px,calc(100% - 24px));max-height:90dvh;margin:auto;padding:0;overflow:auto;overscroll-behavior:contain;border:1px solid #d4d9e2;border-radius:19px;background:#fff;color:#18253b;box-shadow:0 22px 90px #091a3b40;font:400 15px/1.45 Inter,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+.fit-comparison::backdrop{background:#0d173976;backdrop-filter:blur(4px)}
+.fit-comparison *{box-sizing:border-box}.fit-comparison button,.fit-comparison a{font:inherit;cursor:pointer}
+.fit-comparison :focus-visible{outline:3px solid #367aff;outline-offset:2px}
+.fc-head,.fc-heading,.fc-foot,.fc-options,.fc-legend{display:flex;align-items:center}
+.fc-head{justify-content:space-between;position:sticky;top:0;z-index:2;padding:15px 21px;border-bottom:1px solid #e3e6ed;background:white}
+.fc-head h2{margin:0;font-size:21px;letter-spacing:-.055em}
+.fit-comparison .fc-close{width:40px;height:40px;padding:0;border:0;border-radius:50%;background:#f1f3f7;color:#23314b;font:26px/1 sans-serif}
+.fc-body{padding:20px 22px 24px}.fc-body h3{margin:0;font-size:17px;letter-spacing:-.04em}
+.fc-pair{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fc-pair>div{min-width:0;display:grid;gap:4px;align-content:start;border:1px solid #dce1e9;border-radius:12px;padding:12px 13px}
+.fc-pair>div+div{border-color:#b2c4fa;background:#f2f6ff}
+.fc-pair strong{overflow-wrap:anywhere;font-size:16px;letter-spacing:-.04em}
+.fc-pair small,.fc-caption,.fc-heading span,.fc-foot small{color:#526178;font-size:13px}
+.fc-pair span{color:#42506a;font-size:14px}.fc-map,.fc-measures,.fc-feedback{margin-top:22px}
+.fc-legend{gap:17px;margin:8px 0;font-size:13px;color:#40506a}
+.fc-legend span{display:flex;align-items:center;gap:6px}
+.fc-legend span:before{content:"";width:22px;border-top:2px dashed #526076}
+.fc-legend .item:before{border-top:2px solid #265cda}
+.fc-map svg{display:block;width:100%;height:220px;background:#f5f7fb;border-radius:10px;padding:6px}
+.fc-map .fc-grid{stroke:#dbe0ea;stroke-width:.2}
+.fc-product-path{fill:#4275ea20;stroke:#2356c9;stroke-width:.78;stroke-linejoin:round}
+.fc-base-path{fill:none;stroke:#4e5b70;stroke-width:.67;stroke-dasharray:1.7 1.35;stroke-linejoin:round}
+.fc-ruler{fill:none;stroke:#5c6779;stroke-width:.4}.fc-unit{fill:#526178;font-size:3.5px}
+.fc-caption{margin:7px 0 0}.fc-unavailable{padding:14px;background:#f4f6fa;border-radius:9px}
+.fc-heading{justify-content:space-between}.fc-measures table{width:100%;margin-top:8px;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.fc-measures td,.fc-measures th{padding:9px 5px;border-bottom:1px solid #e4e7ed;text-align:right}
+.fc-measures thead th{font-size:13px;color:#566278;background:#f6f7fa;font-weight:500}.fc-measures th:first-child{text-align:left}
+.fc-measures td:last-child{color:#254da7;font-weight:650}.fc-measures td.fc-missing{color:#6a7281;font-size:12px}
+.fc-feedback p{margin:4px 0 11px;color:#556176;font-size:14px}
+.fc-options{gap:6px;flex-wrap:wrap}.fc-options button,.fc-link,.fc-primary{padding:10px 13px;border-radius:9px}
+.fc-options button{border:1px solid #dce0e7;background:white;color:#293a50;font-size:14px}.fc-options button[aria-pressed=true]{border-color:#345ede;background:#edf3ff;color:#244bb4}
+.fc-foot{position:sticky;bottom:0;justify-content:space-between;gap:9px;padding:13px 21px max(13px,env(safe-area-inset-bottom));background:white;border-top:1px solid #e2e6ed}
+.fc-primary{margin-left:auto;border:0;background:#264fbc;color:#fff;font-weight:650!important}
+.fc-link{border:1px solid #cad1dd;color:#273958;text-decoration:none}.fc-body .fc-map svg{max-width:none}
+@media(max-width:420px){.fc-body{padding:15px}.fc-head,.fc-foot{padding-left:15px;padding-right:15px}.fc-map svg{height:194px}.fc-options button{padding:9px 7px}.fc-pair{gap:7px}.fc-pair>div{padding:10px}}
