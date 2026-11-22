@@ -404,6 +404,8 @@ export function createScene(container, opts) {
         // denim reads as twill under light instead of a printed photograph.
         lower.userData.measuredWash='pending';
         applySheen(lower, { amount: .34, roughness: .62, color: '#dfe6ee' }, THREE);
+        // The measured pieces share this material object, so the maps land on
+        // every shell, band, patch and thread mesh at once.
         const applyMaps = maps => {
           if (!maps || lower.userData.measuredWash !== 'pending') return;
           lower.userData.measuredWash = maps;
@@ -419,7 +421,7 @@ export function createScene(container, opts) {
         loadTwillField(new URL('./textures/washed-jean-twill.webp',import.meta.url).href)
           .then(mottle => applyMaps(denimMapsFor(THREE, {across:.68, along:1.03, mottle, fade:1})));
       }
-      lower.color.set(opts.pants.color||'#596e74').multiplyScalar(1.56);
+      lower.color.set(opts.pants.color||'#596e74').multiplyScalar(1.99);
     } else {
       if (changedLook || 'fabric' in changes) setTextile(lower, opts.fabric, () => { dirty = true; });
       if (changedLook || 'color' in changes) lower.color.set(opts.color || garmentColors(opts.outfit || 'classic').lower);

@@ -201,7 +201,8 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     shell:mat, band:mat, patch:mat,
     lining:cloth(tint.clone().multiplyScalar(.55),.95),
     shadow:cloth(tint.clone().multiplyScalar(.26),1),
-    thread:cloth(tint.clone().lerp(new T.Color('#dbcba4'),.80),.8),
+    // Core-spun topstitch thread keeps its caramel colour through every wash.
+    thread:cloth(new T.Color('#c98a3e').lerp(tint,.10),.78),
     metal:cloth('#b8b2a5',.42,.66)
   };
 
@@ -283,7 +284,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         const bl=Math.hypot(bx,by,bz)||1;bx/=bl;by/=bl;bz/=bl;
         for(let k=0;k<=across;k++){
           const u=k/across*2-1;
-          const off=u*width, up=lift+bulge*(1-u*u);
+          const off=u*width*1.22, up=lift+bulge*(1-u*u);
           pos.push(side*(p.x+p.nx*up+bx*off),p.y+by*off,p.z+p.nz*up+bz*off);
           ref.push(side*p.nx*refSign,0,p.nz*refSign);
           uv.push(a/tau,1-d/cutLength);
