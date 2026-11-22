@@ -1,9 +1,9 @@
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-23z';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23z';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-23z';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-23z';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-23z';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-23z';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-24a';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24a';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-24a';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24a';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-24a';
+import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-24a';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -270,7 +270,8 @@ function sync(){
   $('finishView').textContent=detail?'착장 전체':isPants()?'하체 핏':'소맷단·밑단';
   $('fitPreview').hidden=false;
   $('fitPreview').textContent=bodyOnly?'착장으로 돌아가기':live&&!playing&&!poseWalk?'3D 착장 전체 보기':'3D로 입어보기';
-  $('fitPreview').disabled=(selected.id!==adidas.id&&!isPants())&&!bodyOnly;
+  // Every sample in the wardrobe is worn in 3D now, not just the hoodie.
+  $('fitPreview').disabled=false;
 
   $('bodyView').setAttribute('aria-pressed',String(bodyOnly));
   $('dressedView').setAttribute('aria-pressed',String(!bodyOnly));

@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23z';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23z';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23z';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23z';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23z';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23z';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24a';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24a';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24a';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24a';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24a';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24a';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -496,16 +496,17 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const collar=type==='tee'||sweat;
       // A shirt closes at a collar band, not at a knitted ring: the ring would
       // float around the neck above the collar.
-      if(type!=='shirt') panel(upper,rib,'Neck binding',5,40,(v,u)=>{
+      if(type!=='shirt') panel(upper,rib,'Neck binding',7,40,(v,u)=>{
         const a=u*tau,c=Math.cos(a);
         // A hair outside the body panel's own top ring: the binding used to sit
         // on the same circle, and the two coplanar surfaces fizzed into a ring of
         // teeth around the neck.
-        // A narrow band standing up from the cut edge, not a flat ring laid
-        // around the neck: the body's own top edge stays covered by it.
-        const inner=.0595,rise=collar?.009:.016;
-        return [Math.sin(a)*lerp(inner,inner+.0055,v),1.4625-.026*Math.max(c,0)**2+rise*v,
-          Math.cos(a)*lerp(.0505,.0555,v)+.0034];
+        // A rolled binding: a tube of cloth turned over the cut edge, so the
+        // neck's silhouette is round instead of a cut edge with a sawtooth.
+        const phi=Math.PI*v,rt=collar?.0042:.0055,rc=.0645;
+        const rr=rc-rt*Math.cos(phi);
+        return [Math.sin(a)*rr,1.4615-.026*Math.max(c,0)**2+rt*Math.sin(phi),
+          Math.cos(a)*(rr-.0105)+.0034];
       });
       // Through the neck of a crew garment the inside of the collar is what the
       // eye meets. A shallow lining ring fills it with cloth instead of the
@@ -541,10 +542,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         if(type==='shirt'){
           // A short stand behind the neck, and two leaves folded down over the
           // chest: a collar is a fold, so the stand and the leaf are two pieces.
-          panel(upper,shell,'Collar band',5,48,(v,u)=>{
+          panel(upper,shell,'Collar band',8,48,(v,u)=>{
             const a=tau*u,c=Math.cos(a),s2=Math.sin(a);
-            const r=lerp(.0605,.0645,smooth(v,0,1));
-            return [s2*r,1.462-.026*Math.max(c,0)**2+.016*v-.003*Math.max(c,0)*v,c*r+.0032];
+            // The stand rolls over the neckline the same way, so its edge is a
+            // round fold under the collar leaves rather than a cut ring.
+            const phi=Math.PI*v,rt=.0055,rc=.0655,rr=rc-rt*Math.cos(phi);
+            return [s2*rr,1.4615-.026*Math.max(c,0)**2+rt*Math.sin(phi),c*(rr-.0075)+.0032];
           });
           for(const sign of [-1,1]) panel(upper,shell,'Point collar',8,14,(v,u)=>{
             const x=sign*lerp(.060*u,.118*u,smooth(v,0,1));
