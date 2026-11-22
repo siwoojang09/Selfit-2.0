@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23m';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23m';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23m';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23m';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23m';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23m';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-23n';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-23n';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-23n';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-23n';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-23n';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-23n';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -249,7 +249,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // of them is in the photograph already and a second set of lines laid over
     // the photo reads as a ghost of the pattern.
     const photoHoodie=adidas&&opts.photoHoodie!==false;
-    photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:null;
+    photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:(opts.topAsset?opts.topAsset.byName:null);
     photoUsed={};
     const raw=opts.type||opts.template||'ziphoodie';
     const type=['ziphoodie','tee','shirt','polo','sweatshirt'].includes(raw)?raw:'ziphoodie';

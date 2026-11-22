@@ -1,0 +1,98 @@
+{
+  "id": "nike-sport-tee-white",
+  "type": "tee",
+  "category": "top",
+  "color": "#f4f4f2",
+  "material": "cotton",
+  "measurements": {
+    "length": 71.5,
+    "shoulder": 43.5,
+    "chest": 50,
+    "sleeve": 22.5,
+    "hem": 48
+  },
+  "fabric": {
+    "photo": "IMG_2563-d1801846b9f44251b092f92d5eee1074.jpg",
+    "crop": [
+      60,
+      700,
+      420,
+      1060
+    ],
+    "tone": [
+      243,
+      243,
+      241
+    ],
+    "relief": 3.4,
+    "fine": 0.6,
+    "coarse": 2.6,
+    "roughness": 0.88,
+    "tile": 0.075,
+    "colour_detail": 0.15
+  },
+  "atlas": {
+    "size": 2048,
+    "circumference": 1.0,
+    "length": 0.715,
+    "decals": [
+      {
+        "photo": "IMG_2559-ee9762f4244f41d5b53e3846d69931d0.jpg",
+        "crop": [
+          600,
+          986,
+          688,
+          1020
+        ],
+        "threshold": 150,
+        "soft": 34,
+        "center": [
+          0.135,
+          0.078
+        ],
+        "size": [
+          0.075,
+          0.0235
+        ],
+        "color": [
+          26,
+          26,
+          26
+        ]
+      }
+    ]
+  },
+  "pieces": {
+    "atlas": [
+      "Measured garment body"
+    ],
+    "tile": [
+      "Sleeve",
+      "Folded bottom hem",
+      "Button placket",
+      "Point collar"
+    ],
+    "rib": [
+      "Neck binding",
+      "Sleeve cuff",
+      "Turned cuff edge",
+      "Ribbed waistband"
+    ],
+    "thread": [
+      "Body finish topstitching",
+      "Cuff join stitching"
+    ],
+    "button": [
+      "Button"
+    ]
+  },
+  "sleeve_repeat": [
+    4.5,
+    6.0
+  ],
+  "gain": [
+    0.94,
+    0.94,
+    0.94
+  ]
+}

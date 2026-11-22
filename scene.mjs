@@ -1,14 +1,15 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23m';
-import { attachSample } from './sample-garment.mjs?v=2026-11-23m';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-23m';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23m';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-23m';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-23m';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-23m';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23m';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23m';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-23m';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-23n';
+import { attachSample } from './sample-garment.mjs?v=2026-11-23n';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-23n';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-23n';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-23n';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-23n';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-23n';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-23n';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-23n';
+import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-23n';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-23n';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -294,6 +295,10 @@ export function createScene(container, opts) {
   // The photographed hoodie is one asset for the scene as well: the first look
   // that asks for it starts the transfer, and every later look wears it at once.
   let hoodieAsset = null, hoodieLoading = false;
+  // The photographed tops share the same rule: one asset per garment for the
+  // whole scene, worn only once it is in hand.
+  let topAssets = {}, topLoading = {};
+  let wornTop = null;
   const lookCache = new Map();
   let motionSamples = [];
   const worldPoint = new THREE.Vector3();
@@ -381,6 +386,33 @@ export function createScene(container, opts) {
         document.documentElement.dataset.hoodie = 'failed ' + (error && error.message || error);
         console.warn('hoodie asset', error);
       }).finally(() => { hoodieLoading = false; });
+    }
+    return false;
+  }
+
+  // A photographed top (the Nike tee and the rest of the wardrobe) arrives the
+  // same way the hoodie does: the garment is not built until its own surface is
+  // in hand, so the drawn stand-in can never appear.
+  function adoptTopAsset(sample) {
+    const id = String(sample?.id || '');
+    if (!id || !hasPhotoTop(sample)) return true;
+    if (topAssets[id]) return true;
+    const cached = peekTopAsset(id);
+    if (cached) { topAssets[id] = cached; return true; }
+    if (!topLoading[id]) {
+      topLoading[id] = true;
+      document.documentElement.dataset.top = 'loading ' + id;
+      loadTopAsset(id).then(asset => {
+        topAssets[id] = asset;
+        document.documentElement.dataset.top = 'worn ' + asset.parts.length;
+        if (sampleGarment && wornTop) sampleGarment.update({ ...wornTop, topAsset: asset });
+        else update({ sample: opts.sample });
+        settle();
+        dirty = true;
+      }).catch(error => {
+        document.documentElement.dataset.top = 'failed ' + (error && error.message || error);
+        console.warn('top asset', error);
+      }).finally(() => { topLoading[id] = false; });
     }
     return false;
   }
@@ -522,10 +554,13 @@ export function createScene(container, opts) {
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'person' in changes){
       const photographed=hasPhotoHoodie(displayTop);
-      const readyToWear=!photographed||adoptHoodieAsset();
+      const photographedTop=hasPhotoTop(displayTop);
+      const readyToWear=(!photographed||adoptHoodieAsset())&&(!photographedTop||adoptTopAsset(displayTop));
       if(displayTop&&readyToWear){
         const upper={...displayTop,person:opts.person,photoHoodie:photographed,
-          hoodieAsset:photographed?hoodieAsset:null,onReady:()=>{dirty=true;}};
+          hoodieAsset:photographed?hoodieAsset:null,
+          topAsset:photographedTop?topAssets[String(displayTop.id)]:null,onReady:()=>{dirty=true;}};
+        wornTop=upper;
         if(sampleGarment)sampleGarment.update(upper);
         else sampleGarment=attachSample(body,upper,wardrobe.lowerColliders);
         sampleGarment.pose(phase,opts,0);
@@ -662,7 +697,8 @@ export function createScene(container, opts) {
   if (typeof window !== 'undefined') {
     Object.defineProperty(window, '__selfit', {value: {
       get top(){ return sampleGarment?.inspect?.() || null; },
-      get hoodie(){ return hoodieAsset ? hoodieAsset.parts.length : 0; }
+      get hoodie(){ return hoodieAsset ? hoodieAsset.parts.length : 0; },
+      get topAsset(){ return topAssets[String(opts.sample?.id)] || null; }
     }, configurable: true});
   }
   return {update, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),

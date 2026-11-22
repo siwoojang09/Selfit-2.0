@@ -21,10 +21,18 @@ export const chino={
     ['L',108,41.5,57,41,37,27],['XL',109,44,59,42.5,38,28]
   ].map(([label,length,waist,hip,thigh,rise,hem])=>({label,length,waist,hip,thigh,rise,hem}))
 };
+export const nikeTee={
+  id:'nike-sport-tee-white',code:'',brand:'NIKE',name:'스포츠 반소매 티셔츠',colourName:'화이트',
+  type:'tee',category:'top',color:'#f4f4f2',photo:'catalog/nike-sport-tee-white.webp',material:'cotton',source:'제공하신 상품 실측표',
+  sizes:[
+    ['S',71,43,48,22.5,null],['M',71.5,43.5,50,22.5,48],['L',72,44,52,23,51],
+    ['XL',72.5,45,55,23.5,54],['2XL',73,46,58,23.5,57]
+  ].map(sizeRow)
+};
 // Only the garments the owner actually has: the studio's drawn samples are not
 // products, and a wardrobe of stand-ins makes the fitting room look emptier than
 // it is. The mannequin and the studio crew remain as the body it is fitted on.
-export const builtins=[adidas,chino,denim];
+export const builtins=[adidas,nikeTee,chino,denim];
 let connection;
 function openStore(){
   if(connection)return connection;
