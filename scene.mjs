@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs';
 import { attachSample } from './sample-garment.mjs';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k2';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-22k3';
 import { projectWardrobe, garmentColors } from './projection.mjs';
 import {pantsFit} from './pants-fit.mjs';
 import {wearer} from './hoodie-fit.mjs';
 import { makeMannequin } from './mannequin.mjs';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k2';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-22k3';
 import { createSoftwareRenderer } from './software.mjs';
 
 const limit = THREE.MathUtils.clamp;

@@ -50,7 +50,7 @@
 스크립트도 같은 이유로 빌드 버전을 붙입니다. `fitting.html`(engine.js, app.js),
 `engine.js`(scene.mjs), 그리고 `scene.mjs`·`app.js`(photo-denim.mjs), `scene.mjs`
 (wardrobe.mjs), `wardrobe.mjs`(measured-pants.mjs)의 import에 같은 문자열이 들어
-있습니다(`2026-11-22k2`). 이 모듈들을 고쳐 배포할 때는 **다섯 파일의 문자열을 함께
+있습니다(`2026-11-22k3`). 이 모듈들을 고쳐 배포할 때는 **다섯 파일의 문자열을 함께
 올려야** 하며, 같은 URL로 두 번 배포하면 브라우저가 예전 스크립트를 계속 씁니다.
 
 `document.documentElement.dataset.denim`에 마지막 적용 상태가 남습니다: `loading`
