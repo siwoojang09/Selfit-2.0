@@ -79,9 +79,9 @@ i[data-icon],span[data-icon]{display:inline-flex;align-items:center;justify-cont
 .sample:hover .sample-photo{border-color:#E0DBD2}
 .sample[aria-pressed=true] .sample-photo{border-color:var(--ink)}
 .sample[aria-pressed=true] .sample-photo:after{content:"";position:absolute;inset:0;border-radius:var(--r-media);border:1.5px solid var(--ink);pointer-events:none}
-.heart{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#fffdf9e6;display:grid;place-items:center;color:var(--ink-2);opacity:0;transform:scale(.9);transition:.16s ease;z-index:2}
+.heart{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#fffdf9d9;display:grid;place-items:center;color:#B7B1A6;transition:.16s ease;z-index:2}
 .heart .ico{width:14px;height:14px}
-.sample:hover .heart,.heart[aria-pressed=true]{opacity:1;transform:none}
+.sample:hover .heart{color:var(--ink);background:#fff}
 .heart[aria-pressed=true] .ico{fill:#1A1A1A}
 .sample-info{display:flex;flex-direction:column;gap:2px;padding:0 2px}
 .sample-info small{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);font-weight:550}
@@ -130,9 +130,9 @@ i[data-icon],span[data-icon]{display:inline-flex;align-items:center;justify-cont
 .stage-bar>button:hover{background:#fff;color:var(--ink)}
 .stage-bar .ico{width:13px;height:13px}
 .stage-bar #finishView{background:#ffffff99}
-.turntable{display:flex;align-items:center;gap:9px;color:#7C766C;font-size:10px;letter-spacing:.16em;padding-bottom:5px;transition:opacity .2s}
+.turntable{display:flex;align-items:center;gap:10px;color:#6F695F;font-size:10px;letter-spacing:.18em;padding-bottom:5px;transition:opacity .2s}
 #stage:not(.show3d) .turntable{opacity:0}
-.turntable .arc{width:44px;height:1px;background:linear-gradient(90deg,transparent,#B9B2A6,transparent)}
+.turntable .arc{width:54px;height:1px;background:linear-gradient(90deg,transparent,#A9A196,transparent)}
 .mode-chip{display:inline-flex;align-items:center;gap:7px;background:#ffffffcc;border:1px solid #fff;border-radius:999px;padding:6px 11px;font-size:10px;letter-spacing:.02em;color:#6E6A61}
 .mode-chip i{width:5px;height:5px;border-radius:50%;background:#8FA37F;box-shadow:0 0 0 3px #8FA37F26}
 
