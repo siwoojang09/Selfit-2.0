@@ -64,8 +64,14 @@ def decal_alpha(src, decal):
 
 def draw_decals(cfg, atlas, size, circ, length):
     for decal in cfg['atlas'].get('decals', []):
-        src = crop_named(PHOTOS / decal['photo'], decal['crop'])
-        alpha = decal_alpha(src, decal)
+        if decal.get('sprite'):
+            # A mark too small in the photograph to survive being enlarged: the
+            # picture is drawn at the size it will be sampled at instead.
+            sprite = np.asarray(Image.open(pathlib.Path(__file__).parent / 'sprites' / decal['sprite']).convert('L')).astype(np.float32) / 255.0
+            alpha = sprite
+        else:
+            src = crop_named(PHOTOS / decal['photo'], decal['crop'])
+            alpha = decal_alpha(src, decal)
         if not alpha.any():
             print('decal empty', decal['photo'], decal['crop'])
             continue
@@ -175,6 +181,7 @@ def build_atlas(cfg, work):
                                  tuple(fabric.get('tone', (23, 23, 25))),
                                  fabric.get('contrast', .16))
         nrm = nrm * 2 - 1
+        atlas = draw_decals(cfg, atlas, size, circ, length)
         rgh = np.full((size, size), fabric.get('roughness', .92), np.float32)
         Image.fromarray(np.clip(atlas, 0, 255).astype(np.uint8)).save(work / 'atlas.png')
         Image.fromarray(((np.clip(nrm, -1, 1) * .5 + .5) * 255).astype(np.uint8)).save(work / 'atlas-normal.png')
@@ -344,7 +351,8 @@ def build_glb(cfg, work):
 
     mat_thread = plain('tonal topstitch', [c / 255 * .92 for c in cfg.get('thread', (235, 235, 233))], .86)
     mat_button = plain('resin button', [c / 255 for c in cfg.get('button', (23, 23, 24))], .5)
-    mat_metal = plain('antique nickel', [.58, .57, .55], .36, .8)
+    metal = cfg.get('metal', (.58, .57, .55))
+    mat_metal = plain('zip metal', list(metal), .38, .8)
     groups = cfg['pieces']
     lookup = {}
     for mat, names in (('atlas', groups.get('atlas', [])), ('tile', groups.get('tile', [])),

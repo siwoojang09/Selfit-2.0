@@ -34,23 +34,17 @@
     "length": 0.675,
     "decals": [
       {
-        "photo": "IMG_2576-1fa0f224a10f4fa3b11997f56f764a82.jpg",
-        "crop": [
-          500,
-          858,
-          552,
-          922
-        ],
-        "mode": "red",
-        "threshold": 26,
-        "soft": 30,
+        "sprite": "pony.png",
+        "mode": "light",
+        "threshold": 128,
+        "soft": 40,
         "center": [
           0.073,
           0.279
         ],
         "size": [
-          0.036,
-          0.046
+          0.034,
+          0.047
         ],
         "color": [
           176,
@@ -91,16 +85,16 @@
     ]
   },
   "sleeve_repeat": [
-    7.4,
-    8.4
+    4.4,
+    4.6
   ],
   "piece_repeat": {
     "Sleeve cuff": [
-      3.6,
+      2.2,
       0.9
     ],
     "Turned cuff edge": [
-      3.6,
+      2.2,
       1.2
     ],
     "Ribbed waistband": [
@@ -130,6 +124,10 @@
     "Zip tape": [
       0.3,
       1.0
+    ],
+    "Sleeve": [
+      4.4,
+      4.6
     ]
   },
   "rib": {
@@ -158,5 +156,10 @@
     1.0,
     1.0,
     1.0
+  ],
+  "metal": [
+    0.42,
+    0.33,
+    0.18
   ]
 }

@@ -379,7 +379,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           // inside the neck opening: from behind you see a heap of cloth, not
           // a hole, and from the front its rim stands behind the collarbone.
           const phi=Math.PI*v;
-          const ring=.069+.016*back, tube=.022+.048*back;
+          const ring=.069+.016*back, tube=.026+.048*back;
           const r=ring+tube*Math.cos(phi);
           const front=Math.max(0,c);
           return [s*r,
@@ -407,11 +407,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       });
       if(pullover) panel(upper,rib,'Lined hood opening',6,44,(v,u)=>{
         // Seen from the front the hood's mouth is a hollow; its lining closes
-        // the hollow with cloth instead of the wearer's neck.
-        const a=u*tau,c=Math.cos(a),back=(1-c)*.5;
-        const inner=.069+.016*back-(.022+.048*back);
-        const r=lerp(inner,inner*.06,v);
-        return [Math.sin(a)*r,1.474-.020*Math.max(0,c)-.030*v,c*r+.002];
+        // the hollow with cloth instead of the wearer's neck. A plain funnel,
+        // not the hood's own inner edge: that edge is tiny at the back and its
+        // fan of triangles read as a ring of teeth.
+        const a=u*tau,c=Math.cos(a);
+        const r=lerp(.046,.010,smooth(v,0,.94));
+        return [Math.sin(a)*r,1.474-.022*Math.max(0,c)-.026*v,c*r+.002];
       });
       if(hoodie) panel(upper,rib,'Lined hood opening',6,60,(v,u)=>{
         const a=u*tau,c=Math.cos(a),back=(1-c)*.5;
@@ -495,7 +496,14 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       }
     } else {
       const collar=type==='tee'||sweat;
-      panel(upper,rib,'Neck binding',5,40,(v,u)=>{
+      // A shirt closes at a collar band, not at a knitted ring: the ring would
+      // float around the neck above the collar.
+      if(type==='shirt') panel(upper,shell,'Collar band',6,48,(v,u)=>{
+        const a=u*tau,c=Math.cos(a),s2=Math.sin(a);
+        const r=lerp(.0615,.0655,smooth(v,0,1));
+        return [s2*r,1.462-.026*Math.max(c,0)**2+.030*v-.004*Math.max(c,0)*v,c*r+.0032];
+      });
+      if(type!=='shirt') panel(upper,rib,'Neck binding',5,40,(v,u)=>{
         const a=u*tau,c=Math.cos(a);
         // A hair outside the body panel's own top ring: the binding used to sit
         // on the same circle, and the two coplanar surfaces fizzed into a ring of
@@ -507,7 +515,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // wearer's own mesh seam, which otherwise shows as a row of teeth.
       if(type==='tee'||type==='polo') panel(upper,rib,'Neck lining',4,40,(v,u)=>{
         const a=u*tau,c=Math.cos(a);
-        return [Math.sin(a)*lerp(.0585,.057,v),1.462-.030*Math.max(c,0)**2-.023*v,Math.cos(a)*lerp(.0505,.049,v)+.0030];
+        // Well inside the body's own neck ring: sitting on it made the two
+        // surfaces z-fight into a ring of teeth.
+        return [Math.sin(a)*lerp(.0495,.0485,v),1.458-.030*Math.max(c,0)**2-.020*v,Math.cos(a)*lerp(.0415,.0405,v)+.0030];
       });
       if(halfzip){
         // The half-zip knit stands up in its own ribbed collar; the zip runs
@@ -519,8 +529,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         });
         panel(upper,rib,'Collar fold edge',5,48,(v,u)=>{
           const a=u*tau,s=Math.sin(a),c=Math.cos(a);
-          const r=lerp(.0705,.0735,smooth(v,0,1));
-          return [s*r,1.521-.026*Math.max(c,0)**2+.004*v-.012*smooth(v,0,1),c*r+.0032];
+          // A hair outside the collar's own top ring: coplanar rims z-fight
+          // into a jagged edge along the neck.
+          const r=lerp(.0725,.0745,smooth(v,0,1));
+          return [s*r,1.522-.026*Math.max(c,0)**2+.004*v-.012*smooth(v,0,1),c*r+.0032];
         });
         tape('Zip tape',trim,.004,.300,-.0060,.0060,.0044);
         tape('Zip teeth',shine,.010,.294,-.0015,.0015,.0068);
@@ -535,9 +547,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
               // A pointed collar lies on the chest: its inner edge follows the
               // neck seam, its point stands about ten centimetres out and ten
               // below, and the two leaves part over the placket.
-              const x=sign*lerp(.060*u,.106*u,smooth(v,0,1));
-              const t=lerp(.004,.096+.056*u,v);
-              const p=frontAt(t,x,.0042+.0028*Math.sin(Math.PI*v));
+              const x=sign*lerp(.062*u,.122*u,smooth(v,0,1));
+              const t=lerp(.004,.104+.070*u,v);
+              const p=frontAt(t,x,.0046+.0034*Math.sin(Math.PI*v));
               return [x,p[1]-.0015*v,p[2]];
             }
             const a=.10+1.72*u;
