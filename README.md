@@ -11,7 +11,8 @@
 | 파일 | 설명 |
 | --- | --- |
 | `index.html` | 홈 / 탐색 화면. 히어로, 옷장, 핏 매칭 결과를 해시 라우팅(`#home`, `#fit`, `#body` 등)으로 보여줍니다. `#fit`, `#body`로 들어오면 `fitting.html`로 이동합니다. |
-| `fitting.html` | 3D 드레싱룸. 샘플 옷장, 3D 착장 뷰, 실측 핏 분석, 사이즈 비교, 샘플 등록(택 촬영 OCR / 직접 입력)을 제공합니다. |
+| `fitting.html` | 3D 드레싱룸. 왼쪽 샘플 옷장, 가운데 턴테이블 위의 3D 무대, 오른쪽 착용 룩과 실측 핏 분석의 3단 레이아웃입니다. 샘플 등록(택 촬영 OCR / 직접 입력), 사이즈 비교, 보행 시뮬레이션을 제공합니다. |
+| `mobile-check.html` | 개발 확인용. `fitting.html`을 390×844와 430×900 프레임에 넣어 모바일 레이아웃을 봅니다. |
 
 ## 폴더 구조
 
@@ -36,7 +37,7 @@ register-fit.mjs      샘플 등록 UI, 택 OCR(Tesseract.js) 연동
 photo-denim.mjs       실사 사진 데님 에셋 로더 (assets/washed-denim-medium-blue.glb)
 photo-hoodie.mjs      실사 사진 집업 에셋 로더 (assets/adidas-kc9315.glb)
 
-scene.mjs             3D 씬 구성, 직물 텍스처, 보행 시뮬레이션
+scene.mjs             3D 씬 구성(웜 스톤 배경, 턴테이블 대좌), 직물 텍스처, 보행 시뮬레이션
 mannequin.mjs         3D 마네킹 생성
 body-library.mjs      인체 메쉬 로더 (female/male)
 body-skin.mjs         인체 메쉬 스키닝
@@ -67,6 +68,19 @@ tools/photo-denim/    청바지 에셋 빌드 파이프라인 (사진 → 아틀
 tools/photo-hoodie/   아디다스 집업 에셋 빌드 파이프라인
 ```
 
+## 드레싱룸 화면 구성
+
+세 단으로 나뉜 웜 스톤(따뜻한 회백색) 에디토리얼 레이아웃입니다.
+
+| 영역 | 내용 |
+| --- | --- |
+| 왼쪽 옷장 | 브랜드 헤더(`Selfit 2.0`), 검색, 분류 탭(전체·아우터·상의·하의), 브랜드 칩(ALL·ADIDAS·DRAPE STUDIO), 2열 샘플 카드(하트 위시리스트) |
+| 가운데 무대 | 턴테이블 대좌 위의 3D 착장. 상단 알약(착장·3D 체형 / 여성·남성), 왼쪽 도구 레일(전체 화면·확대·축소·기본 시점·정지 착장·환경 설정), 오른쪽 착용 아이템 썸네일, 하단 보행·디테일·`360°` 표시 |
+| 오른쪽 룩 | `Your Look`(착용 상·하의 카드), `Style & Fit`(실측 여유 막대, 사이즈 알약, 신체 치수 설정, 3D 착장 버튼, 실측표), `Recommended` |
+
+모바일(≈820px 이하)에서는 무대 → 룩 → 옷장 순으로 세로로 쌓입니다.
+색은 `#F8F7F4` 바탕, 흰 카드와 `#EAE7E1` 헤어라인, 세리프 제목, 숯색 `#1A1A1A` 알약 버튼입니다.
+
 ## 실행 방법
 
 ES 모듈과 `fetch`/`import.meta.url`을 사용하므로 `file://`로 열면 동작하지 않습니다.
@@ -83,6 +97,10 @@ python3 -m http.server 8080
 - Three.js (`vendor/three.module.js`)로 3D 착장·보행 시뮬레이션
 - Tesseract.js (`vendor/ocr/`)로 옷 택 OCR (한국어 + 영어)
 - IndexedDB(`drape-sample-wardrobe`)에 사용자가 등록한 샘플과 실측 저장
+- 캐시: 모든 로컬 모듈 import와 `fitting.html`의 스크립트 태그가 같은 `?v=` 문자열을 달고 있고,
+  사진 에셋은 `photo-*.mjs`의 `ASSET_VERSION`을 씁니다. 배포할 때는 **모든 파일의 문자열을 함께 올려야**
+  하며(같은 URL로 두 번 배포하면 브라우저가 예전 스크립트를 계속 씁니다), `fitting.html` 자체는
+  GitHub Pages가 10분간 캐시하므로 라이브 확인 시 `&u=<커밋>` 같은 파라미터로 엽니다.
 
 ## 참고
 
