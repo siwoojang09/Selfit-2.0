@@ -352,6 +352,7 @@ export function createScene(container, opts) {
       body.pose(phase, opts.walking, true);
     } else {
       wardrobe.reset();
+      sampleGarment?.resetCloth?.();
       for(let i=0; i<10; i++) poseAndStep(stepSize);
     }
     dirty = true;
@@ -454,7 +455,24 @@ export function createScene(container, opts) {
     return {phase,time:frameTime,hips:{x:hips.x,y:hips.y,z:hips.z},bands,hems:bands[2]||[]};
   }
   function stats() {
-    return {fps, time:frameTime, hemLift:(sampleGarment?.hemRise||0)*heightRatio, vertices: wardrobe?.vertices || 0, renderer: renderer.isWebGLRenderer ? 'WebGL' : 'Canvas'};
+    return {fps, time:frameTime, hemLift:(sampleGarment?.hemRise||0)*heightRatio, vertices: wardrobe?.vertices || 0, renderer: renderer.isWebGLRenderer ? 'WebGL' : 'Canvas', secondary: cloth()};
+  }
+  // Everything the secondary-motion work has to keep finite: garment metrics
+  // plus a full sweep of the deformed vertices for NaN or explosive values.
+  function cloth() {
+    const out={pants:null,top:null,nonFinite:0,vertices:0};
+    const scan=mesh=>{
+      const attribute=mesh?.geometry?.attributes?.position; if(!attribute||!mesh.visible)return;
+      const array=attribute.array; out.vertices+=attribute.count;
+      for(let i=0;i<array.length;i+=3){
+        if(!Number.isFinite(array[i])||!Number.isFinite(array[i+1])||!Number.isFinite(array[i+2]))out.nonFinite++;
+      }
+    };
+    wardrobe?.group.traverseVisible(scan);
+    body?.group.traverseVisible(scan);
+    out.pants=wardrobe?.secondary||null;
+    out.top=sampleGarment?.secondary||null;
+    return out;
   }
   function draw(now) {
     requestAnimationFrame(draw);
@@ -488,5 +506,6 @@ export function createScene(container, opts) {
   }
   update(opts);
   requestAnimationFrame(draw);
-  return {update, stats, motion, reset() {yaw = targetYaw = .045; pitch = targetPitch = .045;}};
+  return {update, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
+    reset() {yaw = targetYaw = .045; pitch = targetPitch = .045;}};
 }

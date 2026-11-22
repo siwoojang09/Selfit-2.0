@@ -1,8 +1,12 @@
 // Both renderers receive the same closed leg panels, sewn trims and posed
 // vertices. X/Z are metres. Y is divided by the wearer's height scale only.
 import {pantsFit} from './pants-fit.mjs';
+import {createRowSolver} from './cloth-dynamics.mjs';
 
 const tau=2*Math.PI, columns=56, rows=80;
+// The pattern runs from the waistband down; the knee sits .438 m below the hip
+// joint, so its distance from the waist has to be measured in garment space.
+const hipJoint=.93,kneeFromHip=.438;
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const mix=(a,b,t)=>a+(b-a)*t;
 function smooth(a,b,x){const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);}
@@ -10,6 +14,12 @@ function ellipse(circ,ratio){
   const h=((1-ratio)/(1+ratio))**2;
   const x=circ/(Math.PI*(1+ratio)*(1+3*h/(10+Math.sqrt(4-3*h))));
   return [x,x*ratio];
+}
+function limbAngle(upper,lower){
+  const ax=upper.b.x-upper.a.x,ay=upper.b.y-upper.a.y,az=upper.b.z-upper.a.z;
+  const bx=lower.b.x-lower.a.x,by=lower.b.y-lower.a.y,bz=lower.b.z-lower.a.z;
+  const dot=ax*bx+ay*by+az*bz,la=Math.hypot(ax,ay,az)||1,lb=Math.hypot(bx,by,bz)||1;
+  return Math.acos(clamp(dot/(la*lb),-1,1));
 }
 
 function patternAt(f,side,h,a,lift){
@@ -123,7 +133,7 @@ function buildSide(T,group,materials,fit,side){
     mesh.name='Measured denim '+(side<0?'left ':'right ')+key;
     mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
     mesh.userData.garmentPart=side<0?'legLeft':'legRight';group.add(mesh);
-    pieces.push({mesh,rest:g.attributes.position.array.slice()});
+    pieces.push({mesh,rest:g.attributes.position.array.slice(),layer:key});
   }
   return pieces;
 }
@@ -142,64 +152,145 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     metal:material('#a8a399',.51,.48)};
   const restAnchors=body.legs.map(leg=>({a:leg.a.clone(),b:leg.b.clone()}));
   const levels=96;
+  const fabricName=opts.pants.material||'denim';
+  // Where the knee and the hip fold actually fall on this pair, in metres of
+  // pattern length from the waistband. Crease fields are centred on them.
+  const kneeAt=(fit.waistY-(hipJoint-kneeFromHip))*fit.sy,hipAt=(fit.waistY-hipJoint)*fit.sy+.045;
   const legs=[-1,1].map((side,i)=>{
     const pieces=buildSide(T,group,materials,fit,side);
     const low=fit.hemY-.05,high=fit.waistY+.03;
     const frames=Array.from({length:levels+1},(_,j)=>{
       const y=mix(low,high,j/levels),drop=(fit.waistY-y)*fit.sy;
-      const travel=.93-y,knee=travel>.438;
-      return {knee,t:clamp(knee?(travel-.438)/.44:travel/.438,0,1),
+      const travel=hipJoint-y,knee=travel>kneeFromHip;
+      return {knee,t:clamp(knee?(travel-kneeFromHip)/.44:travel/kneeFromHip,0,1),
         fork:smooth(fit.hipDrop,fit.forkDrop+.038,drop),loose:smooth(fit.forkDrop,fit.cutLength,drop),
-        x:0,y:0,z:0,sx:0,sz:0,vx:0,vz:0,seeded:false};
+        drop,x:0,y:0,z:0};
     });
+    // Weight released towards the hem decides how much of the hem's own inertia
+    // survives: the waistband stays sewn to the pose, the lower leg does not.
+    const solver=createRowSolver({rows:frames.length,fabric:fabricName,
+      weight:frames.map(f=>f.loose),cap:frames.map(f=>.005+.019*f.loose)});
+    const target=new Float32Array(frames.length*3);
+    // A row's own centre gives every vertex its outward direction, so creases
+    // and the hem ripple bulge away from the limb instead of shearing it.
+    const centreX=new Float32Array(frames.length),centreZ=new Float32Array(frames.length);
+    const tally=new Int32Array(frames.length);
+    const shell=pieces.find(p=>p.layer==='shell')||pieces[0];
+    for(let v=0;v<shell.rest.length/3;v++){
+      const y=shell.rest[v*3+1];
+      const j=clamp(Math.round((y-low)/(high-low)*levels),0,levels);
+      centreX[j]+=shell.rest[v*3];centreZ[j]+=shell.rest[v*3+2];tally[j]++;
+    }
+    for(let j=0;j<frames.length;j++){
+      if(tally[j]){centreX[j]/=tally[j];centreZ[j]/=tally[j];}
+      else {centreX[j]=centreX[Math.max(0,j-1)];centreZ[j]=centreZ[Math.max(0,j-1)];}
+    }
     for(const p of pieces){
       const n=p.rest.length/3;
       p.row=new Uint8Array(n);p.ratio=new Float32Array(n);
+      p.theta=new Float32Array(n);p.nx=new Float32Array(n);p.nz=new Float32Array(n);
+      p.zoneKnee=new Float32Array(n);p.zoneThigh=new Float32Array(n);
+      p.baseKnee=new Float32Array(n);p.baseThigh=new Float32Array(n);p.ripple=new Float32Array(n);
       for(let v=0;v<n;v++){
         const f=clamp((p.rest[v*3+1]-low)/(high-low)*levels,0,levels-.00001);
-        p.row[v]=Math.floor(f);p.ratio[v]=f-p.row[v];
+        const r=Math.floor(f);
+        p.row[v]=r;p.ratio[v]=f-r;
+        const x=p.rest[v*3]-centreX[r],z=p.rest[v*3+2]-centreZ[r],len=Math.hypot(x,z)||1;
+        p.nx[v]=x/len;p.nz[v]=z/len;
+        const theta=Math.atan2(p.rest[v*3],p.rest[v*3+2]);
+        p.theta[v]=theta;
+        const drop=(fit.waistY-(low+(high-low)*(r+.5)/levels))*fit.sy;
+        const front=Math.cos(theta),back=-front;
+        const a=(drop-kneeAt)/.105,b=(drop-hipAt)/.11;
+        // Creases form behind the closing knee; the hip's forward fold drags
+        // diagonal ridges across the front of the thigh.
+        p.zoneKnee[v]=Math.exp(-a*a*1.5)*(.24+.76*Math.max(0,back));
+        p.zoneThigh[v]=Math.exp(-b*b*1.5)*(.24+.76*Math.max(0,front))*.62;
+        p.baseKnee[v]=a*7.4;p.baseThigh[v]=b*7.4;
+        p.ripple[v]=theta*2.6+drop*6.8;
       }
     }
-    return {side,i,pieces,frames};
+    const shellPiece=pieces.find(p=>p.layer==='shell')||pieces[0];
+    const probeIndex=[];
+    // The frame grid starts 5 cm below the hem, so the bottom ring sits at row 4-5.
+    for(let v=0;v<shellPiece.row.length;v++)if(shellPiece.row[v]<=6&&v%6===0)probeIndex.push(v);
+    return {side,i,pieces,frames,solver,target,ripple:new Float32Array(frames.length),shell:shellPiece,probeIndex};
   });
-  let time=0;
+  let time=0,hem=0,peak=0,creaseAmp=0,kneeBend=0;
+
   function pose(phase,opt,dt){
     const step=clamp(dt||0,0,.034);time+=step;
-    const wind=clamp(Number(opt.wind)||0,0,30),direction=(Number(opt.direction)||0)*Math.PI/180;
+    const wind=clamp(Number(opt.wind)||0,0,30),direction=Number(opt.direction)||0;
     const gravity=clamp(Number(opt.gravity??9.81),0,30);
+    const turbulence=clamp(Number(opt.turbulence??.2),0,1);
+    const live=opt.clothPhysics!==false;
     const a=body.legs[0].a,b=body.legs[2].a;
     const axis=Math.atan2(b.z-a.z,b.x-a.x),cs=Math.cos(axis),sn=Math.sin(axis);
     const hipX=(a.x+b.x)*.5,hipZ=(a.z+b.z)*.5,hipY=(a.y+b.y)*.5-.93;
-    for(const {i,pieces,frames} of legs){
-      for(const f of frames){
+    hem=0;peak=0;creaseAmp=0;kneeBend=0;
+    for(const leg of legs){
+      const {i,pieces,frames,solver,target,ripple}=leg;
+      const upper=body.legs[2*i],lower=body.legs[2*i+1];
+      // Knee closure and hip flexion are read from the posed skeleton, so the
+      // crease depth follows the stride even on a paused, scrubbed frame.
+      const knee=clamp((limbAngle(upper,lower)-.04)/1.02,0,1);
+      const thighUp=upper.b.y-upper.a.y,thighRun=Math.hypot(upper.b.x-upper.a.x,upper.b.z-upper.a.z);
+      const hip=clamp((Math.atan2(thighRun,Math.max(1e-4,-thighUp))-.03)/.42,0,1);
+      kneeBend=Math.max(kneeBend,knee);
+      for(let j=0;j<frames.length;j++){
+        const f=frames[j];
         const index=2*i+Number(f.knee),limb=body.legs[index],rest=restAnchors[index];
         const boneX=mix(limb.a.x,limb.b.x,f.t),boneY=mix(limb.a.y,limb.b.y,f.t),boneZ=mix(limb.a.z,limb.b.z,f.t);
         const restX=mix(rest.a.x,rest.b.x,f.t),restY=mix(rest.a.y,rest.b.y,f.t),restZ=mix(rest.a.z,rest.b.z,f.t);
-        const x=mix(hipX,boneX-cs*restX+sn*restZ,f.fork);
-        const z=mix(hipZ,boneZ-sn*restX-cs*restZ,f.fork);
-        if(!f.seeded){f.sx=x;f.sz=z;f.seeded=true;}
-        const gust=1+(Number(opt.turbulence)||0)*.22*Math.sin(3.8*time+f.t*5+i);
-        const pull=115+gravity*2;
-        f.vx+=((x-f.sx)*pull-f.vx*19+.40*wind*gust*Math.cos(direction)*f.loose)*step;
-        f.vz+=((z-f.sz)*pull-f.vz*19+.40*wind*gust*Math.sin(direction)*f.loose)*step;
-        f.sx+=f.vx*step;f.sz+=f.vz*step;
-        f.x=x+f.loose*clamp(f.sx-x,-.020,.020);
-        f.z=z+f.loose*clamp(f.sz-z,-.026,.026);
+        // Kinematic offset of this row: what the pose alone would do.
+        f.x=mix(hipX,boneX-cs*restX+sn*restZ,f.fork);
+        f.z=mix(hipZ,boneZ-sn*restX-cs*restZ,f.fork);
         f.y=mix(hipY,boneY-restY+.024,f.fork)+.003*(9.81-gravity)/9.81*f.loose;
+        const q=j*3;
+        target[q]=f.x;target[q+1]=f.y;target[q+2]=f.z;
+      }
+      if(live) solver.step(step,target,{wind,direction,gravity,turbulence,clock:time});
+      else solver.reset();
+      peak=Math.max(peak,solver.peak);hem=Math.max(hem,solver.hem);
+      const spec=solver.spec;
+      // Travelling ripple carried by each row's own secondary velocity.
+      for(let j=0;j<frames.length;j++){
+        ripple[j]=Math.min(.0021,.0072*Math.hypot(solver.velocity[j*3],solver.velocity[j*3+2]));
       }
       for(const piece of pieces){
-        const {mesh,rest,row,ratio}=piece,p=mesh.geometry.attributes.position;
+        const {mesh,rest,row,ratio,theta,nx,nz,zoneKnee,zoneThigh,baseKnee,baseThigh}=piece;
+        const attr=mesh.geometry.attributes.position,arr=attr.array;
         for(let k=0;k<row.length;k++){
-          const q=k*3,f=frames[row[k]],g=frames[row[k]+1],t=ratio[k],x=rest[q],z=rest[q+2];
-          p.array[q]=cs*x-sn*z+mix(f.x,g.x,t);
-          p.array[q+1]=rest[q+1]+mix(f.y,g.y,t);
-          p.array[q+2]=sn*x+cs*z+mix(f.z,g.z,t);
+          const q=k*3,r=row[k],t=ratio[k];
+          const fa=frames[r],fb=frames[r+1];
+          let de=0;
+          if(live&&(knee>.001||hip>.001)){
+            const th=theta[k],ph=phase*.16;
+            const kneeRidge=Math.sin(baseKnee[k]*(1+1.5*knee)+th*1.15+ph)*.66
+              +Math.sin(baseKnee[k]*.446-th*2.1-phase*.11)*.34;
+            const hipRidge=Math.sin(baseThigh[k]*(1+1.5*hip)+th*1.15+ph+2.4)*.66
+              +Math.sin(baseThigh[k]*.446-th*2.1-phase*.11+2.4)*.34;
+            de=spec.crease*spec.creaseScale*(knee*zoneKnee[k]*kneeRidge+hip*zoneThigh[k]*hipRidge);
+          }
+          const amp=mix(ripple[r],ripple[r+1],t);
+          if(amp>1e-5) de+=amp*Math.sin(piece.ripple[k]-time*3.2);
+          if(Math.abs(de)>creaseAmp) creaseAmp=Math.abs(de);
+          const x=rest[q]+nx[k]*de,z=rest[q+2]+nz[k]*de;
+          arr[q]=cs*x-sn*z+mix(fa.x,fb.x,t)+solver.at(r,t,0);
+          arr[q+1]=rest[q+1]+mix(fa.y,fb.y,t)+solver.at(r,t,1);
+          arr[q+2]=sn*x+cs*z+mix(fa.z,fb.z,t)+solver.at(r,t,2);
         }
-        p.needsUpdate=true;mesh.geometry.computeVertexNormals();
+        attr.needsUpdate=true;mesh.geometry.computeVertexNormals();
       }
     }
   }
-  return {pose,reset(){time=0;for(const leg of legs)for(const f of leg.frames){f.seeded=false;f.vx=f.vz=0;}},
+  return {pose,reset(){time=0;hem=0;peak=0;creaseAmp=0;for(const leg of legs)leg.solver.reset();},
+    get secondary(){return {hem,peak,crease:creaseAmp,knee:kneeBend};},
+    // Live positions of the bottom ring of each leg: the hem's own displacement.
+    get probe(){return legs.map(leg=>leg.probeIndex.map(v=>{
+      const a=leg.shell.mesh.geometry.attributes.position.array;
+      return [a[v*3],a[v*3+1],a[v*3+2]];
+    }));},
     vertices:legs.reduce((n,leg)=>n+leg.pieces.reduce((t,p)=>t+p.rest.length/3,0),0),
     dispose(){for(const leg of legs)for(const p of leg.pieces){p.mesh.removeFromParent();p.mesh.geometry.dispose();}
       for(const material of new Set(Object.values(materials)))if(material!==mat)material.dispose();}};

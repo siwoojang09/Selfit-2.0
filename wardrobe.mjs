@@ -360,5 +360,7 @@ export function createWardrobe(T,body,materials,opts) {
     lowerColliders.length=0;
     group.traverse(mesh=>{if(mesh.isMesh)lowerColliders.push(mesh);});
   }
-  return {group,pose,reset,lowerColliders,updatePants,get vertices(){return skirted?main.mesh.geometry.attributes.position.count:main.vertices;}};
+  return {group,pose,reset,lowerColliders,updatePants,get secondary(){return main.secondary||null;},
+    get probe(){return main.probe||null;},
+    get vertices(){return skirted?main.mesh.geometry.attributes.position.count:main.vertices;}};
 }

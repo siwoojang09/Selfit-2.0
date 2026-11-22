@@ -4,8 +4,12 @@ import {createGarmentContact} from './garment-contact.mjs';
 import {wearer,cutHoodie} from './hoodie-fit.mjs';
 import {applyHoodieTextile} from './hoodie-textile.mjs';
 import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs';
+import {createRowSolver} from './cloth-dynamics.mjs';
 
 const tau=2*Math.PI;
+// Secondary motion is solved on short chains of bands: the bodice hem and each
+// sleeve cuff. Everything above them stays sewn to the pose.
+const hemBands=10,sleeveBands=8;
 const textiles={
   cotton:{roughness:.90,sway:.88},linen:{roughness:.84,sway:1.05},
   silk:{roughness:.43,sway:1.46},denim:{roughness:.96,sway:.59}
@@ -183,7 +187,22 @@ export function attachSample(body,initial={},lowerColliders=[]) {
   });
   let members=[],materials=[],flexing=[],blowing=[],opts={},signature='',revision=0,time=0;
   let contact=null,shoulderBridges=[];
-  let swayX=0,swayZ=0,velX=0,velZ=0,disposed=false;
+  let swayX=0,swayZ=0,disposed=false;
+  let hemSolver=null,bodice=null;
+  const sleeveSolvers=[],sleeveProbes=[],sleeveState=[],probePieces=[];
+  const hemProbe=new T.Vector3(),hemWorld=new T.Vector3(),hemPrev=new T.Vector3(),hemBefore=new T.Vector3();
+  const frameQuat=new T.Quaternion(),accelVector=new T.Vector3(),localAccel=new T.Vector3();
+  let hemSamples=0,creaseAmp=0;
+  // The lowest ring of a panel, sampled around its circumference: the cuffs and
+  // the bodice hem, whose own displacement the secondary solver is judged on.
+  function probeRing(mesh){
+    const attr=mesh.geometry.attributes.position;
+    let low=Infinity;
+    for(let i=0;i<attr.count;i++)low=Math.min(low,attr.getY(i));
+    const index=[];
+    for(let i=0;i<attr.count;i++)if(attr.getY(i)<low+.028)index.push(i);
+    return {mesh,index:index.filter((_,k)=>k%3===0)};
+  }
   const v=new T.Vector3(),rotated=new T.Vector3(),bridgeMatrix=new T.Matrix4();
   function material(color,roughness=.92,metalness=0) {
     // Physical materials give every cloth piece the grazing-angle sheen veil;
@@ -205,6 +224,8 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     }
     materials.forEach(m=>{m.map?.dispose();m.normalMap?.dispose();m.roughnessMap?.dispose();m.dispose();});
     members=[];materials=[];flexing=[];blowing=[];shoulderBridges=[];
+    sleeveSolvers.length=0;sleeveProbes.length=0;sleeveState.length=0;probePieces.length=0;
+    hemSolver=null;hemSamples=0;swayX=swayZ=0;
   }
   function build() {
     const id=String(opts.id||opts.sampleId||'');
@@ -232,6 +253,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const hemWidth=clamp(cuffHem*.00391,.159,.33);
     const depth=clamp(width*.69,.112,.21);
     const upper=group(torso);
+    bodice=upper;
     if(fit)upper.scale.set(1/torso.scale.x,1,1/torso.scale.z);
     upper.name=adidas?'KC9315 zip-up hoodie':'Registered '+type;
     const mainColor=dye(opts.color);
@@ -477,19 +499,64 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           shoulderBridges.push({mesh:bridge,mount,upper,bind:restMount.clone().invert(),rest:bridge.geometry.attributes.position.array.slice(),follows});
         }
       }
+      // One release profile for the whole arm, shared by the sleeve, its cuff,
+      // its turn-back edge and the three stripes, so nothing slides apart.
+      const armTop=cap,armSpan=Math.max(.02,cap+sleeveLength);
       mount.traverse(mesh=>{
         if(!mesh.isMesh)return;
         const attr=mesh.geometry.attributes.position;
         attr.setUsage(T.DynamicDrawUsage);
-        flexing.push({mesh,elbow,rest:attr.array.slice(),weights:Array.from({length:attr.count},(_,i)=>smooth(-attr.getY(i),.22,.332))});
+        const rest=attr.array.slice(),count=attr.count;
+        // Bands run from the shoulder seam (anchored) to the cuff (released),
+        // and each vertex keeps its outward direction for the crease fan.
+        const bands=new Float32Array(count),theta=new Float32Array(count),
+          nx=new Float32Array(count),nz=new Float32Array(count),along=new Float32Array(count);
+        for(let i=0;i<count;i++){
+          const x=attr.getX(i),y=attr.getY(i),z=attr.getZ(i),r=Math.hypot(x,z)||1;
+          bands[i]=clamp((armTop-y)/armSpan,0,1)*sleeveBands;
+          theta[i]=Math.atan2(x,z);nx[i]=x/r;nz[i]=z/r;
+          along[i]=(y-elbow.position.y)/.072;
+        }
+        flexing.push({mesh,elbow,arm:armIndex,rest,bands,theta,nx,nz,along,
+          weights:Array.from({length:count},(_,i)=>smooth(-attr.getY(i),.22,.332))});
+        if(mesh.name==='Sleeve')probePieces.push(probeRing(mesh));
       });
+      // A worn cuff is held by the hand, so the sleeve releases later and less
+      // than a loose hem does, and its stiffness is raised to match.
+      sleeveSolvers.push(createRowSolver({rows:sleeveBands+1,fabric:opts.material,gain:1.7,
+        weight:Array.from({length:sleeveBands+1},(_,k)=>Math.pow(k/sleeveBands,2.2)),
+        cap:Array.from({length:sleeveBands+1},(_,k)=>.0015+.0045*k/sleeveBands)}));
+      // The cuff rings the wrist, so its own world acceleration is what the
+      // released sleeve rows have to fight on the way through the stride.
+      sleeveProbes.push(new T.Vector3(0,-sleeveLength*.94,0));
+      sleeveState.push({world:new T.Vector3(),prev:new T.Vector3(),before:new T.Vector3(),samples:0});
     }
     upper.traverse(mesh=>{
       if(!mesh.isMesh)return;
       const attr=mesh.geometry.attributes.position;
-      const weights=Array.from({length:attr.count},(_,i)=>smooth((topY-attr.getY(i))/bodyLength,.38,1));
-      if(weights.some(w=>w>0)){attr.setUsage(T.DynamicDrawUsage);blowing.push({mesh,rest:attr.array.slice(),weights});}
+      const count=attr.count;
+      const weights=Array.from({length:count},(_,i)=>smooth((topY-attr.getY(i))/bodyLength,.38,1));
+      if(!weights.some(w=>w>0))return;
+      attr.setUsage(T.DynamicDrawUsage);
+      const bands=new Float32Array(count),theta=new Float32Array(count),
+        nx=new Float32Array(count),nz=new Float32Array(count),zone=new Float32Array(count);
+      for(let i=0;i<count;i++){
+        const x=attr.getX(i),y=attr.getY(i),z=attr.getZ(i),r=Math.hypot(x,z)||1;
+        bands[i]=weights[i]*hemBands;
+        theta[i]=Math.atan2(x,z);nx[i]=x/r;nz[i]=z/r;
+        const drop=(topY-y)/bodyLength;
+        zone[i]=Math.exp(-(((drop-.86)/.16)**2)*1.7)*(.32+.68*Math.max(0,Math.cos(theta[i])));
+      }
+      blowing.push({mesh,rest:attr.array.slice(),weights,bands,theta,nx,nz,zone});
+      if(mesh.name==='Measured garment body'||!probePieces.length)probePieces.push(probeRing(mesh));
     });
+    // The hem is the released end of the bodice: anchored at the waistband
+    // weight line, free and heavy at the bottom edge.
+    hemSolver=createRowSolver({rows:hemBands+1,fabric:opts.material,
+      weight:Array.from({length:hemBands+1},(_,k)=>k/hemBands),
+      cap:Array.from({length:hemBands+1},(_,k)=>.004+.019*k/hemBands)});
+    hemProbe.set(0,-bodyLength*.9,0);
+    hemSamples=0;
     contact=createGarmentContact(upper,bodyAt,hemY,lowerColliders);
     if(contact)blowing.forEach(piece=>contact.bind(piece));
     torsoMesh.userData.sampleGarment=true;
@@ -506,22 +573,77 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const air=clamp(Number(options.wind)||0,0,30);
     const direction=(Number(options.direction)||0)*Math.PI/180;
     const turbulence=clamp(Number(options.turbulence)||0,0,1);
-    const flexibility=(textiles[opts.material]||textiles.cotton).sway;
-    const airPush=flexibility*Math.min(.030,.00165*air)*(1+turbulence*.34*Math.sin(time*5+.3));
-    const pull=clamp(Number(options.gravity??9.81),0,30);
-    const walk=options.walking===false?0:.0025*Math.sin(phase);
-    const twist=airPush*Math.cos(direction)+walk;
-    const trail=airPush*Math.sin(direction)+.0012*Math.sin(phase*2)*(options.walking===false?0:1);
-    const spring=30+pull*1.3,drag=12;
-    velX+=((twist-swayX)*spring-velX*drag)*step;velZ+=((trail-swayZ)*spring-velZ*drag)*step;
-    swayX+=velX*step;swayZ+=velZ*step;
-    for(const {mesh,elbow,rest,weights} of flexing) {
+    const gravity=clamp(Number(options.gravity??9.81),0,30);
+    const live=options.clothPhysics!==false;
+    const env={wind:air,direction:direction*180/Math.PI,gravity,turbulence,clock:time};
+    creaseAmp=0;
+    // The released rows ride a moving frame, so their inertia comes from the
+    // acceleration of the point they hang from, rotated into that frame.
+    localAccel.set(0,0,0);
+    if(live&&step>1e-5){
+      bodice.updateWorldMatrix(true,false);
+      hemWorld.copy(hemProbe).applyMatrix4(bodice.matrixWorld);
+      if(hemSamples>=2){
+        accelVector.copy(hemWorld).addScaledVector(hemPrev,-2).add(hemBefore).multiplyScalar(1/(step*step));
+        const span=accelVector.length();
+        if(span>20)accelVector.multiplyScalar(20/span);
+      }else accelVector.set(0,0,0);
+      hemBefore.copy(hemPrev);hemPrev.copy(hemWorld);hemSamples++;
+      bodice.getWorldQuaternion(frameQuat).invert();
+      localAccel.copy(accelVector).applyQuaternion(frameQuat);
+      env.inertiaX=-localAccel.x;env.inertiaY=-localAccel.y;env.inertiaZ=-localAccel.z;
+      hemSolver.step(step,null,env);
+    }else{
+      hemSolver.reset();hemSamples=0;
+    }
+    const hemRow=hemBands*3;
+    swayX=hemSolver.offset[hemRow];swayZ=hemSolver.offset[hemRow+2];
+    for(let arm=0;arm<sleeveSolvers.length;arm++){
+      const solver=sleeveSolvers[arm],state=sleeveState[arm],mount=arms[arm]?.shoulder;
+      const probe=sleeveProbes[arm];
+      env.inertiaX=env.inertiaY=env.inertiaZ=0;
+      if(live&&step>1e-5&&mount&&probe){
+        mount.updateWorldMatrix(true,false);
+        state.world.copy(probe).applyMatrix4(mount.matrixWorld);
+        if(state.samples>=2){
+          accelVector.copy(state.world).addScaledVector(state.prev,-2).add(state.before).multiplyScalar(1/(step*step));
+          const span=accelVector.length();
+          if(span>20)accelVector.multiplyScalar(20/span);
+        }else accelVector.set(0,0,0);
+        state.before.copy(state.prev);state.prev.copy(state.world);state.samples++;
+        mount.getWorldQuaternion(frameQuat).invert();
+        localAccel.copy(accelVector).applyQuaternion(frameQuat);
+        env.inertiaX=-localAccel.x;env.inertiaY=-localAccel.y;env.inertiaZ=-localAccel.z;
+        solver.step(step,null,env);
+      }else{
+        solver.reset();state.samples=0;
+      }
+    }
+    for(const {mesh,elbow,arm,rest,bands,theta,nx,nz,along,weights} of flexing) {
       const attr=mesh.geometry.attributes.position;
-      for(let i=0;i<attr.count;i++){
-        if(!weights[i])continue;
-        v.fromArray(rest,i*3);
-        rotated.copy(v).sub(elbow.position).applyQuaternion(elbow.quaternion).add(elbow.position);
-        v.lerp(rotated,weights[i]);
+      const arr=attr.array;
+      const solver=sleeveSolvers[arm];
+      // Elbow closure opens a fan of creases on the inner side of the sleeve.
+      const bend=clamp(Math.abs(elbow.rotation.x)/.30,0,1);
+      for(let i=0;i<arr.length/3;i++){
+        const j=i*3,w=weights[i],b=bands[i];
+        if(w<=0&&b<=0)continue;
+        v.fromArray(rest,j);
+        if(w>0){
+          rotated.copy(v).sub(elbow.position).applyQuaternion(elbow.quaternion).add(elbow.position);
+          v.lerp(rotated,w);
+        }
+        const r=Math.min(sleeveBands,b|0),f=b-r;
+        v.x+=solver.at(r,f,0);v.y+=solver.at(r,f,1);v.z+=solver.at(r,f,2);
+        if(live&&bend>.01&&w>0){
+          const a=along[i],side=theta[i];
+          const zone=Math.exp(-a*a*1.2)*(.30+.70*Math.max(0,Math.cos(side)));
+          const ridge=Math.sin(a*6.8*(1+1.4*bend)+side*1.2+phase*.16)*.62
+            +Math.sin(a*3.1-side*2.0-phase*.1)*.38;
+          const de=solver.spec.crease*solver.spec.creaseScale*bend*zone*ridge;
+          if(Math.abs(de)>creaseAmp)creaseAmp=Math.abs(de);
+          v.x+=nx[i]*de;v.z+=nz[i]*de;
+        }
         attr.setXYZ(i,v.x,v.y,v.z);
       }
       attr.needsUpdate=true;mesh.geometry.computeVertexNormals();
@@ -539,19 +661,42 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     }
     contact?.update(swayX,swayZ);
     for(const piece of blowing){
-      const {mesh,rest,weights}=piece;
+      const {mesh,rest,bands,theta,nx,nz,zone}=piece;
       const attr=mesh.geometry.attributes.position;
-      for(let i=0;i<attr.count;i++){
-        const j=3*i,w=weights[i];
-        attr.setXYZ(i,rest[j]+w*swayX,rest[j+1]+w*.045*Math.abs(swayX+swayZ),rest[j+2]+w*swayZ);
+      const arr=attr.array;
+      // Fabric gathered by the hem's own swing creases where the sway is largest.
+      const gather=clamp(Math.hypot(swayX,swayZ)/.012,0,1);
+      for(let i=0;i<arr.length/3;i++){
+        const j=i*3,b=bands[i];
+        const r=Math.min(hemBands,b|0),f=b-r;
+        const ox=hemSolver.at(r,f,0),oy=hemSolver.at(r,f,1),oz=hemSolver.at(r,f,2);
+        let de=0;
+        if(gather>.02){
+          const a=zone[i];
+          const ridge=Math.sin((b*.6+theta[i]*1.1+phase*.2)*2.1)*.6
+            +Math.sin(b*.9-theta[i]*2.3-phase*.13)*.4;
+          de=hemSolver.spec.crease*hemSolver.spec.creaseScale*gather*a*ridge;
+          if(Math.abs(de)>creaseAmp)creaseAmp=Math.abs(de);
+        }
+        arr[j]=rest[j]+ox+nx[i]*de;
+        arr[j+1]=rest[j+1]+oy+.055*Math.abs(ox+oz);
+        arr[j+2]=rest[j+2]+oz+nz[i]*de;
       }
-      if(contact){contact.apply(piece,attr);if(mesh.userData.sampleGarment)mesh.geometry.computeVertexNormals();}
+      if(contact){contact.apply(piece,attr);}
+      if(mesh.userData.sampleGarment)mesh.geometry.computeVertexNormals();
       attr.needsUpdate=true;
     }
     materials.forEach(m=>{m.wireframe=!!options.wireframe;});
   }
   update(initial);
-  return {update,pose,get hemRise(){return contact?.rise||0;},dispose(){
+  return {update,pose,get hemRise(){return contact?.rise||0;},
+    get secondary(){return {hem:hemSolver?hemSolver.hem:0,peak:hemSolver?hemSolver.peak:0,
+      sleeve:sleeveSolvers.reduce((m,s)=>Math.max(m,s.peak),0),crease:creaseAmp};},
+    get probe(){return probePieces.map(p=>p.index.map(i=>{
+      const a=p.mesh.geometry.attributes.position.array;return [a[i*3],a[i*3+1],a[i*3+2]];}));},
+    resetCloth(){hemSolver?.reset();hemSamples=0;for(const s of sleeveSolvers)s.reset();
+      for(const s of sleeveState)s.samples=0;swayX=swayZ=0;},
+    dispose(){
     disposed=true;revision++;clear();
     for(const [mesh,wasVisible] of hidden)mesh.visible=wasVisible;
   }};
