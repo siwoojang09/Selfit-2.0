@@ -1,6 +1,7 @@
 // All garment dimensions and solver distances are in metres.
-import { makeSkirt } from './cloth.mjs?v=2026-11-24k';
-import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-24k';
+import { makeSkirt } from './cloth.mjs?v=2026-11-24l';
+import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-24l';
+import { getAvatarFit, bodyWidth } from './fit-body-sections.mjs?v=2026-11-24l';
 
 const TAU = 2 * Math.PI;
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));
@@ -42,7 +43,7 @@ function seam(T,parent,mat,name,coords,radius,closed=false) {
   return mesh;
 }
 
-function makeShirt(T,body,mat,look) {
+function makeShirt(T,body,mat,look,ky=1,wide=y=>1) {
   const parts=body.parts || body.anchors;
   const {torso,arms} = parts;
   const formal = look === 'tailored';
@@ -56,7 +57,7 @@ function makeShirt(T,body,mat,look) {
     [1.30,.173,.115],[1.275,.172,.121],[1.25,.170,.122],[1.22,.168,.117],
     [1.185,.163,.111],[1.147,.160,.109],[1.112,.159,.107],[1.078,.161,.107],
     [1.055,.157,.101],[1.043,.151,.096],[1.025,.146,.092],[1.008,.14,.09],
-  ];
+  ].map(([y,rx,rz])=>[y*ky,rx*wide(y),rz*wide(y)]);
   function surface(i,a){
     const [y,rx,rz]=profile[i], s=Math.sin(a),c=Math.cos(a);
     const fullness = .0015 + .004 * smooth(1.24,1.03,y);
@@ -93,7 +94,7 @@ function makeShirt(T,body,mat,look) {
   // Under-collar wraps around the neck. Each leaf slopes towards the shirt front.
   const collarStand=panel(T,shirt,mat,'Collar stand',4,48,(i,u)=>{
     const a=u*TAU,c=Math.cos(a),v=i/4;
-    return [Math.sin(a)*mix(.056,.080,v),1.471-.029*v-(.020+.015*v)*Math.max(0,c)**2,.001+c*mix(.046,.062,v)];
+    return [Math.sin(a)*mix(.056,.080,v),1.471*ky-.029*v-(.020+.015*v)*Math.max(0,c)**2,.001+c*mix(.046,.062,v)];
   });
   collarStand.userData.garmentPart='upper';
   for(const sign of [-1,1]){
@@ -101,7 +102,7 @@ function makeShirt(T,body,mat,look) {
       const v=i/9,a=mix(.06,1.95,u);
       const nx=.061*Math.sin(a),nz=.051*Math.cos(a)+.002,ny=1.47-.020*Math.max(0,Math.cos(a))**2;
       const ox=.032+.059*Math.sin(1.65*u),oz=.100-.127*u**1.65;
-      const oy=1.376+.068*smooth(0,.9,u)+.018*(1-smooth(0,.14,u));
+      const oy=1.376*ky+.068*smooth(0,.9,u)+.018*(1-smooth(0,.14,u));
       return [sign*mix(nx,ox,v),mix(ny,oy,v)+.0035*Math.sin(Math.PI*v),mix(nz,oz,v)+.003*Math.sin(Math.PI*v)];
     },sign<0);
     collar.userData.garmentPart='upper';
@@ -110,7 +111,7 @@ function makeShirt(T,body,mat,look) {
     // Breast pocket has a subtly pointed bottom and a folded upper welt.
     const patch=panel(T,shirt,mat,'Chest patch pocket',8,9,(i,u)=>{
       const v=i/8,x=.035+.066*u;
-      const y=1.309-.054*v-.013*v*(1-Math.abs(u*2-1));
+      const y=1.309*ky-.054*v-.013*v*(1-Math.abs(u*2-1));
       const row= y>1.30?8:y>1.275?9:10;
       const z=surface(row,Math.asin(x/profile[row][1]))[2]+.0023;
       return [x,y,z];
@@ -167,7 +168,7 @@ const fabricPhysics={
   silk:{spring:36,drag:8,air:1.2},
   denim:{spring:109,drag:17,air:.36},
 };
-function tailorWaist(T,body,mat,male,short){
+function tailorWaist(T,body,mat,male,short,ky=1){
   const parent=(body.parts || body.anchors).pelvis;
   const yoke=new T.Group();
   yoke.name='Waist finish and pockets';
@@ -176,7 +177,7 @@ function tailorWaist(T,body,mat,male,short){
     const round=smooth(0,.135,drop);
     const rx=mix(male?.163:.145,male?.189:.177,round);
     const rz=mix(male?.111:.105,.134,round);
-    return [Math.sin(a)*(rx+lift),1.039-drop,Math.cos(a)*(rz+lift)-.008];
+    return [Math.sin(a)*(rx+lift),1.039*ky-drop,Math.cos(a)*(rz+lift)-.008];
   };
   for(const h of [.006,.031]){
     seam(T,yoke,mat,'Waistband stitching',Array.from({length:56},(_,i)=>point(i*TAU/56,h)),.00075,true);
@@ -201,13 +202,13 @@ function tailorWaist(T,body,mat,male,short){
 }
 
 const rows=34, cols=48;
-function makePants(T,group,body,mat,opts){
+function makePants(T,group,body,mat,opts,ky=1){
   const short=opts.outfit==='casual',male=opts.model==='male';
   const breadth=male?1.12:1;
-  tailorWaist(T,body,mat,male,short);
+  tailorWaist(T,body,mat,male,short,ky);
   // Fitted upper yoke blends into two moving trouser panels below the crotch.
-  const hems=short ? .55 : .073;
-  const waist=1.039, fullLength=waist-hems;
+  const hems=short ? .55*ky : .073*ky;
+  const waist=1.039*ky, fullLength=waist-hems;
   const widthProfile = short
     ? [[0,.095,.106],[.2,.094,.106],[.5,.094,.103],[.84,.089,.092],[1,.09,.09]]
     : [[0,.100,.113],[.18,.097,.111],[.34,.089,.104],[.49,.083,.095],[.60,.082,.09],[.72,.079,.082],[.91,.075,.074],[1,.076,.072]];
@@ -252,7 +253,7 @@ function makePants(T,group,body,mat,opts){
       const upper=body.legs[2*k],lower=body.legs[2*k+1],top=upper.a,knee=upper.b,ankle=lower.b;
       const leftHip=body.legs[0].a,rightHip=body.legs[2].a;
       const hipX=(leftHip.x+rightHip.x)*.5,hipZ=(leftHip.z+rightHip.z)*.5;
-      const waistY=top.y+(waist-.93);
+      const waistY=top.y+(waist-.93*ky);
       // Pelvis local X axis to preserve draping and yoke alignment during rotation.
       const wdx=rightHip.x-leftHip.x,wdz=rightHip.z-leftHip.z,ws=Math.hypot(wdx,wdz)||1;
       const axisX=wdx/ws,axisZ=wdz/ws,frontX=-axisZ,frontZ=axisX;
@@ -260,8 +261,8 @@ function makePants(T,group,body,mat,opts){
       for(let i=0;i<=rows;i++){
         const {drop,rx,rz}=rings[i],h=levels[i], spring=current[i];
         const travel=drop-(waist-.93);
-        if(travel<.438) radial(pos,top,knee,clamp(travel/.438));
-        else radial(pos,knee,ankle,clamp((travel-.438)/.44,0,1.03));
+        if(travel<.438*ky) radial(pos,top,knee,clamp(travel/(.438*ky)));
+        else radial(pos,knee,ankle,clamp((travel-.438*ky)/(.44*ky),0,1.03));
         const cx=pos[0],cy=travel<0?waistY-drop:pos[1],cz=pos[2];
         if(!spring.seeded){spring.x=cx;spring.z=cz;spring.seeded=true;}
         // Integrate damped transverse hem inertia in world space. Nearby rings are
@@ -346,6 +347,11 @@ function applyPhotoAsset(garment,asset){
 }
 
 export function createWardrobe(T,body,materials,opts) {
+  // The drawn fallbacks below were authored on the 178 cm frame; carry them onto
+  // the shaped body with the same two numbers the meshes were shaped with.
+  const formModel=opts.model||body.model||'female';
+  const ky=getAvatarFit(formModel).ky||1;
+  const wide=y=>bodyWidth(formModel,y);
   const group=new T.Group();
   group.name='Garment assembly';
   const classic=opts.outfit==='classic' || !opts.outfit;
@@ -364,7 +370,7 @@ export function createWardrobe(T,body,materials,opts) {
     return built;
   };
   let main=measured?buildMeasured(opts):
-    skirted?makeSkirt(materials.lower):makePants(T,group,body,materials.lower,opts);
+    skirted?makeSkirt(materials.lower):makePants(T,group,body,materials.lower,opts,ky);
   if(skirted){
     main.mesh.userData.garmentPart='lower';
     group.add(main.mesh);
@@ -372,7 +378,7 @@ export function createWardrobe(T,body,materials,opts) {
   const tee=body.teeMeshes || [];
   const topPieces=Array.isArray(tee)?tee:[tee];
   topPieces.forEach(m=>{m.visible=classic;});
-  const shirt=classic?null:makeShirt(T,body,materials.top,opts.outfit);
+  const shirt=classic?null:makeShirt(T,body,materials.top,opts.outfit,ky,wide);
   const pose=(phase,options,dt)=>{
     shirt?.pose();
     if(skirted){

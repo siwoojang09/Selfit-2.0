@@ -1,6 +1,6 @@
 // Retail flat widths and length are centimetres. Cut sections are metres.
 // waistY and hemY are in the unscaled pelvis frame used by the avatar rig.
-import {wearer} from './hoodie-fit.mjs?v=2026-11-24k';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-24l';
 
 const clamp=(x,low,high)=>Math.min(high,Math.max(low,x));
 export function pantsFit(m,model='female',person=null){

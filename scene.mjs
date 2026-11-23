@@ -1,15 +1,15 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24k';
-import { attachSample } from './sample-garment.mjs?v=2026-11-24k';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-24k';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24k';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24k';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-24k';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-24k';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24k';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24k';
-import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24k';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-24k';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24l';
+import { attachSample } from './sample-garment.mjs?v=2026-11-24l';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-24l';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24l';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24l';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-24l';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-24l';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24l';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24l';
+import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24l';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-24l';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -542,7 +542,7 @@ export function createScene(container, opts) {
       // that stops exactly at the band leaves a strip of bare waist when the
       // body moves.
       displayTop={id:'pants-studio-crew',type:'sweatshirt',color:'#24252a',material:'cotton',
-        measurements:{length:Math.max(30,(1.475-f.waistY)*100+2.1),
+        measurements:{length:Math.max(30,(w.base.apex-f.waistY)*100+2.1),
           chest:Math.max(47,w.chest*.5+8),shoulder:Math.max(41,w.shoulder+4),sleeve:54}};
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'bodyOnly' in changes || 'person' in changes){

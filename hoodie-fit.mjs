@@ -1,5 +1,5 @@
 // All pattern lengths are metres. Public measurements and wearer inputs use cm.
-import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-24k';
+import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-24l';
 
 const tau=2*Math.PI;
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -17,7 +17,7 @@ export function wearer(model,custom={}){
   const measure=k=>Number(custom?.[k])>0?Number(custom[k]):base[k];
   const height=measure('height'),chest=measure('chest'),waist=measure('waist'),hip=measure('hip');
   const sy=height/base.height;
-  const stops=[[.52,1],[base.hipY,hip/base.hip],[base.waistY,waist/base.waist],[base.chestY,chest/base.chest],[1.455,1]];
+  const stops=[[.52*base.ky,1],[base.hipY,hip/base.hip],[base.waistY,waist/base.waist],[base.chestY,chest/base.chest],[base.apex-.02,1]];
   const widthAt=y=>blendStops(stops,y);
   return {base,height,chest,waist,hip,sy,widthAt,shoulder:base.shoulder,armLength:base.armLength*sy,
     radialAt(y,a){return widthAt(y)*base.radialAt(y,a);},centerAt(y){return base.bodyAt(y).cz;}};
@@ -31,8 +31,8 @@ export function hoodieFit(m,w){
   const shoulderPath=m.shoulder/100,shoulderSurplus=(shoulderPath-w.shoulder/100)/2;
   // The high shoulder point sits at the neck/shoulder junction on this asset,
   // appreciably higher than the shoulder joint used to rotate the upper arm.
-  let apex=1.475;
-  while(apex<1.53 && w.base.bodyAt(apex).rx>.068)apex+=.001;
+  let apex=w.base.apex;
+  while(apex<w.base.apex+.055 && w.base.bodyAt(apex).rx>.068)apex+=.001;
   const neckHalf=w.base.bodyAt(apex).rx;
   const halfSpan=neckHalf+Math.hypot(w.shoulder/200-neckHalf,(apex-w.base.shoulderY)*w.sy);
   const seamDrop=clamp(shoulderPath/2-halfSpan,0,.19);

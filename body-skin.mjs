@@ -1,10 +1,14 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24k';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24k';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24l';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24l';
+import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-24l';
 
-export function attachAnatomicalBody(source, root, parts) {
+export function attachAnatomicalBody(source, root, parts, model='female') {
+  // Everything below is authored on the 178 cm frame; the body it classifies is
+  // the shaped one, so a body height keeps its relation to the floor by ky.
+  const ky=getAvatarFit(model).ky||1;
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
   for(const [i,side] of ['L','R'].entries()){
     for(const [name,node] of Object.entries(parts.arms[i]))named[name+side]=node;
@@ -44,7 +48,7 @@ export function attachAnatomicalBody(source, root, parts) {
     const n=source.jointNames[joints[4*i+best]];
     region[i]=/shoulder|elbow|hand/i.test(n)?1:/hip|knee|ankle/i.test(n)?2:0;
     const k=3*i;
-    if(region[i]===1 && rest[k+1]<.99){
+    if(region[i]===1 && rest[k+1]<.99*ky){
       handPoints[n.endsWith('L')?0:1].push([rest[k],rest[k+1],rest[k+2]]);
     }
   }
@@ -56,16 +60,16 @@ export function attachAnatomicalBody(source, root, parts) {
     const length=Number(sample?.measurements?.length)||63;
     const bottom=options.bottom||(options.outfit==='casual'?'shorts':'trousers');
     const trouser=options.pants?.measurements?pantsFit(options.pants.measurements,options.model,options.person):null;
-    const hemEdge=trouser?trouser.hemY+.025:bottom==='shorts'?.60:bottom==='skirt'?.52:.13;
-    const waistEdge=trouser?trouser.waistY-.025:1.008;
+    const hemEdge=trouser?trouser.hemY+.025:bottom==='shorts'?.60*ky:bottom==='skirt'?.52*ky:.13*ky;
+    const waistEdge=trouser?trouser.waistY-.025:1.008*ky;
     // Skin is only on show between the top's hem and the waistband when the top
     // really stops above the band. The hem is measured from the same apex the
     // garment is cut from; a top that overlaps the band leaves no belly to show,
     // and leaving that strip drawn put a bare patch between the hem and a
     // waistband the top was already covering.
-    const topHem=1.460-length*.00955;
+    const topHem=1.460*ky-length*.00955;
     const bareWaist=Boolean(trouser && topHem>trouser.waistY+.004);
-    let sleeveEdge=1.402-THREE.MathUtils.clamp(sleeve*.0094,.07,.59)+.065;
+    let sleeveEdge=1.402*ky-THREE.MathUtils.clamp(sleeve*.0094,.07,.59)+.065;
     if(sample?.id==='KC9315' && sample.measurements){
       const w=wearer(options.model,options.person),fit=hoodieFit(sample.measurements,w);
       sleeveEdge=w.base.shoulderY-(fit.seamDrop+fit.sleeveProjection)/w.sy+.034;
@@ -82,7 +86,7 @@ export function attachAnatomicalBody(source, root, parts) {
         visible[i]=y<hemEdge && y>.06 || (bareWaist && y>waistEdge && y<topHem);
         continue;
       }
-      visible[i]=y>1.49 || (y>1.458 && x<.052) || (bareWaist && y<topHem && y>waistEdge);
+      visible[i]=y>1.49*ky || (y>1.458*ky && x<.052) || (bareWaist && y<topHem && y>waistEdge);
     }
     const a=full.array,kept=[];
     // A triangle with a single visible corner is a spike: at the neckline it
@@ -100,7 +104,7 @@ export function attachAnatomicalBody(source, root, parts) {
     if(!person)return;
     for(let i=0;i<position.count;i++){
       const k=3*i,y=rest[k+1];
-      if(region[i]===1||y>1.457||y<.52)continue;
+      if(region[i]===1||y>1.457*ky||y<.52*ky)continue;
       const ratio=person.widthAt(y),center=person.centerAt(y);
       morphed[k]=rest[k]*ratio;
       morphed[k+2]=center+(rest[k+2]-center)*ratio;

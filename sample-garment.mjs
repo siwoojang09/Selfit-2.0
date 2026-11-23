@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24k';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24k';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24k';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24k';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24k';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24k';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24l';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24l';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24l';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24l';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24l';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24l';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -263,13 +263,17 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const measured=opts.measurements||{};
     const chest=actual(measured.chest,hoodie?60.5:53,32,94);
     const shoulder=actual(measured.shoulder,hoodie?62:47,28,96);
-    const anatomy=adidas?wearer(body.model||'female',opts.person):null;
+    // The body the top is cut for: its stature factor carries every height that
+    // was authored on the 178 cm frame onto the shaped mannequin.
+    const frame=wearer(body.model||'female',opts.person);
+    const KY=frame.base.ky||1;
+    const anatomy=adidas?frame:null;
     const pattern=adidas?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
     const fit=pattern?.fit, sy=anatomy?.sy||1;
     const bodyLength=fit?fit.length/sy:actual(measured.length,hoodie?62:65,33,99)*.00955;
     const sleeve=actual(measured.sleeve,long?58:22,7,85)*.0094;
     const shoulderDrop=clamp((shoulder-43)*.0025,-.024,.087);
-    const shoulderRise=fit?anatomy.base.shoulderY-1.402:0;
+    const shoulderRise=fit?anatomy.base.shoulderY-1.402*(anatomy.base.ky||1):0;
     const projectedSleeve=sleeve+shoulderDrop*.37;
     const sleeveLength=fit?(fit.seamDrop+fit.sleeveProjection)/sy-shoulderRise:
       // A shirt's cuff closes on the wrist, so it stops a little above the hand
@@ -306,7 +310,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       fabric(cuffMat,'rib',.20,.052);
       fabric(bandMat,'tape',.008,fit.flatSleeve);
     }
-    const topY=fit?.apex||1.460,hemY=topY-bodyLength;
+    const topY=fit?.apex||1.460*KY,hemY=topY-bodyLength;
     const bodiceRows=[
       // The neckline spreads to the shoulder over the first centimetres
       // instead of flaring into a flat shelf at the throat.
@@ -380,7 +384,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // of the neck in front and falls away to the middle of the back behind,
       // with the cloth between the neckline seam and the mouth hanging in
       // folds as it widens over the shoulder blades.
-      const hoodSeamY=1.4560;
+      const hoodSeamY=1.4560*KY;
       const hoodSeamHalf=.050;   // half the neckline's width across the back
       const hoodHalf=.145;       // half the mouth's width: some 29 cm of cloth
       // The back of the panel at a height, as an ellipse: this is what the
@@ -438,7 +442,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         }
         const rx=(lerp(.060,.080+.035*back,v)+.019*bulge);
         const rz=(lerp(.050,.060+.05*back,v)+.027*bulge);
-        const base=1.452-.038*Math.max(c,0)**2;
+        const base=1.452*KY-.038*Math.max(c,0)**2;
         return [s*rx,base+(.023+.042*back)*bulge-.115*back**2*v+.011*c*v,
           rz*c-.020*back*v+.002*Math.sin(a*5)*bulge];
       });
@@ -452,7 +456,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const r=ring+tube*Math.cos(phi);
         const lift=.0135+.0085*back;
         return [Math.sin(a)*r,
-          1.4515+lift*Math.sin(phi)*(1-.30*Math.max(0,c))-.004*back*Math.max(0,-Math.cos(phi)),
+          1.4515*KY+lift*Math.sin(phi)*(1-.30*Math.max(0,c))-.004*back*Math.max(0,-Math.cos(phi)),
           Math.cos(a)*r+.003];
       });
       if(hoodie) panel(upper,rib,'Lined hood opening',6,60,(v,u)=>{
@@ -461,13 +465,13 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           const p=bodyAt(0,a);
           return [p[0]+Math.sin(a)*(.002+v*.006),p[1]+(.004+.003*back)*Math.sin(v*Math.PI)/sy,p[2]+c*(.002+v*.006)];
         }
-        return [Math.sin(a)*lerp(.054,.081+.035*back,v),1.47-.037*Math.max(c,0)**2-.132*back**2*v,Math.cos(a)*lerp(.048,.061+.05*back,v)-.020*back*v];
+        return [Math.sin(a)*lerp(.054,.081+.035*back,v),1.47*KY-.037*Math.max(c,0)**2-.132*back**2*v,Math.cos(a)*lerp(.048,.061+.05*back,v)-.020*back*v];
       });
       // Through a pullover's neck the lining shows behind the neck; without it
       // the gap between binding and body reads as the wearer's own mesh.
       panel(upper,rib,'Neck lining',4,48,(v,u)=>{
         const a=u*tau,c=Math.cos(a);
-        return [Math.sin(a)*lerp(.0575,.056,v),1.463-.030*Math.max(c,0)**2-.024*v,Math.cos(a)*lerp(.0495,.048,v)+.0030];
+        return [Math.sin(a)*lerp(.0575,.056,v),1.463*KY-.030*Math.max(c,0)**2-.024*v,Math.cos(a)*lerp(.0495,.048,v)+.0030];
       });
       for(const side of [-1,1]){
         if(pullover) break;
@@ -548,7 +552,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         // neck's silhouette is round instead of a cut edge with a sawtooth.
         const phi=Math.PI*v,rt=collar?.0042:.0055,rc=.0645;
         const rr=rc-rt*Math.cos(phi);
-        return [Math.sin(a)*rr,1.4615-.026*Math.max(c,0)**2+rt*Math.sin(phi),
+        return [Math.sin(a)*rr,1.4615*KY-.026*Math.max(c,0)**2+rt*Math.sin(phi),
           Math.cos(a)*(rr-.0105)+.0034];
       });
       // Through the neck of a crew garment the inside of the collar is what the
@@ -558,7 +562,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const a=u*tau,c=Math.cos(a);
         // Well inside the body's own neck ring: sitting on it made the two
         // surfaces z-fight into a ring of teeth.
-        return [Math.sin(a)*lerp(.0495,.0485,v),1.458-.030*Math.max(c,0)**2-.020*v,Math.cos(a)*lerp(.0415,.0405,v)+.0030];
+        return [Math.sin(a)*lerp(.0495,.0485,v),1.458*KY-.030*Math.max(c,0)**2-.020*v,Math.cos(a)*lerp(.0415,.0405,v)+.0030];
       });
       if(halfzip){
         // The half-zip knit stands up in its own ribbed collar; the zip runs
@@ -566,14 +570,14 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         panel(upper,rib,'Ribbed stand collar',9,48,(v,u)=>{
           const a=u*tau,s=Math.sin(a),c=Math.cos(a);
           const r=lerp(.0635,.0705,smooth(v,0,1));
-          return [s*r,1.464-.026*Math.max(c,0)**2+v*.057-.006*Math.max(c,0)*v,c*r+.0032];
+          return [s*r,1.464*KY-.026*Math.max(c,0)**2+v*.057-.006*Math.max(c,0)*v,c*r+.0032];
         });
         panel(upper,rib,'Collar fold edge',5,48,(v,u)=>{
           const a=u*tau,s=Math.sin(a),c=Math.cos(a);
           // A hair outside the collar's own top ring: coplanar rims z-fight
           // into a jagged edge along the neck.
           const r=lerp(.0725,.0745,smooth(v,0,1));
-          return [s*r,1.522-.026*Math.max(c,0)**2+.004*v-.012*smooth(v,0,1),c*r+.0032];
+          return [s*r,1.522*KY-.026*Math.max(c,0)**2+.004*v-.012*smooth(v,0,1),c*r+.0032];
         });
         tape('Zip tape',trim,.004,.300,-.0060,.0060,.0044);
         tape('Zip teeth',shine,.010,.294,-.0015,.0015,.0068);
@@ -588,14 +592,14 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           // leaves are what you see; the stand is what makes the collar stand
           // up at the back of the neck instead of lying flat like a lapel.
           const collarGap=.1537;                 // half the front opening, rad
-          const foldR=.0668, foldY=1.4835;       // where the leaf turns over
+          const foldR=.0668, foldY=1.4835*KY;       // where the leaf turns over
           const neckR=.0602, neckZ=.0538;        // where the stand is sewn in
           panel(upper,shell,'Collar band',7,60,(v,u)=>{
             const a=collarGap+u*(tau-2*collarGap),s2=Math.sin(a),c=Math.cos(a);
             // The band leans out as it rises, so the fold line is a little
             // wider than the neck and the collar does not cut into the throat.
             const rx=lerp(neckR,foldR,v),rz=lerp(neckZ,foldR,v);
-            const y=lerp(1.4562,foldY,v)-.0045*Math.max(0,c)*(1-v);
+            const y=lerp(1.4562*KY,foldY,v)-.0045*Math.max(0,c)*(1-v);
             return [s2*rx,y,c*rz+.0032];
           });
           for(const sign of [-1,1]) panel(upper,shell,'Point collar',10,40,(v,u)=>{
@@ -634,7 +638,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
             panel(upper,shell,'Point collar',8,12,(v,u)=>{
               const a=.10+1.72*u;
               return [sign*lerp(.059*Math.sin(a),.031+.064*Math.sin(1.65*u),v),
-                lerp(1.463-.023*Math.max(0,Math.cos(a))**2,1.37+.071*smooth(u,.06,.9),v),
+                lerp(1.463*KY-.023*Math.max(0,Math.cos(a))**2,1.37*KY+.071*smooth(u,.06,.9),v),
                 lerp(.054*Math.cos(a),.103-.125*u**1.5,v)+.002*Math.sin(v*Math.PI)];
             });
           }
