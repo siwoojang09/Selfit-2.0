@@ -15052,27 +15052,11 @@
         }
       } else if (puffer) {
         let hoodAt = function(v3, u2) {
-          const psi = u2 * tau5;
-          const a2 = toward(rimLoop(psi)), b2 = toward(neckLoop(psi));
-          const dot = clamp5(a2.d[0] * b2.d[0] + a2.d[1] * b2.d[1] + a2.d[2] * b2.d[2], -1, 1), ang = Math.acos(dot);
-          let d2;
-          if (ang < 1e-4) d2 = a2.d;
-          else {
-            const sn2 = Math.sin(ang), ka2 = Math.sin((1 - v3) * ang) / sn2, kb = Math.sin(v3 * ang) / sn2;
-            d2 = [a2.d[0] * ka2 + b2.d[0] * kb, a2.d[1] * ka2 + b2.d[1] * kb, a2.d[2] * ka2 + b2.d[2] * kb];
-          }
-          let k2 = 0;
-          while (k2 < hoodQuiltV.length && v3 > hoodQuiltV[k2]) k2++;
-          const lo2 = k2 === 0 ? 0 : hoodQuiltV[k2 - 1], hi2 = k2 < hoodQuiltV.length ? hoodQuiltV[k2] : 1;
-          const f2 = clamp5((v3 - lo2) / Math.max(1e-4, hi2 - lo2), 0, 1);
-          let near = Math.PI;
-          for (const q2 of hoodQuiltU) near = Math.min(near, bearingGap(psi, q2));
-          let r2 = lerp2(a2.r, b2.r, v3) + 0.022 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.8) + 0.013 * Math.pow(Math.sin(Math.PI * f2), 0.62) * Math.pow(Math.sin(Math.PI * clamp5(near / (Math.PI * 0.5), 0, 1)), 0.6);
-          for (const s2 of hoodQuiltV) r2 -= 6e-3 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
-          for (const q2 of hoodQuiltU) r2 -= 6e-3 * Math.exp(-Math.pow(bearingGap(psi, q2) / 0.14, 2));
-          const lean = 0.03 * Math.sin(Math.PI * clamp5(v3, 0, 1));
-          const tuck = 0.016 * smooth(v3, 0.84, 1);
-          return [d2[0] * r2, headC[1] + d2[1] * r2 * KY - 4e-3 - tuck, headC[2] + d2[2] * r2 - lean];
+          const phi = u2 * tau5;
+          const th2 = lerp2(edgeTheta(phi), crownTheta, v3);
+          const d2 = [Math.sin(th2) * Math.sin(phi), Math.cos(th2), Math.sin(th2) * Math.cos(phi)];
+          const r2 = headSurface(d2) + hoodPad(v3, phi);
+          return [d2[0] * r2, headC[1] + d2[1] * r2, headC[2] + d2[2] * r2];
         };
         const collarBase = topY - 4e-3;
         panel(upper, shell, "Stand collar", 16, 72, (v3, u2) => {
@@ -15086,24 +15070,42 @@
           const r2 = 0.0778 + 46e-4 * Math.sin(phi);
           return [s2 * r2, collarBase + 0.104 * KY - 4e-3 * Math.max(0, c2) + 38e-4 * Math.sin(phi), c2 * (r2 - 55e-4) + 34e-4];
         });
-        const headC = [0, 1.513 * 1, -8e-3];
+        const headC = [0, 1.648 * KY, -8e-3];
+        const headR = [0.079, 0.113, 0.092];
+        const crownTheta = 0.17;
         const hoodQuiltV = [0.3, 0.6, 0.86], hoodQuiltU = [0, Math.PI * 0.5, -Math.PI * 0.5];
-        const rimLoop = (psi) => [0.094 * Math.sin(psi), 1.548 + 0.1 * Math.cos(psi), 0.062 + 6e-3 * Math.cos(psi)];
-        const neckLoop = (psi) => {
-          const s2 = Math.sin(psi), c2 = Math.cos(psi);
-          return [0.086 * s2, 1.438, -4e-3 - 0.078 * c2];
+        const edgeTheta = (phi) => {
+          const a2 = Math.min(phi, tau5 - phi);
+          if (a2 <= 1.05) return 0.95 + 0.78 * Math.pow(a2 / 1.05, 1.35);
+          return 1.73 + 0.57 * smooth(a2, 1.05, 2.3);
         };
-        const toward = (p2) => {
-          const d2 = [p2[0] - headC[0], (p2[1] - headC[1]) / KY, p2[2] - headC[2]];
-          const n2 = Math.hypot(d2[0], d2[1], d2[2]) || 1;
-          return { d: [d2[0] / n2, d2[1] / n2, d2[2] / n2], r: n2 };
+        const hoodPad = (v3, phi) => {
+          let pad = 0.03 + 0.034 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.55);
+          pad *= 1 - 0.62 * smooth(Math.min(phi, tau5 - phi), 1.35, 2.2);
+          let k2 = 0;
+          while (k2 < hoodQuiltV.length && v3 > hoodQuiltV[k2]) k2++;
+          const lo2 = k2 === 0 ? 0 : hoodQuiltV[k2 - 1], hi2 = k2 < hoodQuiltV.length ? hoodQuiltV[k2] : 1;
+          const f2 = clamp5((v3 - lo2) / Math.max(1e-4, hi2 - lo2), 0, 1);
+          let near = Math.PI;
+          for (const q2 of hoodQuiltU) near = Math.min(near, bearingGap(phi, q2));
+          pad += 0.012 * Math.pow(Math.sin(Math.PI * f2), 0.6) * Math.pow(Math.sin(Math.PI * clamp5(near / (Math.PI * 0.5), 0, 1)), 0.6);
+          for (const s2 of hoodQuiltV) pad -= 55e-4 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
+          for (const q2 of hoodQuiltU) pad -= 55e-4 * Math.exp(-Math.pow(bearingGap(phi, q2) / 0.14, 2));
+          return pad;
         };
+        const headSurface = (d2) => 1 / Math.hypot(d2[0] / headR[0], d2[1] / headR[1], d2[2] / headR[2]);
         panel(upper, shell, "Quilted hood", 56, 96, (v3, u2) => hoodAt(v3, u2));
+        panel(upper, shell, "Hood crown", 5, 96, (v3, u2) => {
+          const phi = u2 * tau5, th2 = crownTheta * (1 - v3);
+          const d2 = [Math.sin(th2) * Math.sin(phi), Math.cos(th2), Math.sin(th2) * Math.cos(phi)];
+          const r2 = headSurface(d2) + hoodPad(1, phi);
+          return [d2[0] * r2, headC[1] + d2[1] * r2, headC[2] + d2[2] * r2];
+        });
         panel(upper, shell, "Hood mouth edge", 7, 96, (v3, u2) => {
           const phi = Math.PI * v3, p2 = hoodAt(0, u2), q2 = hoodAt(0.05, u2);
           const t2 = [q2[0] - p2[0], q2[1] - p2[1], q2[2] - p2[2]];
           const tn2 = Math.hypot(t2[0], t2[1], t2[2]) || 1;
-          const n2 = [p2[0] - headC[0], (p2[1] - headC[1]) / KY, p2[2] - headC[2]];
+          const n2 = [p2[0] - headC[0], p2[1] - headC[1], p2[2] - headC[2]];
           const nn2 = Math.hypot(n2[0], n2[1], n2[2]) || 1;
           const r2 = 72e-4 * Math.cos(phi), w2 = 72e-4 * Math.sin(phi);
           return [p2[0] + r2 * n2[0] / nn2 + w2 * t2[0] / tn2, p2[1] + w2 * t2[1] / tn2, p2[2] + r2 * n2[2] / nn2 + w2 * t2[2] / tn2];
