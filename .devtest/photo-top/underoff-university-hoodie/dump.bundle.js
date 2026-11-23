@@ -13430,7 +13430,7 @@
   };
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
-  // garment-contact.mjs?v=2026-11-24c
+  // garment-contact.mjs?v=2026-11-24f
   var tau = Math.PI * 2;
   var directions = 32;
   var sectors = 64;
@@ -13541,7 +13541,7 @@
     } };
   }
 
-  // fit-body-sections.mjs?v=2026-11-24c
+  // fit-body-sections.mjs?v=2026-11-24f
   var sections = {
     female: [
       [306, 165, 86, 1624, 165, 166, 168, 171, 176, 182, 191, 202, 216, 232, 250, 264, 274, 281, 286, 291, 295, 300, 303, 306, 307, 307, 301, 294, 281, 267, 254, 234, 216, 202, 191, 182, 176, 171, 168, 166, 165],
@@ -13765,7 +13765,7 @@
     return avatars[model === "male" ? "male" : "female"];
   }
 
-  // hoodie-fit.mjs?v=2026-11-24c
+  // hoodie-fit.mjs?v=2026-11-24f
   var tau2 = 2 * Math.PI;
   var clamp2 = (x2, a2, b2) => Math.min(b2, Math.max(a2, x2));
   var mix2 = (a2, b2, t2) => a2 + (b2 - a2) * t2;
@@ -13906,7 +13906,7 @@
     } };
   }
 
-  // fabric-pbr.mjs?v=2026-11-24c
+  // fabric-pbr.mjs?v=2026-11-24f
   var tau3 = Math.PI * 2;
   var clamp3 = (v2, low, high) => v2 < low ? low : v2 > high ? high : v2;
   var wrapIndex = (i2, n2) => {
@@ -14045,7 +14045,7 @@
     return material;
   }
 
-  // hoodie-textile.mjs?v=2026-11-24c
+  // hoodie-textile.mjs?v=2026-11-24f
   var import_meta = {};
   var textiles = {
     knit: {
@@ -14134,7 +14134,7 @@
     });
   }
 
-  // hoodie-finishes.mjs?v=2026-11-24c
+  // hoodie-finishes.mjs?v=2026-11-24f
   var tau4 = Math.PI * 2;
   var lerp = Qn.lerp;
   function shifted(p2, a2, offset) {
@@ -14256,7 +14256,7 @@
     slider(0.979, 1, true);
   }
 
-  // cloth-dynamics.mjs?v=2026-11-24c
+  // cloth-dynamics.mjs?v=2026-11-24f
   var clamp4 = (v2, a2, b2) => v2 < a2 ? a2 : v2 > b2 ? b2 : v2;
   var fixedStep = 1 / 120;
   var accelerationLimit = 26;
@@ -14428,7 +14428,7 @@
   var _q = new Ii();
   var _identityMatrix = new cr();
 
-  // photo-hoodie.mjs?v=2026-11-24c
+  // photo-hoodie.mjs?v=2026-11-24f
   function pieceKey(name) {
     return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
   }
@@ -14705,7 +14705,11 @@
       const shoulderDrop = clamp5((shoulder - 43) * 25e-4, -0.024, 0.087);
       const shoulderRise = fit ? anatomy.base.shoulderY - 1.402 : 0;
       const projectedSleeve = sleeve + shoulderDrop * 0.37;
-      const sleeveLength = fit ? (fit.seamDrop + fit.sleeveProjection) / sy - shoulderRise : long ? Math.max(0.075, projectedSleeve) : clamp5(projectedSleeve, 0.075, 0.37);
+      const sleeveLength = fit ? (fit.seamDrop + fit.sleeveProjection) / sy - shoulderRise : (
+        // A shirt's cuff closes on the wrist, so it stops a little above the hand
+        // rather than being dragged over the fingers.
+        long ? Math.max(0.075, projectedSleeve * (type === "shirt" ? 0.94 : 1)) : clamp5(projectedSleeve, 0.075, 0.37)
+      );
       const width = clamp5(chest * 373e-5, 0.166, 0.33);
       const cuffHem = actual(measured.hem, chest * (hoodie ? 0.845 : 0.96), 30, 95);
       const hemWidth = clamp5(cuffHem * 391e-5, 0.159, 0.33);
@@ -14830,20 +14834,35 @@
         thick: ribHem
       });
       if (hooded) {
-        panel(upper, shell, "Folded hood", 18, 64, (v3, u2) => {
+        let hoodDrape = function(v3, u2) {
+          const s2 = u2 * 2 - 1, edge = Math.abs(s2);
+          const widen = smooth(v3, 0.02, 0.4);
+          const x2 = s2 * lerp2(hoodSeamHalf, hoodHalf, widen);
+          const drop = 0.206 + 0.052 * Math.pow(Math.cos(edge * Math.PI * 0.5), 1.5);
+          const creaseAmt = (18e-4 + 92e-4 * Math.max(0, 1 - edge * edge)) * smooth(v3, 0.04, 0.42);
+          const foldA = Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 3.1 + v3 * 0.8 + 0.5), 3);
+          const foldB = 0.45 * Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 5.3 - v3 * 1.1 + 2.2), 4);
+          const crease = Math.min(1, foldA + foldB);
+          const lift = creaseAmt * (0.35 - 1.05 * crease);
+          const y2 = hoodSeamY - drop * Math.pow(v3, 0.9) + lift * 0.9;
+          const back = hoodBack(x2, y2);
+          const standoff = 58e-4 + (8e-3 + 0.036 * Math.max(0, 1 - edge * edge)) * Math.pow(Math.sin(Math.PI * Math.min(1, v3)), 0.85) + 0.022 * Math.max(0, 1 - edge * edge) * smooth(v3, 0.72, 1);
+          return [x2, y2, back[2] - standoff + lift];
+        };
+        const hoodSeamY = 1.456;
+        const hoodSeamHalf = 0.05;
+        const hoodHalf = 0.145;
+        const hoodBack = (x2, y2) => {
+          const t2 = clamp5((topY - y2) / bodyLength, 0, 0.965);
+          const rx = sampleProfile(bodiceRows, t2)[0], rz = sampleProfile(bodiceRows, t2)[1];
+          const q2 = clamp5(Math.abs(x2) / Math.max(rx, 0.02), 0, 0.985);
+          return [x2, y2, -rz * Math.sqrt(1 - q2 * q2) + 3e-3];
+        };
+        if (pullover && !pattern) {
+          panel(upper, shell, "Folded hood", 30, 96, hoodDrape);
+        } else panel(upper, shell, "Folded hood", 18, 64, (v3, u2) => {
           const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2), back = (1 - c2) * 0.5;
           const bulge = Math.sin(Math.PI * v3);
-          if (pullover && !pattern) {
-            const phi = Math.PI * v3;
-            const ring = 0.069 + 0.016 * back, tube = 0.026 + 0.048 * back;
-            const r2 = ring + tube * Math.cos(phi);
-            const front = Math.max(0, c2);
-            return [
-              s2 * r2,
-              1.452 - 0.02 * front + tube * Math.sin(phi) * (1 - 0.28 * front) + 6e-3 * back * (1 - Math.cos(phi)) * 0.5,
-              c2 * r2 - 0.026 * back * (1 - Math.cos(phi)) * 0.5
-            ];
-          }
           if (pattern) {
             const drop = 0.014 + 0.28 * Math.max(0, back - 0.06) ** 1.55;
             const inner = bodyAt(0, a2), outer = bodyAt(drop, a2);
@@ -14863,10 +14882,16 @@
             rz * c2 - 0.02 * back * v3 + 2e-3 * Math.sin(a2 * 5) * bulge
           ];
         });
-        if (pullover) panel(upper, shell, "Lined hood opening", 6, 44, (v3, u2) => {
-          const a2 = u2 * tau5, c2 = Math.cos(a2);
-          const r2 = lerp2(0.05, 6e-3, smooth(v3, 0, 0.94));
-          return [Math.sin(a2) * r2, 1.472 - 0.02 * Math.max(0, c2) + 0.014 * Math.sin(Math.PI * Math.min(1, v3 * 1.1)), c2 * r2 + 2e-3];
+        if (pullover) panel(upper, shell, "Lined hood opening", 12, 96, (v3, u2) => {
+          const a2 = tau5 * u2, c2 = Math.cos(a2), back = (1 - c2) * 0.5, phi = Math.PI * v3;
+          const ring = 0.0625 + 35e-4 * back, tube = 0.0115 + 55e-4 * back;
+          const r2 = ring + tube * Math.cos(phi);
+          const lift = 0.0135 + 85e-4 * back;
+          return [
+            Math.sin(a2) * r2,
+            1.4515 + lift * Math.sin(phi) * (1 - 0.3 * Math.max(0, c2)) - 4e-3 * back * Math.max(0, -Math.cos(phi)),
+            Math.cos(a2) * r2 + 3e-3
+          ];
         });
         if (hoodie) panel(upper, rib, "Lined hood opening", 6, 60, (v3, u2) => {
           const a2 = u2 * tau5, c2 = Math.cos(a2), back = (1 - c2) * 0.5;
@@ -15069,7 +15094,7 @@
         const { shoulder: joint, elbow } = arms[armIndex], sign = armIndex === 0 ? -1 : 1;
         const mount = group(joint), cap = fit ? shoulderRise + 2e-3 : long ? 0.014 : 0.017, loose = clamp5(chest / 54, 0.82, 1.3);
         if (fit) mount.scale.set(1 / torso.scale.x, 1, 1 / torso.scale.z);
-        const hand = long ? handGuide(body.anatomy?.handPoints?.[armIndex], joint, mount) : null;
+        const hand = long && type !== "shirt" ? handGuide(body.anatomy?.handPoints?.[armIndex], joint, mount) : null;
         const seamT = fit ? (cap + fit.seamDrop / sy - shoulderRise) / (cap + sleeveLength) : 0;
         const rings = [
           [0, 0.014, 0.017],

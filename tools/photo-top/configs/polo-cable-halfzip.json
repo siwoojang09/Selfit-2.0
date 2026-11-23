@@ -15,17 +15,17 @@
     "mode": "cable",
     "tile": 0.104,
     "tile_px": 640,
-    "pitch_mm": 52.0,
-    "ply_mm": 42.0,
-    "height_mm": 5.0,
-    "slope": 2.4,
-    "rope_w": 0.86,
+    "pitch_mm": 40.0,
+    "ply_mm": 56.0,
+    "height_mm": 5.6,
+    "slope": 1.0,
+    "rope_w": 0.76,
     "tone": [
       26,
       26,
       28
     ],
-    "contrast": 0.34,
+    "contrast": 0.56,
     "roughness": 0.93
   },
   "atlas": {
@@ -141,7 +141,7 @@
     "depth": 0.3,
     "roughness": 0.93
   },
-  "normal_scale": 1.5,
+  "normal_scale": 1.6,
   "thread": [
     30,
     30,

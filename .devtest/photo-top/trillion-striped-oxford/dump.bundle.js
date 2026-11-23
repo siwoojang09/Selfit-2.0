@@ -14834,20 +14834,35 @@
         thick: ribHem
       });
       if (hooded) {
-        panel(upper, shell, "Folded hood", 18, 64, (v3, u2) => {
+        let hoodDrape = function(v3, u2) {
+          const s2 = u2 * 2 - 1, edge = Math.abs(s2);
+          const widen = smooth(v3, 0.02, 0.4);
+          const x2 = s2 * lerp2(hoodSeamHalf, hoodHalf, widen);
+          const drop = 0.206 + 0.052 * Math.pow(Math.cos(edge * Math.PI * 0.5), 1.5);
+          const creaseAmt = (18e-4 + 92e-4 * Math.max(0, 1 - edge * edge)) * smooth(v3, 0.04, 0.42);
+          const foldA = Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 3.1 + v3 * 0.8 + 0.5), 3);
+          const foldB = 0.45 * Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 5.3 - v3 * 1.1 + 2.2), 4);
+          const crease = Math.min(1, foldA + foldB);
+          const lift = creaseAmt * (0.35 - 1.05 * crease);
+          const y2 = hoodSeamY - drop * Math.pow(v3, 0.9) + lift * 0.9;
+          const back = hoodBack(x2, y2);
+          const standoff = 58e-4 + (8e-3 + 0.036 * Math.max(0, 1 - edge * edge)) * Math.pow(Math.sin(Math.PI * Math.min(1, v3)), 0.85) + 0.022 * Math.max(0, 1 - edge * edge) * smooth(v3, 0.72, 1);
+          return [x2, y2, back[2] - standoff + lift];
+        };
+        const hoodSeamY = 1.456;
+        const hoodSeamHalf = 0.05;
+        const hoodHalf = 0.145;
+        const hoodBack = (x2, y2) => {
+          const t2 = clamp5((topY - y2) / bodyLength, 0, 0.965);
+          const rx = sampleProfile(bodiceRows, t2)[0], rz = sampleProfile(bodiceRows, t2)[1];
+          const q2 = clamp5(Math.abs(x2) / Math.max(rx, 0.02), 0, 0.985);
+          return [x2, y2, -rz * Math.sqrt(1 - q2 * q2) + 3e-3];
+        };
+        if (pullover && !pattern) {
+          panel(upper, shell, "Folded hood", 30, 96, hoodDrape);
+        } else panel(upper, shell, "Folded hood", 18, 64, (v3, u2) => {
           const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2), back = (1 - c2) * 0.5;
           const bulge = Math.sin(Math.PI * v3);
-          if (pullover && !pattern) {
-            const phi = Math.PI * v3;
-            const ring = 0.069 + 0.016 * back, tube = 0.026 + 0.048 * back;
-            const r2 = ring + tube * Math.cos(phi);
-            const front = Math.max(0, c2);
-            return [
-              s2 * r2,
-              1.452 - 0.02 * front + tube * Math.sin(phi) * (1 - 0.28 * front) + 6e-3 * back * (1 - Math.cos(phi)) * 0.5,
-              c2 * r2 - 0.026 * back * (1 - Math.cos(phi)) * 0.5
-            ];
-          }
           if (pattern) {
             const drop = 0.014 + 0.28 * Math.max(0, back - 0.06) ** 1.55;
             const inner = bodyAt(0, a2), outer = bodyAt(drop, a2);
@@ -14867,10 +14882,16 @@
             rz * c2 - 0.02 * back * v3 + 2e-3 * Math.sin(a2 * 5) * bulge
           ];
         });
-        if (pullover) panel(upper, shell, "Lined hood opening", 6, 44, (v3, u2) => {
-          const a2 = u2 * tau5, c2 = Math.cos(a2);
-          const r2 = lerp2(0.05, 6e-3, smooth(v3, 0, 0.94));
-          return [Math.sin(a2) * r2, 1.472 - 0.02 * Math.max(0, c2) + 0.014 * Math.sin(Math.PI * Math.min(1, v3 * 1.1)), c2 * r2 + 2e-3];
+        if (pullover) panel(upper, shell, "Lined hood opening", 12, 96, (v3, u2) => {
+          const a2 = tau5 * u2, c2 = Math.cos(a2), back = (1 - c2) * 0.5, phi = Math.PI * v3;
+          const ring = 0.0625 + 35e-4 * back, tube = 0.0115 + 55e-4 * back;
+          const r2 = ring + tube * Math.cos(phi);
+          const lift = 0.0135 + 85e-4 * back;
+          return [
+            Math.sin(a2) * r2,
+            1.4515 + lift * Math.sin(phi) * (1 - 0.3 * Math.max(0, c2)) - 4e-3 * back * Math.max(0, -Math.cos(phi)),
+            Math.cos(a2) * r2 + 3e-3
+          ];
         });
         if (hoodie) panel(upper, rib, "Lined hood opening", 6, 60, (v3, u2) => {
           const a2 = u2 * tau5, c2 = Math.cos(a2), back = (1 - c2) * 0.5;
@@ -14993,17 +15014,32 @@
         }
         if (!collar) {
           if (type === "shirt") {
-            panel(upper, shell, "Collar band", 8, 48, (v3, u2) => {
-              const a2 = tau5 * u2, c2 = Math.cos(a2), s2 = Math.sin(a2);
-              const phi = Math.PI * v3, rt2 = 55e-4, rc2 = 0.0655, rr2 = rc2 - rt2 * Math.cos(phi);
-              return [s2 * rr2, 1.4615 - 0.026 * Math.max(c2, 0) ** 2 + rt2 * Math.sin(phi), c2 * (rr2 - 75e-4) + 32e-4];
+            const collarGap = 0.1537;
+            const foldR = 0.0682, foldY = 1.4905;
+            const neckR = 0.0602, neckZ = 0.0538;
+            panel(upper, shell, "Collar band", 7, 60, (v3, u2) => {
+              const a2 = collarGap + u2 * (tau5 - 2 * collarGap), s2 = Math.sin(a2), c2 = Math.cos(a2);
+              const rx = lerp2(neckR, foldR, v3), rz = lerp2(neckZ, foldR, v3);
+              const y2 = lerp2(1.4562, foldY, v3) - 45e-4 * Math.max(0, c2) * (1 - v3);
+              return [s2 * rx, y2, c2 * rz + 32e-4];
             });
-            for (const sign of [-1, 1]) panel(upper, shell, "Point collar", 8, 14, (v3, u2) => {
-              const x2 = sign * lerp2(0.06 * u2, 0.118 * u2, smooth(v3, 0, 1));
-              const t2 = lerp2(6e-3, 0.108 + 0.062 * u2, v3);
-              const lift = 52e-4 + 6e-3 * smooth(v3, 0.15, 1) + 25e-4 * Math.sin(Math.PI * u2);
-              const p2 = frontAt(t2, x2, lift);
-              return [x2, p2[1] - 12e-4 * v3, p2[2]];
+            for (const sign of [-1, 1]) panel(upper, shell, "Point collar", 10, 40, (v3, u2) => {
+              const a2 = collarGap + u2 * (Math.PI - collarGap);
+              const ae2 = a2 + (0.6 - 0.154) * Math.pow(1 - u2, 1.6);
+              const s2 = sign * Math.sin(a2), c2 = Math.cos(a2);
+              const fx = s2 * foldR, fz = c2 * foldR + 32e-4;
+              const edgeR = foldR + 0.0152 + 0.0125 * (1 - u2);
+              const edgeY = foldY - 0.04 - 8e-3 * (1 - u2);
+              const ex = sign * Math.sin(ae2) * edgeR, ez = Math.cos(ae2) * edgeR + 32e-4;
+              const t2 = Math.pow(v3, 0.92);
+              const roll = 32e-4 * Math.sin(Math.PI * Math.pow(v3, 0.75));
+              let x2 = lerp2(fx, ex, t2), z2 = lerp2(fz, ez, t2), y2 = lerp2(foldY, edgeY, t2);
+              let r2 = Math.hypot(x2, z2 - 32e-4) + roll;
+              const under = bodyAt(clamp5((topY - y2) / bodyLength, 0, 0.97), a2);
+              const floor = Math.hypot(under[0], under[2] - 32e-4) + 45e-4;
+              if (r2 < floor) r2 = floor;
+              const face = Math.atan2(x2, z2 - 32e-4);
+              return [Math.sin(face) * r2, y2, Math.cos(face) * r2 + 32e-4];
             });
           } else {
             for (const sign of [-1, 1]) {

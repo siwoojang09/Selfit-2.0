@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24f';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24f';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24f';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24f';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24f';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24f';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24g';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24g';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24g';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24g';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24g';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24g';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -373,24 +373,55 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       span:bodyLength,sewnAt:ribHem?.925:1-.014/bodyLength,offset:ribHem?.0019:0,
       columns:fit?64:68,stitches:bodyThread,thick:ribHem});
     if(hooded){
-      // Hood worn down: a lined cowl with a raised rim and a deep, folded shell at the back.
-      panel(upper,shell,'Folded hood',18,64,(v,u)=>{
+      // Hood worn down: lined cloth sewn along the neckline, hanging on the back.
+      //
+      // A pullover's hood is a bag of doubled fleece: its mouth edge is one
+      // closed loop around the throat, so worn down that loop lies at the base
+      // of the neck in front and falls away to the middle of the back behind,
+      // with the cloth between the neckline seam and the mouth hanging in
+      // folds as it widens over the shoulder blades.
+      const hoodSeamY=1.4560;
+      const hoodSeamHalf=.050;   // half the neckline's width across the back
+      const hoodHalf=.145;       // half the mouth's width: some 29 cm of cloth
+      // The back of the panel at a height, as an ellipse: this is what the
+      // drape lies on, so no row of it can sink into the body underneath.
+      const hoodBack=(x,y)=>{
+        const t=clamp((topY-y)/bodyLength,0,.965);
+        const rx=sampleProfile(bodiceRows,t)[0],rz=sampleProfile(bodiceRows,t)[1];
+        const q=clamp(Math.abs(x)/Math.max(rx,.02),0,.985);
+        return [x,y,-rz*Math.sqrt(1-q*q)+.003];
+      };
+      // A worn-down hood is a curtain of doubled fleece hung from the neckline:
+      // its mouth edge is lowest at the middle of the back and rises to the
+      // collarbones at both ends, where the cloth disappears into the binding.
+      function hoodDrape(v,u){
+        const s=u*2-1, edge=Math.abs(s);
+        // The cloth leaves the neckline narrow, widens as it falls over the
+        // shoulder blades, and comes to a shallow point at the middle of the
+        // back, which is where the crown of the hood ends up.
+        const widen=smooth(v,.02,.40);
+        const x=s*lerp(hoodSeamHalf,hoodHalf,widen);
+        const drop=.206+.052*Math.pow(Math.cos(edge*Math.PI*.5),1.5);
+        // Creases gather the hem, so the bottom edge is a row of soft scallops
+        // rather than a cut line.
+        const creaseAmt=(.0018+.0092*Math.max(0,1-edge*edge))*smooth(v,.04,.42);
+        const foldA=Math.pow(.5+.5*Math.sin(s*Math.PI*3.1+v*.8+.5),3);
+        const foldB=.45*Math.pow(.5+.5*Math.sin(s*Math.PI*5.3-v*1.1+2.2),4);
+        const crease=Math.min(1,foldA+foldB);
+        const lift=creaseAmt*(.35-1.05*crease);
+        const y=hoodSeamY-drop*Math.pow(v,.90)+lift*.9;
+        const back=hoodBack(x,y);
+        // Its own bulk: doubled cloth standing off the back, most of it in the
+        // middle of the fall where the bag has body, and along the bottom edge.
+        const standoff=.0058+(.008+.036*Math.max(0,1-edge*edge))*Math.pow(Math.sin(Math.PI*Math.min(1,v)),.85)
+          +.022*Math.max(0,1-edge*edge)*smooth(v,.72,1);
+        return [x,y,back[2]-standoff+lift];
+      }
+      if(pullover&&!pattern){
+        panel(upper,shell,'Folded hood',30,96,hoodDrape);
+      } else panel(upper,shell,'Folded hood',18,64,(v,u)=>{
         const a=u*tau,s=Math.sin(a),c=Math.cos(a),back=(1-c)*.5;
         const bulge=Math.sin(Math.PI*v);
-        if(pullover&&!pattern){
-          // A pullover's hood is double cloth, so worn down it is a roll around
-          // the neck, much deeper at the back, whose inner edge tucks down
-          // inside the neck opening: from behind you see a heap of cloth, not
-          // a hole, and from the front its rim stands behind the collarbone.
-          const phi=Math.PI*v;
-          const ring=.069+.016*back, tube=.026+.048*back;
-          const r=ring+tube*Math.cos(phi);
-          const front=Math.max(0,c);
-          return [s*r,
-            1.452-.020*front+tube*Math.sin(phi)*(1-.28*front)
-              +.006*back*(1-Math.cos(phi))*.5,
-            c*r-.026*back*(1-Math.cos(phi))*.5];
-        }
         if(pattern){          // The hood is worn down, so what the back shows is the shell laid
           // over the shoulder blades: a wide triangle, its top edge along the
           // shoulder line and its point at the middle of the back, standing a
@@ -409,12 +440,18 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         return [s*rx,base+(.023+.042*back)*bulge-.115*back**2*v+.011*c*v,
           rz*c-.020*back*v+.002*Math.sin(a*5)*bulge];
       });
-      if(pullover) panel(upper,shell,'Lined hood opening',6,44,(v,u)=>{
-        // Worn down, a hood's mouth is not a hollow: the cloth is doubled back
-        // on itself, so the top of the roll is closed by its own fold.
-        const a=u*tau,c=Math.cos(a);
-        const r=lerp(.050,.006,smooth(v,0,.94));
-        return [Math.sin(a)*r,1.472-.020*Math.max(0,c)+.014*Math.sin(Math.PI*Math.min(1,v*1.1)),c*r+.002];
+      if(pullover) panel(upper,shell,'Lined hood opening',12,96,(v,u)=>{
+        // The hood is sewn to the body at its own mouth: that edge is doubled
+        // cloth turned over, the channel the drawcord runs in. Worn down it is
+        // what stands behind the neck, and it is the only part of the hood the
+        // front of the garment shows.
+        const a=tau*u,c=Math.cos(a),back=(1-c)*.5,phi=Math.PI*v;
+        const ring=.0625+.0035*back, tube=.0115+.0055*back;
+        const r=ring+tube*Math.cos(phi);
+        const lift=.0135+.0085*back;
+        return [Math.sin(a)*r,
+          1.4515+lift*Math.sin(phi)*(1-.30*Math.max(0,c))-.004*back*Math.max(0,-Math.cos(phi)),
+          Math.cos(a)*r+.003];
       });
       if(hoodie) panel(upper,rib,'Lined hood opening',6,60,(v,u)=>{
         const a=u*tau,c=Math.cos(a),back=(1-c)*.5;
@@ -544,23 +581,51 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       }
       if(!collar){
         if(type==='shirt'){
-          // A short stand behind the neck, and two leaves folded down over the
-          // chest: a collar is a fold, so the stand and the leaf are two pieces.
-          panel(upper,shell,'Collar band',8,48,(v,u)=>{
-            const a=tau*u,c=Math.cos(a),s2=Math.sin(a);
-            // The stand rolls over the neckline the same way, so its edge is a
-            // round fold under the collar leaves rather than a cut ring.
-            const phi=Math.PI*v,rt=.0055,rc=.0655,rr=rc-rt*Math.cos(phi);
-            return [s2*rr,1.4615-.026*Math.max(c,0)**2+rt*Math.sin(phi),c*(rr-.0075)+.0032];
+          // A proper two-piece collar: a stand that rises from the neckline and
+          // closes at the top button, and two leaves folded down over it. The
+          // leaves are what you see; the stand is what makes the collar stand
+          // up at the back of the neck instead of lying flat like a lapel.
+          const collarGap=.1537;                 // half the front opening, rad
+          const foldR=.0682, foldY=1.4905;       // where the leaf turns over
+          const neckR=.0602, neckZ=.0538;        // where the stand is sewn in
+          panel(upper,shell,'Collar band',7,60,(v,u)=>{
+            const a=collarGap+u*(tau-2*collarGap),s2=Math.sin(a),c=Math.cos(a);
+            // The band leans out as it rises, so the fold line is a little
+            // wider than the neck and the collar does not cut into the throat.
+            const rx=lerp(neckR,foldR,v),rz=lerp(neckZ,foldR,v);
+            const y=lerp(1.4562,foldY,v)-.0045*Math.max(0,c)*(1-v);
+            return [s2*rx,y,c*rz+.0032];
           });
-          for(const sign of [-1,1]) panel(upper,shell,'Point collar',8,14,(v,u)=>{
-            const x=sign*lerp(.060*u,.118*u,smooth(v,0,1));
-            const t=lerp(.006,.108+.062*u,v);
-            // The leaf stands a few millimetres off the chest, more toward its
-            // point, so its fold catches the light instead of blending in.
-            const lift=.0052+.0060*smooth(v,.15,1)+.0025*Math.sin(Math.PI*u);
-            const p=frontAt(t,x,lift);
-            return [x,p[1]-.0012*v,p[2]];
+          for(const sign of [-1,1]) panel(upper,shell,'Point collar',10,40,(v,u)=>{
+            // u runs along the fold from the collar's point at the top button
+            // round to the middle of the back; v crosses the leaf from the fold
+            // to its free edge. The tip is the corner at u=0, where the leaf's
+            // front edge meets its outer edge: a point, not a cut corner.
+            const a=collarGap+u*(Math.PI-collarGap);
+            // The free edge is cut wider than the fold it hangs from, so the
+            // front of the leaf swings out across the chest and its point ends
+            // beside the placket instead of under the chin.
+            const ae=a+(.60-.154)*Math.pow(1-u,1.6);
+            const s2=sign*Math.sin(a),c=Math.cos(a);
+            const fx=s2*foldR, fz=c*foldR+.0032;
+            // The leaf hangs from the fold rather than spreading over the
+            // shoulders: it falls most of its width and stands only a couple of
+            // centimetres off the neck, which is what a shirt collar does.
+            const edgeR=foldR+.0152+.0125*(1-u);
+            const edgeY=foldY-.0400-.0080*(1-u);
+            const ex=sign*Math.sin(ae)*edgeR, ez=Math.cos(ae)*edgeR+.0032;
+            const t=Math.pow(v,.92);
+            // A soft roll just under the fold, where the cloth turns over the
+            // stand: without it the leaf reads as a plate laid on the chest.
+            const roll=.0032*Math.sin(Math.PI*Math.pow(v,.75));
+            let x=lerp(fx,ex,t), z=lerp(fz,ez,t), y=lerp(foldY,edgeY,t);
+            let r=Math.hypot(x,z-.0032)+roll;
+            // A leaf may not pass through the chest it lies on.
+            const under=bodyAt(clamp((topY-y)/bodyLength,0,.97),a);
+            const floor=Math.hypot(under[0],under[2]-.0032)+.0045;
+            if(r<floor)r=floor;
+            const face=Math.atan2(x,z-.0032);
+            return [Math.sin(face)*r,y,Math.cos(face)*r+.0032];
           });
         } else {
           for(const sign of [-1,1]){

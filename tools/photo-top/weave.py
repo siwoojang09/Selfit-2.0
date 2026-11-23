@@ -84,41 +84,78 @@ def oxford(w, h, tile_m, thread_mm=.52, strength=.55, tone=(176, 178, 174),
     return np.clip(colour, 0, 255), normal
 
 
-def cable(w, h, tile_m, pitch_mm=52.0, ply_mm=13.0, height_mm=5.0, slope=1.3,
-          rope_w=.86, tone=(23, 23, 25), contrast=.34, seed=3):
-    """A rope cable: two plies crossing, the ridges of one passing over the other.
+def cable(w, h, tile_m, pitch_mm=40.0, ply_mm=56.0, height_mm=5.0, slope=1.0,
+          rope_w=.76, tone=(26, 26, 28), contrast=.42, seed=3, strands=3):
+    """A cable knit: columns of three strands twisted round each other.
 
-    The ply lines run diagonally across the cable and cross at its centre, which
-    is the X a knitted cable makes; the cable itself is a rounded rope with a
-    deep groove on each side.  A cable is geometric by nature, and its relief is
-    what a black knit shows under a light.
+    A cable is not a printed pattern but a rope: three plies travel up the
+    column, each one crossing in front of the next and behind the last, so the
+    surface is a chain of soft diagonals with a highlight on whichever strand is
+    on top.  Between the cables are purl gutters: narrow rounded valleys with
+    their own fine stitches, which is what separates one cable from the next.
+
+    The relief is a height field in millimetres, built once for one pitch of the
+    pattern and then repeated, so an atlas holds 26 exact cables rather than 26
+    hand-stitched ones.  Slope is measured in millimetres too, so the normals do
+    not change when the same cloth is asked for at a coarser resolution.
     """
     import cv2
     rng = np.random.default_rng(seed)
-    ppm = w / (tile_m * 1000.0)
-    X = (np.arange(w) + .5) / ppm
-    Y = (np.arange(h) + .5) / ppm
-    XX = X[None, :]
-    YY = Y[:, None]
-    n = max(1, int(round(tile_m * 1000.0 / pitch_mm)))
-    H = np.zeros((h, w), np.float32)
-    for c in range(n):
-        xc = (c + .5) * pitch_mm
-        sway = np.sin(YY / 140.0 + c * 1.7) * 1.1
-        u = (XX - xc - sway) / (pitch_mm * rope_w * .5)
-        body = np.clip(1 - u * u, 0, 1) ** .55
-        skew = slope * (1 + .06 * rng.normal())
-        p1 = .5 + .5 * np.cos(2 * np.pi * (YY - skew * (XX - xc)) / ply_mm)
-        p2 = .5 + .5 * np.cos(2 * np.pi * (YY + skew * (XX - xc)) / ply_mm)
-        H = np.maximum(H, body * (.10 + .90 * np.maximum(p1, p2)))
+    ppm = w / (tile_m * 1000.0)                    # texels per millimetre
+    tw = max(12, int(round(pitch_mm * ppm)))
+    th = max(12, int(round(ply_mm * ppm)))
+    X = ((np.arange(tw) + .5) / tw * pitch_mm)[None, :]
+    Y = ((np.arange(th) + .5) / th * ply_mm)[:, None]
+    half = pitch_mm * rope_w * .5                  # half the cable's body
+    centre = pitch_mm * .5
+    u = (X - centre) / half
+    body = np.clip(1 - u * u, 0, 1) ** .48
+    H = np.zeros((th, tw), np.float32)
+    phase = 2 * np.pi * Y / ply_mm
+    for i in range(strands):
+        a = phase + 2 * np.pi * i / strands
+        # The strand's centre swings across the cable; its depth decides which
+        # of the three lies on top where they cross.
+        off = .46 * np.cos(a)
+        over = .5 + .5 * np.sin(a)
+        dx = (u - off) / .40
+        tube = np.clip(1 - dx * dx, 0, 1) ** .52
+        H = np.maximum(H, body * (.14 + .86 * tube) * (.55 + .45 * over))
+    # A round cable sits on its own shadow: the sides fall away quickly.
+    H *= np.clip(1.16 - .20 * (np.abs(u) ** 3), 0, 1)
+    # --- the purl gutters between cables
+    v = (np.abs(u) - 1.0) / max(.10, (pitch_mm * .5 / half) - 1.0)
+    v = np.clip(v, 0, 1)
+    stitches = .5 + .5 * np.cos(2 * np.pi * (Y / 3.4) + np.pi * (X / 3.0))
+    purl = .40 * np.sin(np.pi * v) ** .7 * (.60 + .40 * stitches)
+    H = np.where(np.abs(u) > 1.0, purl, H)
+    # A soft valley just outside the cable, so the rope reads as raised cloth.
+    H -= .09 * np.exp(-((np.abs(u) - 1.0) ** 2) / .005)
+    H = np.tile(H, (max(1, int(np.ceil(h / th))), max(1, int(np.ceil(w / tw)))))
+    H = H[:h, :w].astype(np.float32)
+    # Height in millimetres, then the slope per millimetre of cloth.
     gy, gx = np.gradient(H * height_mm)
-    nx = np.clip(-gx, -.95, .95)
-    ny = np.clip(-gy, -.95, .95)
-    nz = np.sqrt(np.maximum(1 - nx * nx - ny * ny, .03))
+    gx *= ppm
+    gy *= ppm
+    s = float(slope)
+    nx = np.clip(-gx * s, -.96, .96)
+    ny = np.clip(-gy * s, -.96, .96)
+    nz = np.sqrt(np.maximum(1 - nx * nx - ny * ny, .02))
     normal = np.dstack([nx, ny, nz]) * .5 + .5
-    fibre = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), .8) * .012
+    # The yarn: a little fibre noise, plus the shade of the cable itself.  The
+    # shade is drawn from a blurred copy of the relief, because a black knit is
+    # read at a distance from the tone that pools in its valleys: the fine
+    # normals alone average out to one flat black once the cloth is far away.
+    fibre = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), .7) * .012
+    sigma = max(1.5, 5.0 * ppm / 2.0)          # a few millimetres of blur
+    broad = cv2.GaussianBlur(H, (0, 0), sigma)
+    level = (broad - broad.min()) / max(1e-4, float(broad.max() - broad.min()))
+    level = level ** 1.15
+    fine = (H - broad)
+    fine = fine / max(1e-6, float(np.abs(fine).max()))
+    shade = 1.0 + contrast * ((level - .45) * 2.0) + contrast * .55 * fine
     colour = np.array(tone, np.float32).reshape(1, 1, 3) * (
-        1 + contrast * (H - .35)[..., None] + fibre[..., None])
+        np.clip(shade, .30, 2.4)[..., None] + fibre[..., None])
     return np.clip(colour, 0, 255), normal
 
 

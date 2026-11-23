@@ -15,7 +15,7 @@ Usage:
 import io, json, pathlib, struct, sys
 import numpy as np
 import cv2
-from PIL import Image
+from PIL import Image, ImageFilter
 
 import weave
 
@@ -82,9 +82,16 @@ def draw_decals(cfg, atlas, size, circ, length):
         up = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS)).astype(np.float32) / 255.0
         sharpen = decal.get('sharpen')
         if sharpen:
-            # A small photograph upscaled four times blurs its own edge; a
-            # narrow smoothstep around half coverage pins it back down.
-            up = np.clip((up - .5) / sharpen + .5, 0, 1)
+            # A small photograph upscaled four times blocks up its own edge.
+            # Acutance is put back with an unsharp mask, then the ramp is pulled
+            # into a narrow smoothstep: the letters stay antialiased instead of
+            # turning into a staircase of source pixels.
+            im = Image.fromarray((np.clip(up, 0, 1) * 255).astype(np.uint8))
+            im = im.filter(ImageFilter.UnsharpMask(radius=1.3, percent=int(round(sharpen * 200)), threshold=0))
+            up = np.asarray(im).astype(np.float32) / 255.0
+            lo, hi = .5 - sharpen * .5, .5 + sharpen * .5
+            t = np.clip((up - lo) / max(1e-3, hi - lo), 0, 1)
+            up = t * t * (3 - 2 * t)
         cx = int(round(decal['center'][0] * size))
         cy = int(round(decal['center'][1] / length * size))
         # A print is flat when it is laid on the cloth and only then wraps: its
@@ -376,6 +383,11 @@ def build_glb(cfg, work):
         else:
             uv = uv.astype(np.float32).copy()
             uv[:, 1] = 1.0 - uv[:, 1]        # v runs down from the apex
+            if m['name'] in cfg.get('uv_swap', []):
+                # A collar is cut across the cloth: its stripes run along the
+                # collar's length, so the piece's two axes trade places before
+                # the tile is laid on.
+                uv = uv[:, ::-1]
             if tag == 'atlas':
                 uv = np.clip(uv, 0, 1)
             elif tag in ('tile', 'rib'):
