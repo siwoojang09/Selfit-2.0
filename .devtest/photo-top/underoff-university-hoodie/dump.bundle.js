@@ -13430,7 +13430,7 @@
   };
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
-  // garment-contact.mjs?v=2026-11-24f
+  // garment-contact.mjs?v=2026-11-24g
   var tau = Math.PI * 2;
   var directions = 32;
   var sectors = 64;
@@ -13541,7 +13541,7 @@
     } };
   }
 
-  // fit-body-sections.mjs?v=2026-11-24f
+  // fit-body-sections.mjs?v=2026-11-24g
   var sections = {
     female: [
       [306, 165, 86, 1624, 165, 166, 168, 171, 176, 182, 191, 202, 216, 232, 250, 264, 274, 281, 286, 291, 295, 300, 303, 306, 307, 307, 301, 294, 281, 267, 254, 234, 216, 202, 191, 182, 176, 171, 168, 166, 165],
@@ -13765,7 +13765,7 @@
     return avatars[model === "male" ? "male" : "female"];
   }
 
-  // hoodie-fit.mjs?v=2026-11-24f
+  // hoodie-fit.mjs?v=2026-11-24g
   var tau2 = 2 * Math.PI;
   var clamp2 = (x2, a2, b2) => Math.min(b2, Math.max(a2, x2));
   var mix2 = (a2, b2, t2) => a2 + (b2 - a2) * t2;
@@ -13906,7 +13906,7 @@
     } };
   }
 
-  // fabric-pbr.mjs?v=2026-11-24f
+  // fabric-pbr.mjs?v=2026-11-24g
   var tau3 = Math.PI * 2;
   var clamp3 = (v2, low, high) => v2 < low ? low : v2 > high ? high : v2;
   var wrapIndex = (i2, n2) => {
@@ -14045,7 +14045,7 @@
     return material;
   }
 
-  // hoodie-textile.mjs?v=2026-11-24f
+  // hoodie-textile.mjs?v=2026-11-24g
   var import_meta = {};
   var textiles = {
     knit: {
@@ -14134,7 +14134,7 @@
     });
   }
 
-  // hoodie-finishes.mjs?v=2026-11-24f
+  // hoodie-finishes.mjs?v=2026-11-24g
   var tau4 = Math.PI * 2;
   var lerp = Qn.lerp;
   function shifted(p2, a2, offset) {
@@ -14256,7 +14256,7 @@
     slider(0.979, 1, true);
   }
 
-  // cloth-dynamics.mjs?v=2026-11-24f
+  // cloth-dynamics.mjs?v=2026-11-24g
   var clamp4 = (v2, a2, b2) => v2 < a2 ? a2 : v2 > b2 ? b2 : v2;
   var fixedStep = 1 / 120;
   var accelerationLimit = 26;
@@ -14428,7 +14428,7 @@
   var _q = new Ii();
   var _identityMatrix = new cr();
 
-  // photo-hoodie.mjs?v=2026-11-24f
+  // photo-hoodie.mjs?v=2026-11-24g
   function pieceKey(name) {
     return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
   }
@@ -14837,16 +14837,16 @@
         let hoodDrape = function(v3, u2) {
           const s2 = u2 * 2 - 1, edge = Math.abs(s2);
           const widen = smooth(v3, 0.02, 0.4);
-          const x2 = s2 * lerp2(hoodSeamHalf, hoodHalf, widen);
+          const x2 = s2 * lerp2(hoodSeamHalf, hoodHalf, widen) * (1 - 0.13 * Math.pow(edge, 6));
           const drop = 0.206 + 0.052 * Math.pow(Math.cos(edge * Math.PI * 0.5), 1.5);
-          const creaseAmt = (18e-4 + 92e-4 * Math.max(0, 1 - edge * edge)) * smooth(v3, 0.04, 0.42);
-          const foldA = Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 3.1 + v3 * 0.8 + 0.5), 3);
-          const foldB = 0.45 * Math.pow(0.5 + 0.5 * Math.sin(s2 * Math.PI * 5.3 - v3 * 1.1 + 2.2), 4);
+          const creaseAmt = (2e-3 + 58e-4 * Math.max(0, 1 - edge * edge)) * smooth(v3, 0.04, 0.42);
+          const foldA = 0.5 + 0.5 * Math.sin(s2 * Math.PI * 1.7 + v3 * 0.55 + 0.5);
+          const foldB = 0.36 * (0.5 + 0.5 * Math.sin(s2 * Math.PI * 3.1 - v3 * 0.9 + 2.2));
           const crease = Math.min(1, foldA + foldB);
           const lift = creaseAmt * (0.35 - 1.05 * crease);
           const y2 = hoodSeamY - drop * Math.pow(v3, 0.9) + lift * 0.9;
           const back = hoodBack(x2, y2);
-          const standoff = 58e-4 + (8e-3 + 0.036 * Math.max(0, 1 - edge * edge)) * Math.pow(Math.sin(Math.PI * Math.min(1, v3)), 0.85) + 0.022 * Math.max(0, 1 - edge * edge) * smooth(v3, 0.72, 1);
+          const standoff = 6e-3 + (8e-3 + 0.03 * Math.max(0, 1 - edge * edge)) * Math.pow(Math.sin(Math.PI * Math.min(1, v3)), 0.85) + 0.02 * Math.max(0, 1 - edge * edge) * smooth(v3, 0.7, 1);
           return [x2, y2, back[2] - standoff + lift];
         };
         const hoodSeamY = 1.456;
@@ -15014,17 +15014,32 @@
         }
         if (!collar) {
           if (type === "shirt") {
-            panel(upper, shell, "Collar band", 8, 48, (v3, u2) => {
-              const a2 = tau5 * u2, c2 = Math.cos(a2), s2 = Math.sin(a2);
-              const phi = Math.PI * v3, rt2 = 55e-4, rc2 = 0.0655, rr2 = rc2 - rt2 * Math.cos(phi);
-              return [s2 * rr2, 1.4615 - 0.026 * Math.max(c2, 0) ** 2 + rt2 * Math.sin(phi), c2 * (rr2 - 75e-4) + 32e-4];
+            const collarGap = 0.1537;
+            const foldR = 0.0682, foldY = 1.4905;
+            const neckR = 0.0602, neckZ = 0.0538;
+            panel(upper, shell, "Collar band", 7, 60, (v3, u2) => {
+              const a2 = collarGap + u2 * (tau5 - 2 * collarGap), s2 = Math.sin(a2), c2 = Math.cos(a2);
+              const rx = lerp2(neckR, foldR, v3), rz = lerp2(neckZ, foldR, v3);
+              const y2 = lerp2(1.4562, foldY, v3) - 45e-4 * Math.max(0, c2) * (1 - v3);
+              return [s2 * rx, y2, c2 * rz + 32e-4];
             });
-            for (const sign of [-1, 1]) panel(upper, shell, "Point collar", 8, 14, (v3, u2) => {
-              const x2 = sign * lerp2(0.06 * u2, 0.118 * u2, smooth(v3, 0, 1));
-              const t2 = lerp2(6e-3, 0.108 + 0.062 * u2, v3);
-              const lift = 52e-4 + 6e-3 * smooth(v3, 0.15, 1) + 25e-4 * Math.sin(Math.PI * u2);
-              const p2 = frontAt(t2, x2, lift);
-              return [x2, p2[1] - 12e-4 * v3, p2[2]];
+            for (const sign of [-1, 1]) panel(upper, shell, "Point collar", 10, 40, (v3, u2) => {
+              const a2 = collarGap + u2 * (Math.PI - collarGap);
+              const ae2 = a2 + (0.6 - 0.154) * Math.pow(1 - u2, 1.6);
+              const s2 = sign * Math.sin(a2), c2 = Math.cos(a2);
+              const fx = s2 * foldR, fz = c2 * foldR + 32e-4;
+              const edgeR = foldR + 0.0152 + 0.0125 * (1 - u2);
+              const edgeY = foldY - 0.04 - 8e-3 * (1 - u2);
+              const ex = sign * Math.sin(ae2) * edgeR, ez = Math.cos(ae2) * edgeR + 32e-4;
+              const t2 = Math.pow(v3, 0.92);
+              const roll = 32e-4 * Math.sin(Math.PI * Math.pow(v3, 0.75));
+              let x2 = lerp2(fx, ex, t2), z2 = lerp2(fz, ez, t2), y2 = lerp2(foldY, edgeY, t2);
+              let r2 = Math.hypot(x2, z2 - 32e-4) + roll;
+              const under = bodyAt(clamp5((topY - y2) / bodyLength, 0, 0.97), a2);
+              const floor = Math.hypot(under[0], under[2] - 32e-4) + 45e-4;
+              if (r2 < floor) r2 = floor;
+              const face = Math.atan2(x2, z2 - 32e-4);
+              return [Math.sin(face) * r2, y2, Math.cos(face) * r2 + 32e-4];
             });
           } else {
             for (const sign of [-1, 1]) {

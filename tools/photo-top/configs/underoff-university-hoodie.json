@@ -79,8 +79,6 @@
     "tile": [
       "Sleeve",
       "Folded bottom hem",
-      "Folded hood",
-      "Lined hood opening",
       "Kangaroo pocket",
       "Drawstring"
     ],
@@ -103,6 +101,10 @@
     ],
     "button": [
       "Button"
+    ],
+    "shade": [
+      "Folded hood",
+      "Lined hood opening"
     ]
   },
   "sleeve_repeat": [
@@ -111,8 +113,8 @@
   ],
   "piece_repeat": {
     "Folded hood": [
-      7.0,
-      6.0
+      6.0,
+      5.6
     ],
     "Kangaroo pocket": [
       12.0,
@@ -173,5 +175,8 @@
     1.0,
     1.0,
     1.0
-  ]
+  ],
+  "shade": {
+    "gain": 0.9
+  }
 }

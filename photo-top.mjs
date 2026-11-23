@@ -11,7 +11,7 @@
 // show something the user did not photograph.
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
-const ASSET_VERSION = '2026-11-24g';
+const ASSET_VERSION = '2026-11-24h';
 const pending = new Map();
 const ready = new Map();
 

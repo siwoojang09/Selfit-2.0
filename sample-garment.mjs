@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24g';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24g';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24g';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24g';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24g';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24g';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24h';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24h';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24h';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24h';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24h';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24h';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -400,21 +400,23 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         // shoulder blades, and comes to a shallow point at the middle of the
         // back, which is where the crown of the hood ends up.
         const widen=smooth(v,.02,.40);
-        const x=s*lerp(hoodSeamHalf,hoodHalf,widen);
+        // The hood's side edges turn in against the shoulder seam, so the cloth
+        // ends in a fold rather than a cut line down the side of the back.
+        const x=s*lerp(hoodSeamHalf,hoodHalf,widen)*(1-.13*Math.pow(edge,6));
         const drop=.206+.052*Math.pow(Math.cos(edge*Math.PI*.5),1.5);
         // Creases gather the hem, so the bottom edge is a row of soft scallops
         // rather than a cut line.
-        const creaseAmt=(.0018+.0092*Math.max(0,1-edge*edge))*smooth(v,.04,.42);
-        const foldA=Math.pow(.5+.5*Math.sin(s*Math.PI*3.1+v*.8+.5),3);
-        const foldB=.45*Math.pow(.5+.5*Math.sin(s*Math.PI*5.3-v*1.1+2.2),4);
+        const creaseAmt=(.0020+.0058*Math.max(0,1-edge*edge))*smooth(v,.04,.42);
+        const foldA=.5+.5*Math.sin(s*Math.PI*1.7+v*.55+.5);
+        const foldB=.36*(.5+.5*Math.sin(s*Math.PI*3.1-v*.9+2.2));
         const crease=Math.min(1,foldA+foldB);
         const lift=creaseAmt*(.35-1.05*crease);
         const y=hoodSeamY-drop*Math.pow(v,.90)+lift*.9;
         const back=hoodBack(x,y);
         // Its own bulk: doubled cloth standing off the back, most of it in the
         // middle of the fall where the bag has body, and along the bottom edge.
-        const standoff=.0058+(.008+.036*Math.max(0,1-edge*edge))*Math.pow(Math.sin(Math.PI*Math.min(1,v)),.85)
-          +.022*Math.max(0,1-edge*edge)*smooth(v,.72,1);
+        const standoff=.0060+(.008+.030*Math.max(0,1-edge*edge))*Math.pow(Math.sin(Math.PI*Math.min(1,v)),.85)
+          +.020*Math.max(0,1-edge*edge)*smooth(v,.70,1);
         return [x,y,back[2]-standoff+lift];
       }
       if(pullover&&!pattern){

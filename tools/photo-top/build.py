@@ -356,6 +356,13 @@ def build_glb(cfg, work):
                                                      'metallicFactor': metal, 'roughnessFactor': rough}})
         return len(g.materials) - 1
 
+    # A hood is doubled cloth lying on the garment, not the garment's face:
+    # a shade of its own is what lets the eye find its edge and its folds.
+    shade = cfg.get('shade', {})
+    mat_shade = photo_material(cfg['id'] + ' hood shade', work / 'tile-color.png',
+                               work / 'tile-normal.png', work / 'tile-rough.png',
+                               [x * float(shade.get('gain', .9)) for x in gain], 1,
+                               cfg.get('normal_scale', 1.0))
     mat_thread = plain('tonal topstitch', [c / 255 * .92 for c in cfg.get('thread', (235, 235, 233))], .86)
     mat_button = plain('resin button', [c / 255 for c in cfg.get('button', (23, 23, 24))], .5)
     metal = cfg.get('metal', (.58, .57, .55))
@@ -364,11 +371,13 @@ def build_glb(cfg, work):
     lookup = {}
     for mat, names in (('atlas', groups.get('atlas', [])), ('tile', groups.get('tile', [])),
                        ('rib', groups.get('rib', [])), ('thread', groups.get('thread', [])),
-                       ('metal', groups.get('metal', [])), ('button', groups.get('button', []))):
+                       ('metal', groups.get('metal', [])), ('button', groups.get('button', [])),
+                       ('shade', groups.get('shade', []))):
         for n in names:
             lookup[n] = mat
     material_index = {'atlas': mat_atlas, 'tile': mat_tile, 'rib': mat_rib,
-                      'thread': mat_thread, 'metal': mat_metal, 'button': mat_button}
+                      'thread': mat_thread, 'metal': mat_metal, 'button': mat_button,
+                      'shade': mat_shade}
     rep_u, rep_v = cfg.get('sleeve_repeat', [4.0, 5.0])
     piece_repeat = cfg.get('piece_repeat', {})
 
@@ -390,7 +399,7 @@ def build_glb(cfg, work):
                 uv = uv[:, ::-1]
             if tag == 'atlas':
                 uv = np.clip(uv, 0, 1)
-            elif tag in ('tile', 'rib'):
+            elif tag in ('tile', 'rib', 'shade'):
                 ru, rv = piece_repeat.get(m['name'], (rep_u, rep_v))
                 uv = np.stack([uv[:, 0] * ru, uv[:, 1] * rv], 1)
         if arm:
