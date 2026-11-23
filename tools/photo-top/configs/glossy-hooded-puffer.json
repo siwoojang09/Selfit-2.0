@@ -1,0 +1,85 @@
+{
+  "id": "glossy-hooded-puffer",
+  "type": "puffer",
+  "category": "outer",
+  "color": "#0b0b0d",
+  "material": "cotton",
+  "measurements": {
+    "length": 67,
+    "shoulder": 52,
+    "chest": 66,
+    "sleeve": 61,
+    "hem": 58
+  },
+  "fabric": {
+    "mode": "puffer",
+    "tile": 0.25,
+    "tile_px": 512,
+    "grid_mm": 5.0,
+    "grid_amp": 0.26,
+    "grid_w_mm": 0.62,
+    "tone": [10, 10, 11],
+    "contrast": 0.55,
+    "crinkle_mm": 36.0,
+    "crinkle_amp": 0.60,
+    "fine_mm": 2.4,
+    "fine_amp": 0.06,
+    "roughness": 0.355,
+    "rough_var": 0.055,
+    "sheen": 0.55
+  },
+  "atlas": {
+    "size": 2048,
+    "circumference": 1.565,
+    "length": 0.64,
+    "seams": [0.135, 0.365, 0.595, 0.825],
+    "stitch": 0.0042,
+    "raglan": [
+      [0.045, 0.006, 0.246, 0.200],
+      [0.955, 0.006, 0.754, 0.200],
+      [0.455, 0.006, 0.254, 0.200],
+      [0.545, 0.006, 0.746, 0.200]
+    ]
+  },
+  "pieces": {
+    "atlas": ["Measured garment body"],
+    "tile": ["Sleeve", "Quilted hood", "Hood mouth edge", "Stand collar", "Collar top edge"],
+    "rib": ["Sleeve cuff", "Turned cuff edge"],
+    "thread": [],
+    "metal": ["Silver coil zipper", "Zipper slider", "Zipper slider pull",
+      "Lower zipper slider", "Lower zipper slider pull"],
+    "button": ["Hem drawcord", "Drawcord stopper"],
+    "shade": ["Zip tape", "Collar zip"]
+  },
+  "sleeve_repeat": [2.3, 2.4],
+  "piece_repeat": {
+    "Folded bottom hem": [5.8, 0.09],
+    "Quilted hood": [3.2, 1.2],
+    "Hood mouth edge": [3.2, 0.05],
+    "Stand collar": [1.9, 0.42],
+    "Collar top edge": [2.0, 0.06],
+    "Zip tape": [0.08, 2.4],
+    "Collar zip": [0.08, 0.4],
+    "Sleeve cuff": [6.6, 1.05],
+    "Turned cuff edge": [6.6, 1.2]
+  },
+  "rib": {
+    "tone": [9, 9, 10],
+    "tile": 0.045,
+    "period_mm": 4.6,
+    "depth": 0.30,
+    "roughness": 0.62
+  },
+  "normal_scale": 1.25,
+  "clearcoat": {
+    "factor": 0.62,
+    "roughness": 0.16
+  },
+  "thread": [46, 46, 48],
+  "button": [12, 12, 13],
+  "metal": [0.085, 0.085, 0.09],
+  "gain": [1.0, 1.0, 1.0],
+  "shade": {
+    "gain": 0.82
+  }
+}

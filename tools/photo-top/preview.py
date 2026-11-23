@@ -62,7 +62,23 @@ def sample(tex, uv):
 
 def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False):
     g, bin_ = load_glb()
-    prims = g['meshes'][0]['primitives']
+    prims = [(m['name'], p) for m in g['meshes'] for p in m['primitives']]
+    # The rig hangs the arms out to clear a padded body; the asset stores them
+    # in the shoulder's own frame, so a still render has to splay them itself.
+    splay = float(os.environ.get('ARM_SPLAY') or 0)
+
+    def splayed(name, pos):
+        if not splay or not ('Sleeve' in name or 'Cuff' in name):
+            return pos
+        side = 1 if pos[:, 0].mean() > 0 else -1
+        a = side * splay
+        c, s = np.cos(a), np.sin(a)
+        x = pos[:, 0] - side * .18
+        y = pos[:, 1] - 1.402
+        out = pos.copy()
+        out[:, 0] = side * .18 + x * c - y * s
+        out[:, 1] = 1.402 + x * s + y * c
+        return out
     tex = {}
     for mi, mat in enumerate(g['materials']):
         pbr = mat['pbrMetallicRoughness']
@@ -71,12 +87,12 @@ def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False)
         else:
             tex[mi] = np.array(pbr.get('baseColorFactor', [1, 1, 1, 1])[:3], np.float32).reshape(1, 1, 3)
 
-    pos_all = np.concatenate([accessor(g, bin_, p['attributes']['POSITION']) for p in prims])
+    pos_all = np.concatenate([splayed(n, accessor(g, bin_, p['attributes']['POSITION'])) for n, p in prims])
     lo, hi = pos_all.min(0), pos_all.max(0)
     centre = (lo + hi) / 2
     scale = (hi[1] - lo[1])
     tan = np.tan(np.radians(14))
-    span = scale * 1.08
+    span = scale * 1.16
     aspect = width / height
     right = np.array([np.cos(yaw), 0, -np.sin(yaw)])
     up = np.array([0, 1, 0])
@@ -95,8 +111,8 @@ def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False)
     light = np.array([-0.45, 0.62, 0.64]); light /= np.linalg.norm(light)
     fill = np.array([0.55, 0.25, 0.35]); fill /= np.linalg.norm(fill)
 
-    for p in prims:
-        pos = accessor(g, bin_, p['attributes']['POSITION'])
+    for name, p in prims:
+        pos = splayed(name, accessor(g, bin_, p['attributes']['POSITION']))
         uv = accessor(g, bin_, p['attributes']['TEXCOORD_0'])
         nrm = accessor(g, bin_, p['attributes']['NORMAL']) if 'NORMAL' in p['attributes'] else None
         idx = accessor(g, bin_, p['indices']).reshape(-1, 3)
@@ -145,6 +161,8 @@ def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False)
                 u = w0 * uv[tri[j, 0], 0] + w1 * uv[tri[j, 1], 0] + w2 * uv[tri[j, 2], 0]
                 v = w0 * uv[tri[j, 0], 1] + w1 * uv[tri[j, 1], 1] + w2 * uv[tri[j, 2], 1]
                 c = sample(t, np.stack([u[keep], v[keep]], 1)) if t.shape[0] > 1 else np.broadcast_to(t[0, 0], (keep.sum(), 3))
+                if solid:
+                    c = np.broadcast_to(np.array([0.62, 0.64, 0.68], np.float32), (keep.sum(), 3))
                 if N is not None:
                     nn = (w0[keep, None] * N[j, 0] + w1[keep, None] * N[j, 1] + w2[keep, None] * N[j, 2])
                     nn /= np.maximum(np.linalg.norm(nn, axis=1, keepdims=True), 1e-6)

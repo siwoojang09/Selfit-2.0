@@ -150,6 +150,57 @@ def _yoke(cfg, atlas, size, length):
         atlas[seam:end, centre + dx] *= k
 
 
+def _puffer_shell(cfg, atlas, size, circ, length):
+    """Draw the sewn lines of a down jacket into the atlas' own height field.
+
+    A baffle seam is not a printed stripe: the cloth is caught by a stitch and
+    the filling swells on both sides of it. The atlas carries the groove and the
+    thread's dashes in relief, so the light finds the seam the way it does on
+    the jacket, and the channel's own swell is left to the geometry.
+    """
+    ppmy = size / (length * 1000.0)
+    rows = np.arange(size) + .5
+    for v in cfg['atlas'].get('seams', []):
+        d = (rows - v * size) / ppmy                       # mm from the seam
+        atlas -= .34 * np.exp(-(d / 1.35) ** 2)[:, None]
+        atlas += .09 * np.exp(-((d - 2.4) / .70) ** 2)[:, None]
+        # The stitch itself: a dashed thread a millimetre under the seam.
+        dash = (np.mod(np.arange(size) + 3, 11) < 6).astype(np.float32)
+        atlas += .08 * np.exp(-((d - 1.6) / .32) ** 2)[:, None] * dash[None, :]
+    for seg in cfg['atlas'].get('raglan', []):
+        for shift in (-1, 0, 1):
+            _groove(atlas, seg, circ, length, shift)
+    return atlas
+
+
+def _groove(H, seg, circ, length, shift, width=1.30, depth=.34):
+    """A seam along a line in pattern space (u around the body, v down from the
+    neck), drawn into the height field where that line falls in the atlas."""
+    size = H.shape[1]
+    W, L = circ * 1000.0, length * 1000.0
+    u0, v0, u1, v1 = seg
+    p0 = np.array([(u0 + shift) * W, v0 * L])
+    p1 = np.array([(u1 + shift) * W, v1 * L])
+    xs = (np.arange(size) + .5) / size * W
+    ys = (np.arange(size) + .5) / size * L
+    lo, hi = np.minimum(p0, p1) - 6, np.maximum(p0, p1) + 6
+    ix = np.where((xs >= lo[0]) & (xs <= hi[0]))[0]
+    iy = np.where((ys >= lo[1]) & (ys <= hi[1]))[0]
+    if not len(ix) or not len(iy):
+        return
+    X = xs[ix][None, :]
+    Y = ys[iy][:, None]
+    d = p1 - p0
+    t = np.clip(((X - p0[0]) * d[0] + (Y - p0[1]) * d[1]) / max(1e-6, d[0] ** 2 + d[1] ** 2), 0, 1)
+    dist = np.hypot(X - (p0[0] + t * d[0]), Y - (p0[1] + t * d[1]))
+    patch = H[np.ix_(iy, ix)]
+    patch -= depth * np.exp(-(dist / width) ** 2)
+    along = t * np.hypot(d[0], d[1])
+    dash = (np.mod(along + 2, 10) < 5).astype(np.float32)
+    patch += .07 * np.exp(-((dist - 1.5) / .32) ** 2) * dash
+    H[np.ix_(iy, ix)] = patch
+
+
 def build_atlas(cfg, work):
     size = cfg['atlas']['size']
     circ = cfg['atlas']['circumference']
@@ -194,6 +245,45 @@ def build_atlas(cfg, work):
         Image.fromarray(((np.clip(nrm, -1, 1) * .5 + .5) * 255).astype(np.uint8)).save(work / 'atlas-normal.png')
         Image.fromarray((np.clip(rgh, .6, .99) * 255).astype(np.uint8)).save(work / 'atlas-rough.png')
         print('atlas', atlas.shape, 'mean', atlas.reshape(-1, 3).mean(0).round(1))
+        return
+    if fabric.get('mode') == 'puffer':
+        # A ripstop shell: a fine grid of heavier yarn under creases the size of
+        # a hand, and every seam that holds its filling sewn into the relief.
+        fields = {k: fabric[k] for k in ('grid_mm', 'grid_amp', 'grid_w_mm', 'crinkle_mm',
+                                         'crinkle_amp', 'fine_mm', 'fine_amp') if k in fabric}
+        shell = cfg.get('shell', {})
+        H = weave.ripstop(size, size, (circ, length), **fields)
+        H = _puffer_shell(cfg, H, size, circ, length)
+        # The atlas' u=0 and u=1 are the same centre-front line; the cloth must
+        # meet itself there or a bright line runs down the chest.
+        n = 24
+        w = np.linspace(0, 1, n).reshape(1, n)
+        H[:, -n:] = H[:, -n:] * (1 - w) + H[:, :n] * w
+        colour, normal, rgh = weave.quilt_maps(H, (circ, length),
+                                               tone=tuple(fabric.get('tone', (10, 10, 11))),
+                                               contrast=fabric.get('contrast', .55),
+                                               rough=fabric.get('roughness', .36),
+                                               rough_var=fabric.get('rough_var', .055),
+                                               slope=fabric.get('slope', 1.6))
+        Image.fromarray(colour.astype(np.uint8)).save(work / 'atlas.png')
+        Image.fromarray(normal.astype(np.uint8)).save(work / 'atlas-normal.png')
+        Image.fromarray((np.clip(rgh, 0, 1) * 255).astype(np.uint8)).save(work / 'atlas-rough.png')
+        # The swatch the sleeves, hood and collar wear: the same cloth at the
+        # resolution a cuff seen up close needs.
+        px = int(fabric.get('tile_px', 512))
+        tile_m = fabric['tile']
+        HT = weave.ripstop(px, px, tile_m, **{k: v for k, v in fields.items()})
+        tcol, tnrm, trgh = weave.quilt_maps(HT, tile_m,
+                                            tone=tuple(fabric.get('tone', (10, 10, 11))),
+                                            contrast=fabric.get('contrast', .55),
+                                            rough=fabric.get('roughness', .36),
+                                            rough_var=fabric.get('rough_var', .055),
+                                            slope=fabric.get('slope', 1.6))
+        Image.fromarray(tcol.astype(np.uint8)).save(work / 'tile-color.png')
+        Image.fromarray(tnrm.astype(np.uint8)).save(work / 'tile-normal.png')
+        Image.fromarray((np.clip(trgh, 0, 1) * 255).astype(np.uint8)).save(work / 'tile-rough.png')
+        print('atlas', colour.shape, 'tone', colour.reshape(-1, 3).mean(0).round(1),
+              'relief %.2f mm' % float(H.std()))
         return
     color = np.asarray(Image.open(work / 'tile-color.png').convert('RGB')).astype(np.float32)
     normal = np.asarray(Image.open(work / 'tile-normal.png').convert('RGB')).astype(np.float32) / 255.0 * 2 - 1
@@ -381,6 +471,19 @@ def build_glb(cfg, work):
     rep_u, rep_v = cfg.get('sleeve_repeat', [4.0, 5.0])
     piece_repeat = cfg.get('piece_repeat', {})
 
+    # A coated shell has a second, smoother reflection on top of the cloth's own:
+    # that is the wet black shine of a down jacket, and glTF carries it as a
+    # clear coat over the base material.
+    coat = cfg.get('clearcoat')
+    if coat:
+        for mat in g.materials:
+            pbr = mat.get('pbrMetallicRoughness', {})
+            if 'baseColorTexture' in pbr and 'normalTexture' in mat:
+                mat.setdefault('extensions', {})['KHR_materials_clearcoat'] = {
+                    'clearcoatFactor': float(coat.get('factor', .6)),
+                    'clearcoatRoughnessFactor': float(coat.get('roughness', .2)),
+                }
+
     for i, m in enumerate(meta):
         pos = data[f'p{i}_pos'].astype(np.float32)
         idx = data[f'p{i}_idx'].astype(np.uint32).reshape(-1, 3)
@@ -428,7 +531,8 @@ def build_glb(cfg, work):
         'nodes': g.nodes, 'meshes': g.meshes, 'materials': g.materials,
         'textures': g.textures, 'images': g.images, 'samplers': g.samplers,
         'accessors': g.accessors, 'bufferViews': g.views,
-        'buffers': [{'byteLength': len(g.bin)}], 'extensionsUsed': [],
+        'buffers': [{'byteLength': len(g.bin)}],
+        'extensionsUsed': ['KHR_materials_clearcoat'] if cfg.get('clearcoat') else [],
     }
     g.pad()
     js = json.dumps(gltf, separators=(',', ':')).encode('utf-8')

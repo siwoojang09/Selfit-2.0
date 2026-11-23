@@ -181,3 +181,71 @@ def rib(w, h, tile_m, period_mm=5.5, tone=(150, 60, 64), horizontal=False,
     nz = np.sqrt(np.maximum(1 - nx * nx - ny * ny, .04))
     normal = np.dstack([nx, ny, nz]) * .5 + .5
     return np.clip(colour, 0, 255), normal
+
+
+def ripstop(w, h, tile_m, grid_mm=5.0, grid_amp=.26, grid_w_mm=.62,
+            crinkle_mm=36.0, crinkle_amp=.60, fine_mm=9.0, fine_amp=.06,
+            seed=5):
+    """The relief of a ripstop shell, as a height field in millimetres.
+
+    A down jacket's nylon is woven from a fine yarn with a heavier thread every
+    few millimetres both ways: that grid is the ripstop, and it is what stops a
+    tear. Over it the shell is crushed into creases the size of a hand, which is
+    what a glossy black cloth actually shows — the creases are not colour, they
+    are a slope, so they belong in the height field and not in the albedo.
+
+    The field is returned in millimetres and not as a normal, because a seam is
+    a groove drawn into the same cloth: the caller adds its stitches and only
+    then asks for the normals.
+    """
+    import cv2
+    tx, ty = tile_m if isinstance(tile_m, (tuple, list)) else (tile_m, tile_m)
+    ppmx = w / (tx * 1000.0)
+    ppmy = h / (ty * 1000.0)
+    rng = np.random.default_rng(seed)
+
+    def field(cell_mm, amp, blur=1.1):
+        cx = max(3, int(round(tx * 1000.0 / cell_mm)) + 2)
+        cy = max(3, int(round(ty * 1000.0 / cell_mm)) + 2)
+        raw = rng.normal(0, 1, (cy, cx)).astype(np.float32)
+        raw = cv2.GaussianBlur(raw, (0, 0), blur)
+        up = cv2.resize(raw, (w, h), interpolation=cv2.INTER_CUBIC)
+        return up * amp / max(1e-6, float(np.abs(up).std()))
+
+    # Creases: broad ones the size of the panels, then a finer set over them.
+    H = field(crinkle_mm, crinkle_amp)
+    H += field(max(6.0, crinkle_mm * .34), crinkle_amp * .40)
+    H += field(max(3.0, fine_mm), fine_amp)
+    # The ripstop grid: a heavier yarn every few millimetres, both ways.
+    X = ((np.arange(w) + .5) / ppmx)[None, :]
+    Y = ((np.arange(h) + .5) / ppmy)[:, None]
+    gx = np.clip(1 - (np.abs(X / grid_mm - np.round(X / grid_mm)) * grid_mm / grid_w_mm) ** 2, 0, 1)
+    gy = np.clip(1 - (np.abs(Y / grid_mm - np.round(Y / grid_mm)) * grid_mm / grid_w_mm) ** 2, 0, 1)
+    # A grid line narrower than a texel cannot be drawn: fade it out instead of
+    # letting it alias into a moire.
+    fade = min(np.clip(grid_w_mm * ppmx - .8, 0, 1), np.clip(grid_w_mm * ppmy - .8, 0, 1))
+    H = H + grid_amp * fade * np.maximum(gx, gy)
+    return H
+
+
+def quilt_maps(H, tile_m, tone=(10, 10, 11), contrast=.55, rough=.36,
+               rough_var=.055, slope=1.6):
+    """Colour, normal and roughness from a shell's height field (millimetres)."""
+    w, h = H.shape
+    tx, ty = tile_m if isinstance(tile_m, (tuple, list)) else (tile_m, tile_m)
+    ppmx = w / (tx * 1000.0)
+    ppmy = h / (ty * 1000.0)
+    gy, gx = np.gradient(H)
+    gx *= ppmx
+    gy *= ppmy
+    nx = np.clip(-gx * slope, -.95, .95)
+    ny = np.clip(-gy * slope, -.95, .95)
+    nz = np.sqrt(np.maximum(1 - nx * nx - ny * ny, .02))
+    normal = (np.dstack([nx, ny, nz]) * .5 + .5) * 255
+    # A glossy shell is one dyed black; what the eye reads as tone is the shade
+    # that pools in its creases.
+    span = max(1e-4, float(np.percentile(np.abs(H - H.mean()), 92)))
+    level = (H - H.mean()) / span
+    colour = np.array(tone, np.float32).reshape(1, 1, 3) * np.clip(1 + contrast * level, .45, 1.9)[..., None]
+    rgh = np.clip(rough + rough_var * np.clip(level, -1, 1), .18, .85)
+    return np.clip(colour, 0, 255), normal, rgh
