@@ -1,15 +1,15 @@
 import * as THREE from './vendor/three.module.js';
-import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24i';
-import { attachSample } from './sample-garment.mjs?v=2026-11-24i';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-24i';
-import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24i';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24i';
-import {wearer} from './hoodie-fit.mjs?v=2026-11-24i';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-24i';
-import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24i';
-import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24i';
-import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24i';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-24i';
+import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24j';
+import { attachSample } from './sample-garment.mjs?v=2026-11-24j';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-24j';
+import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24j';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24j';
+import {wearer} from './hoodie-fit.mjs?v=2026-11-24j';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-24j';
+import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24j';
+import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24j';
+import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24j';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-24j';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -288,10 +288,12 @@ export function createScene(container, opts) {
   // The body study isolates the anatomical mesh while reusing the fitting skeleton.
   scene.traverse(object=>object.layers.enable(1));
   let body, wardrobe, top, lower, lookKey, sampleGarment;
-  // The photograph is one asset for the whole scene: once it is in hand every
-  // look can wear it, so it is not a per-look request. Until then the pooled
-  // jeans hide rather than stand in with the drawn pattern.
-  let denimAsset = null, denimLoading = false;
+  // Photographed trousers are kept per garment: the chino and the jeans are two
+  // different files, and switching from one pair to the other has to swap the
+  // mesh, not keep the first one the scene happened to load. Until a pair is in
+  // hand its look hides rather than stands in with the drawn pattern.
+  const denimAssets = new Map();      // id -> parsed asset
+  const denimLoading = new Set();     // ids whose transfer is in flight
   // The photographed hoodie is one asset for the scene as well: the first look
   // that asks for it starts the transfer, and every later look wears it at once.
   let hoodieAsset = null, hoodieLoading = false;
@@ -336,9 +338,15 @@ export function createScene(container, opts) {
   function selectLook() {
     const model=opts.model==='male'?'male':'female';
     const outfit=['tailored','casual'].includes(opts.outfit)?opts.outfit:'classic';
-    // Take the already-parsed asset before the look is built, so a fresh look
-    // starts out wearing it instead of being rebuilt one frame later.
-    if(!denimAsset && hasPhotoGarment(opts.pants)) denimAsset=peekGarment(opts.pants.id);
+    // Take the already-parsed asset of THIS pair before the look is built, so
+    // a fresh look starts out wearing the right file instead of the pair the
+    // scene wore last, one frame later.
+    const pantsId=opts.pants&&opts.pants.id?String(opts.pants.id):'';
+    if(pantsId&&hasPhotoGarment(opts.pants)&&!denimAssets.has(pantsId)){
+      const ready=peekGarment(pantsId);
+      if(ready)denimAssets.set(pantsId,ready);
+    }
+    const pantsAsset=pantsId?denimAssets.get(pantsId)||null:null;
     const key=[model,outfit,opts.bottom||'',Boolean(opts.sample),opts.pants?opts.pants.id:'none',opts.pants?(opts.pants.material||'denim'):'default'].join('-');
     if(key===lookKey)return false;
     if(body){sampleGarment?.dispose();sampleGarment=null;scene.remove(body.group,wardrobe.group);}
@@ -348,18 +356,18 @@ export function createScene(container, opts) {
       const shirt=clothMaterial(colors.top), bottom=clothMaterial(colors.lower);
       const figure=makeMannequin(shirt,model);
       const clothes=createWardrobe(THREE,figure,{top:shirt,lower:bottom},{...opts,model,outfit,
-        photoPants:hasPhotoGarment(opts.pants),photoAsset:denimAsset});
+        photoPants:hasPhotoGarment(opts.pants),photoAsset:pantsAsset});
       figure.pose(0,false);
       clothes.pose(0,{...opts,walking:false},0);
       if(!opts.sample && !opts.pants)projectWardrobe(figure,clothes,model,outfit,{top:shirt,lower:bottom},()=>{dirty=true;});
       setTextile(shirt,'cotton',()=>{dirty=true;});
-      look={body:figure,wardrobe:clothes,top:shirt,lower:bottom};
+      look={body:figure,wardrobe:clothes,top:shirt,lower:bottom,pantsId};
       lookCache.set(key,look);
     }
     ({body,wardrobe,top,lower}=look);
-    // A look pooled before the asset finished loading takes it now instead of
-    // staying on the drawn stand-in it was built with.
-    if(denimAsset && !wardrobe.denimAsset) wardrobe.setDenimAsset(denimAsset);
+    // A look pooled before its own file finished loading takes it now; a look
+    // that was wearing another pair swaps to this one.
+    if(pantsAsset && wardrobe.denimAsset!==pantsAsset) wardrobe.setDenimAsset(pantsAsset);
     scene.add(body.group,wardrobe.group);
     lookKey=key;
     return true;
@@ -421,33 +429,37 @@ export function createScene(container, opts) {
   // may have to wait for the transfer; after that the parsed asset is shared, so
   // a new look, a size change or a model switch wears it immediately.
   function adoptDenimAsset() {
-    if (!denimAsset) {
-      denimAsset = peekGarment(opts.pants.id);
-      if (!denimAsset) {
-        if (denimLoading) return;
-        denimLoading = true;
-        document.documentElement.dataset.denim = 'loading';
-        loadGarmentAsset(opts.pants.id).then(asset => {
-          denimAsset = asset;
-          let worn = false;
-          for (const look of lookCache.values()) worn = look.wardrobe.setDenimAsset(asset) || worn;
-          document.documentElement.dataset.denim = worn ? 'worn ' + asset.parts.length : 'mismatch';
-          if (worn) {
-            settle();
-            dirty = true;
-          }
-        }).catch(error => {
-          document.documentElement.dataset.denim = 'failed ' + (error && error.message || error);
-          console.warn('denim asset', error);
-        }).finally(() => { denimLoading = false; });
-        return;
-      }
-      for (const look of lookCache.values()) look.wardrobe.setDenimAsset(denimAsset);
+    const id = opts.pants && opts.pants.id ? String(opts.pants.id) : '';
+    if (!id || !hasPhotoGarment(opts.pants)) return;
+    let asset = denimAssets.get(id) || peekGarment(id);
+    if (!asset) {
+      if (denimLoading.has(id)) return;
+      denimLoading.add(id);
+      document.documentElement.dataset.denim = 'loading ' + id;
+      loadGarmentAsset(id).then(loaded => {
+        denimAssets.set(id, loaded);
+        let worn = false;
+        // Only the looks cut for this pair may wear it; a pooled look of the
+        // other pair keeps its own file.
+        for (const look of lookCache.values()) {
+          if (look.pantsId === id) worn = look.wardrobe.setDenimAsset(loaded) || worn;
+        }
+        document.documentElement.dataset.denim = worn ? 'worn ' + id + ' ' + loaded.parts.length : 'mismatch ' + id;
+        if (worn) {
+          settle();
+          dirty = true;
+        }
+      }).catch(error => {
+        document.documentElement.dataset.denim = 'failed ' + id + ' ' + (error && error.message || error);
+        console.warn('denim asset', error);
+      }).finally(() => { denimLoading.delete(id); });
+      return;
     }
-    if (!wardrobe.denimAsset) wardrobe.setDenimAsset(denimAsset);
+    denimAssets.set(id, asset);
+    if (wardrobe.denimAsset !== asset) wardrobe.setDenimAsset(asset);
     // The asset arrived from cache this time, so nothing above announced it.
-    if (wardrobe.denimAsset) {
-      const state = 'worn ' + denimAsset.parts.length;
+    if (wardrobe.denimAsset === asset) {
+      const state = 'worn ' + id + ' ' + asset.parts.length;
       if (document.documentElement.dataset.denim !== state) document.documentElement.dataset.denim = state;
     }
   }
