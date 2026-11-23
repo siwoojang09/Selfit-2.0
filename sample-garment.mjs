@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24h';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24h';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24h';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24h';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24h';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24h';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24i';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24i';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24i';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24i';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24i';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24i';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -588,7 +588,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           // leaves are what you see; the stand is what makes the collar stand
           // up at the back of the neck instead of lying flat like a lapel.
           const collarGap=.1537;                 // half the front opening, rad
-          const foldR=.0682, foldY=1.4905;       // where the leaf turns over
+          const foldR=.0668, foldY=1.4835;       // where the leaf turns over
           const neckR=.0602, neckZ=.0538;        // where the stand is sewn in
           panel(upper,shell,'Collar band',7,60,(v,u)=>{
             const a=collarGap+u*(tau-2*collarGap),s2=Math.sin(a),c=Math.cos(a);
@@ -613,8 +613,8 @@ export function attachSample(body,initial={},lowerColliders=[]) {
             // The leaf hangs from the fold rather than spreading over the
             // shoulders: it falls most of its width and stands only a couple of
             // centimetres off the neck, which is what a shirt collar does.
-            const edgeR=foldR+.0152+.0125*(1-u);
-            const edgeY=foldY-.0400-.0080*(1-u);
+            const edgeR=foldR+.0215+.0140*(1-u);
+            const edgeY=foldY-.0520-.0090*(1-u);
             const ex=sign*Math.sin(ae)*edgeR, ez=Math.cos(ae)*edgeR+.0032;
             const t=Math.pow(v,.92);
             // A soft roll just under the fold, where the cloth turns over the
