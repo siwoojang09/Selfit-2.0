@@ -1,9 +1,9 @@
 // Both renderers consume the same deformed vertices. Keep bind-pose data immutable
 // because several cached outfits can share the same anatomical source mesh.
 import * as THREE from './vendor/three.module.js';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24l';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24l';
-import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-24l';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24m';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24m';
+import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-24m';
 
 export function attachAnatomicalBody(source, root, parts, model='female') {
   // Everything below is authored on the 178 cm frame; the body it classifies is

@@ -12,8 +12,8 @@
 // pockets, rivets and the hem cuff are surfaces offset from that same grid, so
 // they inherit the pose deformation, the solver's secondary motion and the wash
 // UVs of the cloth underneath them.
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24l';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24l';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24m';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24m';
 
 const tau=2*Math.PI, columns=64, rows=96;
 const hipJoint=.93,kneeFromHip=.438;
@@ -566,6 +566,9 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       p.theta=new Float32Array(n);p.nx=new Float32Array(n);p.nz=new Float32Array(n);
       p.zoneKnee=new Float32Array(n);p.zoneThigh=new Float32Array(n);
       p.baseKnee=new Float32Array(n);p.baseThigh=new Float32Array(n);p.ripple=new Float32Array(n);
+      p.drapeEnv=new Float32Array(n);
+      p.drapeS1=new Float32Array(n);p.drapeC1=new Float32Array(n);
+      p.drapeS2=new Float32Array(n);p.drapeC2=new Float32Array(n);
       for(let v=0;v<n;v++){
         const f=clamp((p.rest[v*3+1]-low)/(high-low)*levels,0,levels-.00001);
         const r=Math.floor(f);
@@ -581,6 +584,19 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         p.zoneThigh[v]=Math.exp(-b*b*1.5)*(.24+.76*Math.max(0,front))*.62;
         p.baseKnee[v]=a*7.4;p.baseThigh[v]=b*7.4;
         p.ripple[v]=theta*2.6+drop*6.8;
+        // Vertical drape, baked per vertex so the frame only rotates the wave:
+        // a wide leg hangs in two or three long folds from under the hip to
+        // the hem, and they have to be cut into the tube rather than shaded on
+        // it. The envelope leaves the seat, the band and the cuff alone, and
+        // the angular weight keeps a ridge off the inner seam where the two
+        // legs fold against each other.
+        const under=smooth(hipAt-.015,hipAt+.10,drop)*(1-.30*smooth(cutLength-.06,cutLength,drop));
+        const fr=Math.max(0,Math.cos(theta)),out=Math.max(0,side*Math.sin(theta)),ins=Math.max(0,-side*Math.sin(theta));
+        const across=Math.max(.05,.28+.72*Math.pow(fr,.8)+.60*Math.pow(out,1.15)-1.0*Math.pow(ins,.75));
+        p.drapeEnv[v]=under*across;
+        const foldA=8.2*theta+2.1*drop+side*.75,foldB=4.6*theta+1.2*drop+1.25-side*1.6;
+        p.drapeS1[v]=Math.sin(foldA);p.drapeC1[v]=Math.cos(foldA);
+        p.drapeS2[v]=Math.sin(foldB);p.drapeC2[v]=Math.cos(foldB);
       }
     }
     const probeIndex=[];
@@ -625,8 +641,18 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       for(let j=0;j<frames.length;j++){
         ripple[j]=Math.min(.0021,.0072*Math.hypot(solver.velocity[j*3],solver.velocity[j*3+2]));
       }
+      // The drape lives and dies with the swing. Swinging back or folding at the
+      // knee lets the cloth gather, so the folds deepen all the way to the hem;
+      // reaching forward pulls the front taut and the crests slide round the leg.
+      const fwd=clamp((upper.b.z-upper.a.z)/.18,-1,1);
+      const taut=Math.max(0,fwd),trail=Math.max(0,-fwd),swingLeg=leg.side||1;
+      const drapeAmp=.0160*(.76+.30*knee+.24*trail-.22*taut)*(.88+.12*Math.sin(phase*2+i*Math.PI));
+      const shift=(.34*fwd+.13*Math.sin(phase+i*1.7))*swingLeg;
+      const d1c=Math.cos(shift),d1s=Math.sin(shift),d2c=Math.cos(shift*1.4),d2s=Math.sin(shift*1.4);
+      const foldW2=.38+.14*knee+.10*trail,foldW1=1-foldW2;
       for(const piece of pieces){
-        const {mesh,rest,row,ratio,theta,nx,nz,zoneKnee,zoneThigh,baseKnee,baseThigh}=piece;
+        const {mesh,rest,row,ratio,theta,nx,nz,zoneKnee,zoneThigh,baseKnee,baseThigh,
+          drapeEnv,drapeS1,drapeC1,drapeS2,drapeC2}=piece;
         const attr=mesh.geometry.attributes.position,arr=attr.array;
         if(piece.rigid){
           const q=piece.rest;
@@ -655,6 +681,14 @@ export function makeMeasuredPants(T,group,body,mat,opts){
           const amp=mix(ripple[r],ripple[r+1],t);
           if(amp>1e-5)de+=amp*Math.sin(piece.ripple[k]-time*3.2);
           if(Math.abs(de)>creaseAmp)creaseAmp=Math.abs(de);
+          const env=drapeEnv[k];
+          if(env>1e-4){
+            // sin x + .3 sin 2x: a sharper crest and a broader valley, the way a
+            // hanging fold sits, instead of a symmetrical wave.
+            const s1=drapeS1[k]*d1c+drapeC1[k]*d1s,c1=drapeC1[k]*d1c-drapeS1[k]*d1s;
+            const s2=drapeS2[k]*d2c+drapeC2[k]*d2s,c2=drapeC2[k]*d2c-drapeS2[k]*d2s;
+            de+=drapeAmp*env*(foldW1*(s1+.34*(2*s1*c1))+foldW2*(s2+.22*(2*s2*c2)));
+          }
           const x=rest[q2]+nx[k]*de,z=rest[q2+2]+nz[k]*de;
           arr[q2]=cs*x-sn*z+mix(fa.x,fb.x,t)+solver.at(r,t,0);
           arr[q2+1]=rest[q2+1]+mix(fa.y,fb.y,t)+solver.at(r,t,1);
