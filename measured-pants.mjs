@@ -646,7 +646,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       // reaching forward pulls the front taut and the crests slide round the leg.
       const fwd=clamp((upper.b.z-upper.a.z)/.18,-1,1);
       const taut=Math.max(0,fwd),trail=Math.max(0,-fwd),swingLeg=leg.side||1;
-      const drapeAmp=.0160*(.76+.30*knee+.24*trail-.22*taut)*(.88+.12*Math.sin(phase*2+i*Math.PI));
+      const drapeAmp=.0200*(.72+.30*knee+.23*trail-.24*taut)*(.88+.12*Math.sin(phase*2+i*Math.PI));
       const shift=(.34*fwd+.13*Math.sin(phase+i*1.7))*swingLeg;
       const d1c=Math.cos(shift),d1s=Math.sin(shift),d2c=Math.cos(shift*1.4),d2s=Math.sin(shift*1.4);
       const foldW2=.38+.14*knee+.10*trail,foldW1=1-foldW2;
@@ -687,7 +687,8 @@ export function makeMeasuredPants(T,group,body,mat,opts){
             // hanging fold sits, instead of a symmetrical wave.
             const s1=drapeS1[k]*d1c+drapeC1[k]*d1s,c1=drapeC1[k]*d1c-drapeS1[k]*d1s;
             const s2=drapeS2[k]*d2c+drapeC2[k]*d2s,c2=drapeC2[k]*d2c-drapeS2[k]*d2s;
-            de+=drapeAmp*env*(foldW1*(s1+.34*(2*s1*c1))+foldW2*(s2+.22*(2*s2*c2)));
+            de+=drapeAmp*env*(foldW1*(s1+.45*(2*s1*c1)+.16*s1*(3-4*s1*s1))
+              +foldW2*(s2+.26*(2*s2*c2)+.10*s2*(3-4*s2*s2)));
           }
           const x=rest[q2]+nx[k]*de,z=rest[q2+2]+nz[k]*de;
           arr[q2]=cs*x-sn*z+mix(fa.x,fb.x,t)+solver.at(r,t,0);
