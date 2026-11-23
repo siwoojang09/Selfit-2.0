@@ -198,6 +198,52 @@ def draw_button(atlas):
     return atlas
 
 
+def delight(img, broad=110.0, mid=32.0, power=.85, mid_power=.30, column=32.0, tone=None):
+    """Lift the flat lay's own shading out of the colour before it is baked.
+
+    The photograph carries two kinds of shade that do not belong on the cloth:
+    the sweep's broad falloff and, worse, the soft dark bands the trousers were
+    lying in. Baked into albedo they stay nailed to the surface, so a leg that
+    swings forward keeps its photograph's fold in the same place, and the model
+    reads as a picture wrapped round a tube.
+
+    Each column of the atlas runs down one line of the cloth, and a fold band
+    darkens that whole line. So the illumination is estimated twice: as a broad
+    two dimensional blur (which leaves stitches, seams and pocket outlines
+    alone because they are far sharper), and as the median of every column
+    (which is what a vertical band shifts). Dividing by both flattens the shade
+    while the sewn detail stays, because the median of a column is not moved by
+    a few millimetres of topstitch.
+    """
+    h, w, _ = img.shape
+    lum = img @ np.array([.213, .715, .072], np.float32)
+
+    def wrap_blur(field, sigma):
+        pad = int(max(3, sigma * 3))
+        p = cv2.copyMakeBorder(field, pad, pad, pad, pad, cv2.BORDER_WRAP)
+        return cv2.GaussianBlur(p, (0, 0), sigma)[pad:-pad, pad:-pad]
+
+    amount = (np.power(wrap_blur(lum, broad) / np.maximum(lum, 1.), power)
+              * np.power(wrap_blur(lum, mid) / np.maximum(lum, 1.), mid_power))
+    flat = lum * amount
+    med = np.median(flat, axis=0)
+    gain = np.median(med) / np.maximum(med, 1.)
+    pad = int(max(3, column * 3))
+    ext = np.concatenate([gain[-pad:], gain, gain[:pad]])
+    gain = cv2.GaussianBlur(ext.reshape(1, -1), (0, 0), column).ravel()[pad:pad + w]
+    total = np.clip(amount * gain[None, :], .68, 1.45)
+    out = img * total[..., None]
+    if tone is not None:
+        # Flattening lifts the shaded parts, so the cloth would read several
+        # tones paler than the garment. Take the photograph's own median colour
+        # back, so only the *variation* is gone and the beige is the beige.
+        tone = np.asarray(tone, np.float32)
+        lit = out @ np.array([.213, .715, .072], np.float32)
+        out = tone[None, None, :] * (lit / max(float(tone @ np.array([.213, .715, .072], np.float32)), 1.))[..., None] \
+            + .25 * (out - lit[..., None])
+    return np.clip(out, 0, 255)
+
+
 def normal_from(img, strength=1.0):
     """Relief from the weave and stitches, read only as a gentle tilt.
 
@@ -217,6 +263,17 @@ def normal_from(img, strength=1.0):
     nz = np.ones_like(nx)
     ln = np.sqrt(nx * nx + ny * ny + nz * nz)
     return np.dstack([nx / ln, ny / ln, nz / ln])
+
+
+def soften_tile(tile, sigma=1.1):
+    """Take the hard edge off the twill before it is tiled into the atlas.
+
+    A 3.6 mm rib lands near three texels in the 1024 map the app samples, so a
+    perfectly sharp repeat beats against the pixel grid at a distance and shows
+    as a diamond moiré. A sub-texel blur keeps the direction of the rib and
+    drops the amplitude that aliases.
+    """
+    return cv2.GaussianBlur(tile, (0, 0), sigma)
 
 
 def weave_tile(size):
@@ -254,13 +311,20 @@ def roughness_from(img):
 
 if __name__ == '__main__':
     for side in (-1, 1):
-        col = build_atlas(side)
+        shot = build_atlas(side)
         tag = 'right' if side < 0 else 'left'
+        col = delight(shot, tone=np.median(shot.reshape(-1, 3), 0))
         Image.fromarray(np.clip(col, 0, 255).astype(np.uint8)).save(OUT / f'atlas-{tag}.png')
+        # The relief is read from the flattened colour too: it then carries the
+        # stitching and the pocket edges but not the fold the photograph froze.
         nrm = normal_from(col)
         if (OUT / 'weave-normal.png').exists():
-            nrm = composite_normal(nrm, weave_tile(316))
+            nrm = composite_normal(nrm, soften_tile(weave_tile(316)), .5)
         Image.fromarray(((nrm * .5 + .5) * 255).astype(np.uint8)).save(OUT / f'normal-{tag}.png')
         rough = roughness_from(col)
         Image.fromarray((np.clip(rough, 0, 1) * 255).astype(np.uint8)).save(OUT / f'rough-{tag}.png')
-        print(tag, 'atlas mean', col.reshape(-1, 3).mean(0).round(1), 'normal mean', nrm.reshape(-1, 3).mean(0).round(2))
+        before = shot @ np.array([.213, .715, .072], np.float32)
+        after = col @ np.array([.213, .715, .072], np.float32)
+        print(tag, 'atlas mean', col.reshape(-1, 3).mean(0).round(1),
+              'shade std', round(float(before.std()), 1), '->', round(float(after.std()), 1),
+              'normal mean', nrm.reshape(-1, 3).mean(0).round(2))
