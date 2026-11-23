@@ -15056,19 +15056,24 @@
           const th2 = lerp2(edgeTheta(phi), crownTheta, v3);
           const d2 = [Math.sin(th2) * Math.sin(phi), Math.cos(th2), Math.sin(th2) * Math.cos(phi)];
           const r2 = headSurface(d2) + hoodPad(v3, phi);
-          return [d2[0] * r2, headC[1] + d2[1] * r2, headC[2] + d2[2] * r2];
+          const back = 0.03 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.7) * Math.max(0, -d2[2]);
+          const p2 = [d2[0] * r2, headC[1] + d2[1] * r2, headC[2] + d2[2] * r2 - back];
+          const dive = smooth(Math.min(phi, tau5 - phi), 0.78, 1.3) * (1 - smooth(v3, 0, 0.3));
+          if (dive <= 0) return p2;
+          const ring = [Math.sin(phi) * 0.0745, collarBase + 0.124 * KY, Math.cos(phi) * 0.0745 - 21e-4];
+          return [lerp2(p2[0], ring[0], dive), lerp2(p2[1], ring[1], dive), lerp2(p2[2], ring[2], dive)];
         };
         const collarBase = topY - 4e-3;
         panel(upper, shell, "Stand collar", 16, 72, (v3, u2) => {
           const a2 = u2 * tau5, s2 = Math.sin(a2), c2 = Math.cos(a2);
           const f2 = v3 < 0.55 ? v3 / 0.55 : (v3 - 0.55) / 0.45;
-          const r2 = lerp2(0.068, 0.0778, smooth(v3, 0, 1)) + 5e-3 * Math.pow(Math.sin(Math.PI * f2), 0.7);
-          return [s2 * r2, collarBase + v3 * 0.104 * KY - 4e-3 * Math.max(0, c2) * v3, c2 * (r2 - 55e-4) + 34e-4];
+          const r2 = lerp2(0.068, 0.081, smooth(v3, 0, 1)) + 5e-3 * Math.pow(Math.sin(Math.PI * f2), 0.7);
+          return [s2 * r2, collarBase + v3 * 0.128 * KY - 4e-3 * Math.max(0, c2) * v3, c2 * (r2 - 55e-4) + 34e-4];
         });
         panel(upper, shell, "Collar top edge", 6, 72, (v3, u2) => {
           const a2 = u2 * tau5, phi = Math.PI * v3, s2 = Math.sin(a2), c2 = Math.cos(a2);
-          const r2 = 0.0778 + 46e-4 * Math.sin(phi);
-          return [s2 * r2, collarBase + 0.104 * KY - 4e-3 * Math.max(0, c2) + 38e-4 * Math.sin(phi), c2 * (r2 - 55e-4) + 34e-4];
+          const r2 = 0.081 + 46e-4 * Math.sin(phi);
+          return [s2 * r2, collarBase + 0.128 * KY - 4e-3 * Math.max(0, c2) + 38e-4 * Math.sin(phi), c2 * (r2 - 55e-4) + 34e-4];
         });
         const headC = [0, 1.648 * KY, -8e-3];
         const headR = [0.079, 0.113, 0.092];
@@ -15076,7 +15081,7 @@
         const hoodQuiltV = [0.34, 0.6, 0.84], hoodQuiltU = [0, 0.72, -0.72, 1.55, -1.55];
         const edgeTheta = (phi) => {
           const a2 = Math.min(phi, tau5 - phi);
-          if (a2 <= 1.05) return 0.95 + 0.78 * Math.pow(a2 / 1.05, 1.35);
+          if (a2 <= 1.05) return 0.95 + 0.95 * Math.pow(a2 / 1.05, 1.15);
           return 1.73 + 0.84 * smooth(a2, 1.05, 2.3);
         };
         const hoodPad = (v3, phi) => {
@@ -15120,7 +15125,7 @@
         panel(upper, trim, "Zip tape", 64, 2, (v3, u2) => zipAt(lerp2(4e-3, 0.992, v3), lerp2(-8e-3, 8e-3, u2), 45e-4));
         panel(upper, shine, "Silver coil zipper", 64, 2, (v3, u2) => zipAt(lerp2(6e-3, 0.99, v3), lerp2(-19e-4, 19e-4, u2), 74e-4));
         panel(upper, trim, "Collar zip", 12, 2, (v3, u2) => {
-          const y2 = collarBase + v3 * 0.1 * KY, r2 = lerp2(0.07, 0.0788, v3);
+          const y2 = collarBase + v3 * 0.124 * KY, r2 = lerp2(0.07, 0.082, v3);
           return [(u2 - 0.5) * 0.016, y2, r2 - 55e-4 + 34e-4 + 48e-4];
         });
         const slider = (t2, name, drop) => {

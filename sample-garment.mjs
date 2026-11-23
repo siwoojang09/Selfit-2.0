@@ -592,13 +592,13 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         // One stitch line crosses the stand; above and below it the cloth
         // swells, so the collar reads as filled rather than rolled.
         const f=v<.55?v/.55:(v-.55)/.45;
-        const r=lerp(.0680,.0778,smooth(v,0,1))+.0050*Math.pow(Math.sin(Math.PI*f),.7);
-        return [s*r,collarBase+v*.104*KY-.004*Math.max(0,c)*v,c*(r-.0055)+.0034];
+        const r=lerp(.0680,.0810,smooth(v,0,1))+.0050*Math.pow(Math.sin(Math.PI*f),.7);
+        return [s*r,collarBase+v*.128*KY-.004*Math.max(0,c)*v,c*(r-.0055)+.0034];
       });
       panel(upper,shell,'Collar top edge',6,72,(v,u)=>{
         const a=u*tau,phi=Math.PI*v,s=Math.sin(a),c=Math.cos(a);
-        const r=.0778+.0046*Math.sin(phi);
-        return [s*r,collarBase+.104*KY-.004*Math.max(0,c)+.0038*Math.sin(phi),c*(r-.0055)+.0034];
+        const r=.0810+.0046*Math.sin(phi);
+        return [s*r,collarBase+.128*KY-.004*Math.max(0,c)+.0038*Math.sin(phi),c*(r-.0055)+.0034];
       });
       // The hood is a bag of cloth sewn round the collar. Its boundary is one
       // loop: the mouth, standing off the brow and the cheeks, and then the
@@ -612,7 +612,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // and low at the nape where it goes under the collar.
       const edgeTheta=phi=>{
         const a=Math.min(phi,tau-phi);          // bearing from the centre front
-        if(a<=1.05)return .95+.78*Math.pow(a/1.05,1.35);
+        if(a<=1.05)return .95+.95*Math.pow(a/1.05,1.15);
         return 1.73+.84*smooth(a,1.05,2.30);
       };
       const hoodPad=(v,phi)=>{
@@ -640,7 +640,16 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const th=lerp(edgeTheta(phi),crownTheta,v);
         const d=[Math.sin(th)*Math.sin(phi),Math.cos(th),Math.sin(th)*Math.cos(phi)];
         const r=headSurface(d)+hoodPad(v,phi);
-        return [d[0]*r,headC[1]+d[1]*r,headC[2]+d[2]*r];
+        // The bag of the hood hangs back off the head: that bulk is what the
+        // eye reads as a hood from the side, not the padding on the skull.
+        const back=.030*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.7)*Math.max(0,-d[2]);
+        const p=[d[0]*r,headC[1]+d[1]*r,headC[2]+d[2]*r-back];
+        // Away from the mouth the edge dives in under the collar, so the hood is
+        // sewn into the collar rather than floating above it.
+        const dive=smooth(Math.min(phi,tau-phi),.78,1.30)*(1-smooth(v,0,.30));
+        if(dive<=0)return p;
+        const ring=[Math.sin(phi)*.0745,collarBase+.124*KY,Math.cos(phi)*.0745-.0021];
+        return [lerp(p[0],ring[0],dive),lerp(p[1],ring[1],dive),lerp(p[2],ring[2],dive)];
       }
       panel(upper,shell,'Quilted hood',56,96,(v,u)=>hoodAt(v,u));
       panel(upper,shell,'Hood crown',5,96,(v,u)=>{
@@ -670,7 +679,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       panel(upper,trim,'Zip tape',64,2,(v,u)=>zipAt(lerp(.004,.992,v),lerp(-.0080,.0080,u),.0045));
       panel(upper,shine,'Silver coil zipper',64,2,(v,u)=>zipAt(lerp(.006,.990,v),lerp(-.0019,.0019,u),.0074));
       panel(upper,trim,'Collar zip',12,2,(v,u)=>{
-        const y=collarBase+v*.100*KY,r=lerp(.0700,.0788,v);
+        const y=collarBase+v*.124*KY,r=lerp(.0700,.0820,v);
         return [(u-.5)*.0160,y,r-.0055+.0034+.0048];
       });
       // Two sliders on one zip: it opens from the hem as well as from the chin.
