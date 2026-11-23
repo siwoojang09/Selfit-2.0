@@ -321,8 +321,8 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const bodiceRows=puffer?[
       // A padded shoulder is a rolled edge, not a shelf: the flare from the
       // neck to the shoulder is taken over four rows so the seam is round.
-      [0,.060,.054],[.02,.073,.060],[.042,.100,.070],[.068,.142,.084],
-      [.098,.172,.101],[.132,Math.min(width,.178+shoulderDrop*.58),depth*.80],
+      [0,.068,.058],[.018,.094,.069],[.036,.132,.083],[.056,.163,.097],
+      [.076,.177,.106],[.104,Math.min(width,.184+shoulderDrop*.55),depth*.82],
       [.21,width*.965,depth*.975],[.35,width,depth],
       [.53,width*.992,depth*.975],[.72,width*.975,depth*.935],
       [.845,Math.max(width*.955,hemWidth*1.02),Math.max(depth*.92,hemWidth*.61)],

@@ -14769,12 +14769,12 @@
       const bodiceRows = puffer ? [
         // A padded shoulder is a rolled edge, not a shelf: the flare from the
         // neck to the shoulder is taken over four rows so the seam is round.
-        [0, 0.06, 0.054],
-        [0.02, 0.073, 0.06],
-        [0.042, 0.1, 0.07],
-        [0.068, 0.142, 0.084],
-        [0.098, 0.172, 0.101],
-        [0.132, Math.min(width, 0.178 + shoulderDrop * 0.58), depth * 0.8],
+        [0, 0.068, 0.058],
+        [0.018, 0.094, 0.069],
+        [0.036, 0.132, 0.083],
+        [0.056, 0.163, 0.097],
+        [0.076, 0.177, 0.106],
+        [0.104, Math.min(width, 0.184 + shoulderDrop * 0.55), depth * 0.82],
         [0.21, width * 0.965, depth * 0.975],
         [0.35, width, depth],
         [0.53, width * 0.992, depth * 0.975],
