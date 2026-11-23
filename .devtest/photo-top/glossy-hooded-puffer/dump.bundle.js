@@ -15518,6 +15518,7 @@
           state.samples = 0;
         }
       }
+      const creaseGain = String(opts.type) === "puffer" ? 0.35 : 1;
       for (const { mesh, elbow, arm, rest, bands, theta, nx, nz, along, weights } of flexing) {
         const attr = mesh.geometry.attributes.position;
         const arr = attr.array;
@@ -15539,7 +15540,7 @@
             const a2 = along[i2], side = theta[i2];
             const zone = Math.exp(-a2 * a2 * 1.2) * (0.3 + 0.7 * Math.max(0, Math.cos(side)));
             const ridge = Math.sin(a2 * 6.8 * (1 + 1.4 * bend) + side * 1.2 + phase * 0.16) * 0.62 + Math.sin(a2 * 3.1 - side * 2 - phase * 0.1) * 0.38;
-            const de2 = solver.spec.crease * solver.spec.creaseScale * bend * zone * ridge;
+            const de2 = solver.spec.crease * solver.spec.creaseScale * bend * zone * ridge * creaseGain;
             if (Math.abs(de2) > creaseAmp) creaseAmp = Math.abs(de2);
             v2.x += nx[i2] * de2;
             v2.z += nz[i2] * de2;

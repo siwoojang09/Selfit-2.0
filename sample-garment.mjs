@@ -1066,6 +1066,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         solver.reset();state.samples=0;
       }
     }
+    // A padded sleeve is a tube of filling: it bends but it does not gather
+    // into the fan of creases a knit sleeve does.
+    const creaseGain=String(opts.type)==='puffer'?.35:1;
     for(const {mesh,elbow,arm,rest,bands,theta,nx,nz,along,weights} of flexing) {
       const attr=mesh.geometry.attributes.position;
       const arr=attr.array;
@@ -1087,7 +1090,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           const zone=Math.exp(-a*a*1.2)*(.30+.70*Math.max(0,Math.cos(side)));
           const ridge=Math.sin(a*6.8*(1+1.4*bend)+side*1.2+phase*.16)*.62
             +Math.sin(a*3.1-side*2.0-phase*.1)*.38;
-          const de=solver.spec.crease*solver.spec.creaseScale*bend*zone*ridge;
+          const de=solver.spec.crease*solver.spec.creaseScale*bend*zone*ridge*creaseGain;
           if(Math.abs(de)>creaseAmp)creaseAmp=Math.abs(de);
           v.x+=nx[i]*de;v.z+=nz[i]*de;
         }
