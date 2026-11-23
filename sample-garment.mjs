@@ -613,7 +613,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const edgeTheta=phi=>{
         const a=Math.min(phi,tau-phi);          // bearing from the centre front
         if(a<=1.05)return .95+.78*Math.pow(a/1.05,1.35);
-        return 1.73+.57*smooth(a,1.05,2.30);
+        return 1.73+.84*smooth(a,1.05,2.30);
       };
       const hoodPad=(v,phi)=>{
         let pad=.020+.034*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.55);

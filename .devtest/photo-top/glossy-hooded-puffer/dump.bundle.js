@@ -15077,7 +15077,7 @@
         const edgeTheta = (phi) => {
           const a2 = Math.min(phi, tau5 - phi);
           if (a2 <= 1.05) return 0.95 + 0.78 * Math.pow(a2 / 1.05, 1.35);
-          return 1.73 + 0.57 * smooth(a2, 1.05, 2.3);
+          return 1.73 + 0.84 * smooth(a2, 1.05, 2.3);
         };
         const hoodPad = (v3, phi) => {
           let pad = 0.02 + 0.034 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.55);
