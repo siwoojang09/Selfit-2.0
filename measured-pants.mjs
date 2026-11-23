@@ -12,8 +12,8 @@
 // pockets, rivets and the hem cuff are surfaces offset from that same grid, so
 // they inherit the pose deformation, the solver's secondary motion and the wash
 // UVs of the cloth underneath them.
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24n';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24n';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-24o';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24o';
 
 const tau=2*Math.PI, columns=64, rows=96;
 const hipJoint=.93,kneeFromHip=.438;
@@ -646,7 +646,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       // reaching forward pulls the front taut and the crests slide round the leg.
       const fwd=clamp((upper.b.z-upper.a.z)/.18,-1,1);
       const taut=Math.max(0,fwd),trail=Math.max(0,-fwd),swingLeg=leg.side||1;
-      const drapeAmp=.0200*(.72+.30*knee+.23*trail-.24*taut)*(.88+.12*Math.sin(phase*2+i*Math.PI));
+      const drapeAmp=.0205*(.72+.47*knee+.38*trail-.26*taut)*(.88+.12*Math.sin(phase*2+i*Math.PI));
       const shift=(.34*fwd+.13*Math.sin(phase+i*1.7))*swingLeg;
       const d1c=Math.cos(shift),d1s=Math.sin(shift),d2c=Math.cos(shift*1.4),d2s=Math.sin(shift*1.4);
       const foldW2=.38+.14*knee+.10*trail,foldW1=1-foldW2;
