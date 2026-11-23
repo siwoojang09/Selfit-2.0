@@ -15056,7 +15056,7 @@
           const th2 = lerp2(edgeTheta(phi), crownTheta, v3);
           const d2 = [Math.sin(th2) * Math.sin(phi), Math.cos(th2), Math.sin(th2) * Math.cos(phi)];
           const r2 = headSurface(d2) + hoodPad(v3, phi);
-          const back = 0.03 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.7) * Math.max(0, -d2[2]);
+          const back = 0.056 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.7) * Math.max(0, -d2[2]);
           const p2 = [d2[0] * r2, headC[1] + d2[1] * r2, headC[2] + d2[2] * r2 - back];
           const dive = smooth(Math.min(phi, tau5 - phi), 0.78, 1.3) * (1 - smooth(v3, 0, 0.3));
           if (dive <= 0) return p2;

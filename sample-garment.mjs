@@ -642,7 +642,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const r=headSurface(d)+hoodPad(v,phi);
         // The bag of the hood hangs back off the head: that bulk is what the
         // eye reads as a hood from the side, not the padding on the skull.
-        const back=.030*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.7)*Math.max(0,-d[2]);
+        const back=.056*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.7)*Math.max(0,-d[2]);
         const p=[d[0]*r,headC[1]+d[1]*r,headC[2]+d[2]*r-back];
         // Away from the mouth the edge dives in under the collar, so the hood is
         // sewn into the collar rather than floating above it.
