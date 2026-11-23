@@ -13430,7 +13430,7 @@
   };
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
-  // garment-contact.mjs?v=2026-11-24o
+  // garment-contact.mjs?v=2026-11-24p
   var tau = Math.PI * 2;
   var directions = 32;
   var sectors = 64;
@@ -13541,7 +13541,7 @@
     } };
   }
 
-  // body-sections-data.mjs?v=2026-11-24o
+  // body-sections-data.mjs?v=2026-11-24p
   var sections = {
     female: [
       [322.4, 173.8, 90.6, 1710.9, 173.8, 174.9, 177, 180.1, 185.4, 191.7, 201.2, 212.8, 227.6, 244.4, 263.4, 278.1, 288.7, 296, 301.3, 306.6, 310.8, 316.1, 319.2, 322.4, 323.4, 323.4, 317.1, 309.7, 296, 281.3, 267.6, 246.5, 227.6, 212.8, 201.2, 191.7, 185.4, 180.1, 177, 174.9, 173.8],
@@ -13732,7 +13732,7 @@
   };
   var sectionBase = { female: 0.6243, male: 0.6655 };
 
-  // fit-body-sections.mjs?v=2026-11-24o
+  // fit-body-sections.mjs?v=2026-11-24p
   function sectionSample(rows, base, y2) {
     const index = Math.max(0, Math.min(rows.length - 1, (y2 - base) * 100));
     const lower = Math.floor(index);
@@ -13787,7 +13787,7 @@
   }
   var widths = { female: knots(widthKnots.female), male: knots(widthKnots.male) };
 
-  // hoodie-fit.mjs?v=2026-11-24o
+  // hoodie-fit.mjs?v=2026-11-24p
   var tau2 = 2 * Math.PI;
   var clamp2 = (x2, a2, b2) => Math.min(b2, Math.max(a2, x2));
   var mix2 = (a2, b2, t2) => a2 + (b2 - a2) * t2;
@@ -13928,7 +13928,7 @@
     } };
   }
 
-  // fabric-pbr.mjs?v=2026-11-24o
+  // fabric-pbr.mjs?v=2026-11-24p
   var tau3 = Math.PI * 2;
   var clamp3 = (v2, low, high) => v2 < low ? low : v2 > high ? high : v2;
   var wrapIndex = (i2, n2) => {
@@ -14067,7 +14067,7 @@
     return material;
   }
 
-  // hoodie-textile.mjs?v=2026-11-24o
+  // hoodie-textile.mjs?v=2026-11-24p
   var import_meta = {};
   var textiles = {
     knit: {
@@ -14156,7 +14156,7 @@
     });
   }
 
-  // hoodie-finishes.mjs?v=2026-11-24o
+  // hoodie-finishes.mjs?v=2026-11-24p
   var tau4 = Math.PI * 2;
   var lerp = Qn.lerp;
   function shifted(p2, a2, offset) {
@@ -14278,7 +14278,7 @@
     slider(0.979, 1, true);
   }
 
-  // cloth-dynamics.mjs?v=2026-11-24o
+  // cloth-dynamics.mjs?v=2026-11-24p
   var clamp4 = (v2, a2, b2) => v2 < a2 ? a2 : v2 > b2 ? b2 : v2;
   var fixedStep = 1 / 120;
   var accelerationLimit = 26;
@@ -14450,7 +14450,7 @@
   var _q = new Ii();
   var _identityMatrix = new cr();
 
-  // photo-hoodie.mjs?v=2026-11-24o
+  // photo-hoodie.mjs?v=2026-11-24p
   function pieceKey(name) {
     return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
   }
@@ -15053,13 +15053,13 @@
       } else if (puffer) {
         let hoodAt = function(v3, u2) {
           const psi = u2 * tau5;
-          const a2 = hoodDir(psi, true), b2 = hoodDir(psi, false);
-          const dot = clamp5(a2[0] * b2[0] + a2[1] * b2[1] + a2[2] * b2[2], -1, 1), ang = Math.acos(dot);
+          const a2 = toward(rimLoop(psi)), b2 = toward(neckLoop(psi));
+          const dot = clamp5(a2.d[0] * b2.d[0] + a2.d[1] * b2.d[1] + a2.d[2] * b2.d[2], -1, 1), ang = Math.acos(dot);
           let d2;
-          if (ang < 1e-4) d2 = a2;
+          if (ang < 1e-4) d2 = a2.d;
           else {
             const sn2 = Math.sin(ang), ka2 = Math.sin((1 - v3) * ang) / sn2, kb = Math.sin(v3 * ang) / sn2;
-            d2 = [a2[0] * ka2 + b2[0] * kb, a2[1] * ka2 + b2[1] * kb, a2[2] * ka2 + b2[2] * kb];
+            d2 = [a2.d[0] * ka2 + b2.d[0] * kb, a2.d[1] * ka2 + b2.d[1] * kb, a2.d[2] * ka2 + b2.d[2] * kb];
           }
           let k2 = 0;
           while (k2 < hoodQuiltV.length && v3 > hoodQuiltV[k2]) k2++;
@@ -15067,11 +15067,12 @@
           const f2 = clamp5((v3 - lo2) / Math.max(1e-4, hi2 - lo2), 0, 1);
           let near = Math.PI;
           for (const q2 of hoodQuiltU) near = Math.min(near, bearingGap(psi, q2));
-          let r2 = lerp2(hoodMouth, hoodNeck, v3) + 0.016 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.85) + 0.014 * Math.pow(Math.sin(Math.PI * f2), 0.62) * Math.pow(Math.sin(Math.PI * clamp5(near / (Math.PI * 0.5), 0, 1)), 0.6);
-          for (const s2 of hoodQuiltV) r2 -= 62e-4 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
-          for (const q2 of hoodQuiltU) r2 -= 62e-4 * Math.exp(-Math.pow(bearingGap(psi, q2) / 0.13, 2));
-          const tuck = 0.017 * smooth(v3, 0.86, 1);
-          return [d2[0] * r2 * 0.855, hoodCenterY + d2[1] * r2 * KY - tuck, hoodCenterZ + d2[2] * r2];
+          let r2 = lerp2(a2.r, b2.r, v3) + 0.022 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.8) + 0.013 * Math.pow(Math.sin(Math.PI * f2), 0.62) * Math.pow(Math.sin(Math.PI * clamp5(near / (Math.PI * 0.5), 0, 1)), 0.6);
+          for (const s2 of hoodQuiltV) r2 -= 6e-3 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
+          for (const q2 of hoodQuiltU) r2 -= 6e-3 * Math.exp(-Math.pow(bearingGap(psi, q2) / 0.14, 2));
+          const lean = 0.03 * Math.sin(Math.PI * clamp5(v3, 0, 1));
+          const tuck = 0.016 * smooth(v3, 0.84, 1);
+          return [d2[0] * r2, headC[1] + d2[1] * r2 * KY - 4e-3 - tuck, headC[2] + d2[2] * r2 - lean];
         };
         const collarBase = topY - 4e-3;
         panel(upper, shell, "Stand collar", 16, 72, (v3, u2) => {
@@ -15085,23 +15086,27 @@
           const r2 = 0.0778 + 46e-4 * Math.sin(phi);
           return [s2 * r2, collarBase + 0.104 * KY - 4e-3 * Math.max(0, c2) + 38e-4 * Math.sin(phi), c2 * (r2 - 55e-4) + 34e-4];
         });
-        const hoodCenterY = 1.648 * KY, hoodCenterZ = -8e-3;
-        const hoodDir = (psi, face) => {
-          const s2 = Math.sin(psi), c2 = Math.cos(psi);
-          const v3 = face ? [s2 * 1, c2 * 1.1, 0.7] : [s2 * 0.95, -0.88, -c2 * 0.88];
-          const n2 = Math.hypot(v3[0], v3[1], v3[2]);
-          return [v3[0] / n2, v3[1] / n2, v3[2] / n2];
-        };
+        const headC = [0, 1.513 * 1, -8e-3];
         const hoodQuiltV = [0.3, 0.6, 0.86], hoodQuiltU = [0, Math.PI * 0.5, -Math.PI * 0.5];
-        const hoodMouth = 0.171, hoodNeck = 0.104;
+        const rimLoop = (psi) => [0.094 * Math.sin(psi), 1.548 + 0.1 * Math.cos(psi), 0.062 + 6e-3 * Math.cos(psi)];
+        const neckLoop = (psi) => {
+          const s2 = Math.sin(psi), c2 = Math.cos(psi);
+          return [0.086 * s2, 1.438, -4e-3 - 0.078 * c2];
+        };
+        const toward = (p2) => {
+          const d2 = [p2[0] - headC[0], (p2[1] - headC[1]) / KY, p2[2] - headC[2]];
+          const n2 = Math.hypot(d2[0], d2[1], d2[2]) || 1;
+          return { d: [d2[0] / n2, d2[1] / n2, d2[2] / n2], r: n2 };
+        };
         panel(upper, shell, "Quilted hood", 56, 96, (v3, u2) => hoodAt(v3, u2));
         panel(upper, shell, "Hood mouth edge", 7, 96, (v3, u2) => {
           const phi = Math.PI * v3, p2 = hoodAt(0, u2), q2 = hoodAt(0.05, u2);
-          const tx = q2[0] - p2[0], ty = q2[1] - p2[1], tz = q2[2] - p2[2];
-          const tn2 = Math.hypot(tx, ty, tz) || 1;
-          const nx = p2[0] / Math.hypot(p2[0], (p2[1] - hoodCenterY) / KY, p2[2] - hoodCenterZ), ny = 0, nz = (p2[2] - hoodCenterZ) / Math.hypot(p2[0], (p2[1] - hoodCenterY) / KY, p2[2] - hoodCenterZ);
-          const r2 = 68e-4 * Math.cos(phi), w2 = 68e-4 * Math.sin(phi);
-          return [p2[0] + r2 * nx + w2 * tx / tn2, p2[1] + w2 * ty / tn2, p2[2] + r2 * nz + w2 * tz / tn2];
+          const t2 = [q2[0] - p2[0], q2[1] - p2[1], q2[2] - p2[2]];
+          const tn2 = Math.hypot(t2[0], t2[1], t2[2]) || 1;
+          const n2 = [p2[0] - headC[0], (p2[1] - headC[1]) / KY, p2[2] - headC[2]];
+          const nn2 = Math.hypot(n2[0], n2[1], n2[2]) || 1;
+          const r2 = 72e-4 * Math.cos(phi), w2 = 72e-4 * Math.sin(phi);
+          return [p2[0] + r2 * n2[0] / nn2 + w2 * t2[0] / tn2, p2[1] + w2 * t2[1] / tn2, p2[2] + r2 * n2[2] / nn2 + w2 * t2[2] / tn2];
         });
         const zipAt = (t2, x2, lift) => {
           const [rx] = sampleProfile(bodiceRows, t2);

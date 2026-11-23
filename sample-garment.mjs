@@ -598,31 +598,38 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const r=.0778+.0046*Math.sin(phi);
         return [s*r,collarBase+.104*KY-.004*Math.max(0,c)+.0038*Math.sin(phi),c*(r-.0055)+.0034];
       });
-      // The hood is a bag of cloth hung from the collar: it leaves the neck at
-      // its back, crosses the crown and comes down in front of the brow. Both
-      // edges are loops around the head, so the cloth between them is swept
-      // round it — over the top at the back, past the cheeks at the sides.
-      const hoodCenterY=1.648*KY,hoodCenterZ=-.008;
-      const hoodDir=(psi,face)=>{
-        const s=Math.sin(psi),c=Math.cos(psi);
-        const v=face?[s*1.00,c*1.10,.70]:[s*.95,-.88,-c*.88];
-        const n=Math.hypot(v[0],v[1],v[2]);
-        return [v[0]/n,v[1]/n,v[2]/n];
-      };
+      // The hood is a bag of cloth hung from the collar. Its two edges are the
+      // loops it is cut between: the mouth, an oval laid on the face with the
+      // padding standing off it, and the seam round the neck. The cloth between
+      // them is swept round the head — over the crown at the back of the loop,
+      // past the cheeks at its sides, under the chin in front — so the padding
+      // sits over the skull and the face looks out of its own window.
+      const headC=[0,1.513*1,-.008];
       const hoodQuiltV=[.30,.60,.86],hoodQuiltU=[0,Math.PI*.5,-Math.PI*.5];
-      const hoodMouth=.171,hoodNeck=.104;
+      // The mouth: an oval laid on the face, its edge standing a centimetre off
+      // the brow and the cheeks and its bottom clear of the chin.
+      const rimLoop=psi=>[.094*Math.sin(psi),1.548+.100*Math.cos(psi),.062+.006*Math.cos(psi)];
+      const neckLoop=psi=>{
+        const s=Math.sin(psi),c=Math.cos(psi);
+        return [.086*s,1.438,-.004-.078*c];
+      };
+      const toward=(p)=>{
+        const d=[p[0]-headC[0],(p[1]-headC[1])/KY,p[2]-headC[2]];
+        const n=Math.hypot(d[0],d[1],d[2])||1;
+        return {d:[d[0]/n,d[1]/n,d[2]/n],r:n};
+      };
       function hoodAt(v,u){
         const psi=u*tau;
-        const a=hoodDir(psi,true),b=hoodDir(psi,false);
+        const a=toward(rimLoop(psi)),b=toward(neckLoop(psi));
         // A great circle from the mouth edge to the collar edge: interpolating
         // the direction instead of the point is what carries the cloth over the
         // crown rather than straight through the head.
-        const dot=clamp(a[0]*b[0]+a[1]*b[1]+a[2]*b[2],-1,1),ang=Math.acos(dot);
+        const dot=clamp(a.d[0]*b.d[0]+a.d[1]*b.d[1]+a.d[2]*b.d[2],-1,1),ang=Math.acos(dot);
         let d;
-        if(ang<1e-4)d=a;
+        if(ang<1e-4)d=a.d;
         else{
           const sn=Math.sin(ang),ka=Math.sin((1-v)*ang)/sn,kb=Math.sin(v*ang)/sn;
-          d=[a[0]*ka+b[0]*kb,a[1]*ka+b[1]*kb,a[2]*ka+b[2]*kb];
+          d=[a.d[0]*ka+b.d[0]*kb,a.d[1]*ka+b.d[1]*kb,a.d[2]*ka+b.d[2]*kb];
         }
         // Quilt: three rows and three columns, each cell filled between seams.
         let k=0;
@@ -631,26 +638,27 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const f=clamp((v-lo)/Math.max(1e-4,hi-lo),0,1);
         let near=Math.PI;
         for(const q of hoodQuiltU)near=Math.min(near,bearingGap(psi,q));
-        let r=lerp(hoodMouth,hoodNeck,v)
-          +.016*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.85)
-          +.014*Math.pow(Math.sin(Math.PI*f),.62)*Math.pow(Math.sin(Math.PI*clamp(near/(Math.PI*.5),0,1)),.6);
-        for(const s of hoodQuiltV)r-=.0062*Math.exp(-Math.pow((v-s)/.030,2));
-        for(const q of hoodQuiltU)r-=.0062*Math.exp(-Math.pow(bearingGap(psi,q)/.13,2));
-        // The hood is padded all round but it is wider than it is deep: the
-        // section is drawn in across the head so it frames the face instead of
-        // swallowing it. Its bottom edge tucks in behind the collar.
-        const tuck=.017*smooth(v,.86,1);
-        return [d[0]*r*.855,hoodCenterY+d[1]*r*KY-tuck,hoodCenterZ+d[2]*r];
+        let r=lerp(a.r,b.r,v)
+          +.022*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.8)
+          +.013*Math.pow(Math.sin(Math.PI*f),.62)*Math.pow(Math.sin(Math.PI*clamp(near/(Math.PI*.5),0,1)),.6);
+        for(const s of hoodQuiltV)r-=.0060*Math.exp(-Math.pow((v-s)/.030,2));
+        for(const q of hoodQuiltU)r-=.0060*Math.exp(-Math.pow(bearingGap(psi,q)/.14,2));
+        // The padding is carried back off the face rather than forward over it,
+        // and the bottom edge tucks in behind the collar.
+        const lean=.030*Math.sin(Math.PI*clamp(v,0,1));
+        const tuck=.016*smooth(v,.84,1);
+        return [d[0]*r,headC[1]+d[1]*r*KY-.004-tuck,headC[2]+d[2]*r-lean];
       }
       panel(upper,shell,'Quilted hood',56,96,(v,u)=>hoodAt(v,u));
       panel(upper,shell,'Hood mouth edge',7,96,(v,u)=>{
         // The mouth is a piped edge: doubled cloth turned over the cord.
         const phi=Math.PI*v,p=hoodAt(0,u),q=hoodAt(.05,u);
-        const tx=q[0]-p[0],ty=q[1]-p[1],tz=q[2]-p[2];
-        const tn=Math.hypot(tx,ty,tz)||1;
-        const nx=(p[0])/Math.hypot(p[0],(p[1]-hoodCenterY)/KY,p[2]-hoodCenterZ),ny=0,nz=(p[2]-hoodCenterZ)/Math.hypot(p[0],(p[1]-hoodCenterY)/KY,p[2]-hoodCenterZ);
-        const r=.0068*Math.cos(phi),w=.0068*Math.sin(phi);
-        return [p[0]+r*nx+w*tx/tn,p[1]+w*ty/tn,p[2]+r*nz+w*tz/tn];
+        const t=[q[0]-p[0],q[1]-p[1],q[2]-p[2]];
+        const tn=Math.hypot(t[0],t[1],t[2])||1;
+        const n=[p[0]-headC[0],(p[1]-headC[1])/KY,p[2]-headC[2]];
+        const nn=Math.hypot(n[0],n[1],n[2])||1;
+        const r=.0072*Math.cos(phi),w=.0072*Math.sin(phi);
+        return [p[0]+r*n[0]/nn+w*t[0]/tn,p[1]+w*t[1]/tn,p[2]+r*n[2]/nn+w*t[2]/tn];
       });
       // --- two-way zip
       const zipAt=(t,x,lift)=>{
