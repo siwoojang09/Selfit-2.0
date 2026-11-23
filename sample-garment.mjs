@@ -283,12 +283,14 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // rather than being dragged over the fingers.
       long?Math.max(.075,projectedSleeve*(type==='shirt'?.94:1)):clamp(projectedSleeve,.075,.37);
     // Bearing circumference is twice the flat chest measurement. Convert it to an elliptical section.
-    const width=clamp(chest*.00373,.166,.33);
+    // A padded garment's girth goes mostly into its depth: the arms hang at
+    // the sides, so the width cannot grow with the chest the way a shirt's does.
+    const width=clamp(chest*(puffer?.00330:.00373),.166,.33);
     const cuffHem=actual(measured.hem,chest*(hoodie?.845:.96),30,95);
-    const hemWidth=clamp(cuffHem*.00391,.159,.33);
+    const hemWidth=clamp(cuffHem*(puffer?.00345:.00391),.159,.33);
     // A down jacket is filled all round, so its section is rounder than the
     // flat ellipse a sweatshirt is cut to.
-    const depth=puffer?clamp(width*.56,.12,.23):clamp(width*.69,.112,.21);
+    const depth=puffer?clamp(width*.82,.14,.26):clamp(width*.69,.112,.21);
     const upper=group(torso);
     bodice=upper;
     if(fit)upper.scale.set(1/torso.scale.x,1,1/torso.scale.z);
@@ -614,10 +616,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         return 1.73+.57*smooth(a,1.05,2.30);
       };
       const hoodPad=(v,phi)=>{
-        let pad=.030+.034*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.55);
+        let pad=.020+.034*Math.pow(Math.sin(Math.PI*clamp(v,0,1)),.55);
         // The filling runs out towards the seam at the nape, where the hood is
         // only cloth turned under the collar.
-        pad*=1-.62*smooth(Math.min(phi,tau-phi),1.35,2.20);
+        pad*=1-.55*smooth(Math.min(phi,tau-phi),1.35,2.20);
         let k=0;
         while(k<hoodQuiltV.length&&v>hoodQuiltV[k])k++;
         const lo=k===0?0:hoodQuiltV[k-1],hi=k<hoodQuiltV.length?hoodQuiltV[k]:1;
@@ -627,7 +629,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         pad+=.011*Math.pow(Math.sin(Math.PI*f),.6)*Math.pow(Math.sin(Math.PI*clamp(near/.42,0,1)),.6);
         // The crown is filled deeper than the cheeks, so the hood stands over
         // the head instead of ringing the face.
-        pad+=.020*smooth(v,.5,1)*(1-.4*smooth(Math.min(phi,tau-phi),1.3,2.2));
+        pad+=.014*smooth(v,.5,1)*(1-.4*smooth(Math.min(phi,tau-phi),1.3,2.2));
         for(const s of hoodQuiltV)pad-=.0052*Math.exp(-Math.pow((v-s)/.030,2));
         for(const q of hoodQuiltU)pad-=.0052*Math.exp(-Math.pow(bearingGap(phi,q)/.12,2));
         return pad;
@@ -848,7 +850,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const {shoulder:joint,elbow}=arms[armIndex],sign=armIndex===0?-1:1;
       // A short sleeve's cap sits inside the bodice's shoulder line. Raised
       // above it, the cap reads as a puff sleeve rather than a grown-on sleeve.
-      const mount=group(joint),cap=fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
+      // A padded sleeve is set into the shoulder seam, not balanced on top of
+      // the joint: the cap hangs a little below the pivot.
+      const mount=group(joint),cap=puffer?-.050:fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
       if(fit)mount.scale.set(1/torso.scale.x,1,1/torso.scale.z);
       // A shirt's cuff ends on the wrist; the hand guide is for a knit's ribbed
       // cuff, and at the palm it pulls stray facets out of the sleeve.

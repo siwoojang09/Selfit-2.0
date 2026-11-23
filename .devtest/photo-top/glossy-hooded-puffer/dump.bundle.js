@@ -14735,10 +14735,10 @@
         // rather than being dragged over the fingers.
         long ? Math.max(0.075, projectedSleeve * (type === "shirt" ? 0.94 : 1)) : clamp5(projectedSleeve, 0.075, 0.37)
       );
-      const width = clamp5(chest * 373e-5, 0.166, 0.33);
+      const width = clamp5(chest * (puffer ? 33e-4 : 373e-5), 0.166, 0.33);
       const cuffHem = actual(measured.hem, chest * (hoodie ? 0.845 : 0.96), 30, 95);
-      const hemWidth = clamp5(cuffHem * 391e-5, 0.159, 0.33);
-      const depth = puffer ? clamp5(width * 0.56, 0.12, 0.23) : clamp5(width * 0.69, 0.112, 0.21);
+      const hemWidth = clamp5(cuffHem * (puffer ? 345e-5 : 391e-5), 0.159, 0.33);
+      const depth = puffer ? clamp5(width * 0.82, 0.14, 0.26) : clamp5(width * 0.69, 0.112, 0.21);
       const upper = group(torso);
       bodice = upper;
       if (fit) upper.scale.set(1 / torso.scale.x, 1, 1 / torso.scale.z);
@@ -15080,8 +15080,8 @@
           return 1.73 + 0.57 * smooth(a2, 1.05, 2.3);
         };
         const hoodPad = (v3, phi) => {
-          let pad = 0.03 + 0.034 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.55);
-          pad *= 1 - 0.62 * smooth(Math.min(phi, tau5 - phi), 1.35, 2.2);
+          let pad = 0.02 + 0.034 * Math.pow(Math.sin(Math.PI * clamp5(v3, 0, 1)), 0.55);
+          pad *= 1 - 0.55 * smooth(Math.min(phi, tau5 - phi), 1.35, 2.2);
           let k2 = 0;
           while (k2 < hoodQuiltV.length && v3 > hoodQuiltV[k2]) k2++;
           const lo2 = k2 === 0 ? 0 : hoodQuiltV[k2 - 1], hi2 = k2 < hoodQuiltV.length ? hoodQuiltV[k2] : 1;
@@ -15089,7 +15089,7 @@
           let near = Math.PI;
           for (const q2 of hoodQuiltU) near = Math.min(near, bearingGap(phi, q2));
           pad += 0.011 * Math.pow(Math.sin(Math.PI * f2), 0.6) * Math.pow(Math.sin(Math.PI * clamp5(near / 0.42, 0, 1)), 0.6);
-          pad += 0.02 * smooth(v3, 0.5, 1) * (1 - 0.4 * smooth(Math.min(phi, tau5 - phi), 1.3, 2.2));
+          pad += 0.014 * smooth(v3, 0.5, 1) * (1 - 0.4 * smooth(Math.min(phi, tau5 - phi), 1.3, 2.2));
           for (const s2 of hoodQuiltV) pad -= 52e-4 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
           for (const q2 of hoodQuiltU) pad -= 52e-4 * Math.exp(-Math.pow(bearingGap(phi, q2) / 0.12, 2));
           return pad;
@@ -15296,7 +15296,7 @@
           return [x2 * factor + lift * s2, y2, z2 * factor + lift * c2];
         };
         const { shoulder: joint, elbow } = arms[armIndex], sign = armIndex === 0 ? -1 : 1;
-        const mount = group(joint), cap = fit ? shoulderRise + 2e-3 : long ? 0.014 : 0.017, loose = clamp5(chest / 54, 0.82, 1.3);
+        const mount = group(joint), cap = puffer ? -0.05 : fit ? shoulderRise + 2e-3 : long ? 0.014 : 0.017, loose = clamp5(chest / 54, 0.82, 1.3);
         if (fit) mount.scale.set(1 / torso.scale.x, 1, 1 / torso.scale.z);
         const hand = long && type !== "shirt" ? handGuide(body.anatomy?.handPoints?.[armIndex], joint, mount) : null;
         const seamT = fit ? (cap + fit.seamDrop / sy - shoulderRise) / (cap + sleeveLength) : 0;
