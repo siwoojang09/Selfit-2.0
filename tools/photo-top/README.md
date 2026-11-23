@@ -38,8 +38,15 @@
     atlas   Measured garment body
     tile    Sleeve, Folded bottom hem, Button placket, Point collar
     rib     Neck binding, Sleeve cuff, Turned cuff edge, Ribbed waistband
+    shade   Folded hood, Lined hood opening   (같은 원단, 이중 천이라 한 톤 낮게)
     thread  Body finish topstitching, Cuff join stitching
     button  Button
+
+`shade` 조각은 `tile` 과 같은 사진 타일을 `shade.gain`(기본 0.9)만큼 낮춰 입습니다.
+후드처럼 몸판 위에 겹쳐 놓인 이중 천은 같은 톤이면 윤곽이 사라집니다.
+
+결을 가로질러 재단하는 조각(칼라)은 `uv_swap` 에 이름을 적으면 u·v 를 바꿔
+타일을 입힙니다. 스트라이프가 칼라 길이 방향으로 흐르게 됩니다.
 
 소매 UV는 `sleeve_repeat`로 소매 둘레·길이를 타일 크기에 맞춥니다(티: 8×5.5).
 사진 상의는 런타임에서 박음질 튜브를 짓지 않습니다(사진에 이미 스티치가 있습니다).
