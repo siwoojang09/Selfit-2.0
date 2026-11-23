@@ -605,7 +605,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       const headC=[0,1.648*KY,-.008];
       const headR=[.079,.113,.092];
       const crownTheta=.17;
-      const hoodQuiltV=[.30,.60,.86],hoodQuiltU=[0,Math.PI*.5,-Math.PI*.5];
+      const hoodQuiltV=[.34,.60,.84],hoodQuiltU=[0,.72,-.72,1.55,-1.55];
       // Polar angle of the boundary: high over the brow, down past the cheeks,
       // and low at the nape where it goes under the collar.
       const edgeTheta=phi=>{
@@ -624,9 +624,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const f=clamp((v-lo)/Math.max(1e-4,hi-lo),0,1);
         let near=Math.PI;
         for(const q of hoodQuiltU)near=Math.min(near,bearingGap(phi,q));
-        pad+=.012*Math.pow(Math.sin(Math.PI*f),.6)*Math.pow(Math.sin(Math.PI*clamp(near/(Math.PI*.5),0,1)),.6);
-        for(const s of hoodQuiltV)pad-=.0055*Math.exp(-Math.pow((v-s)/.030,2));
-        for(const q of hoodQuiltU)pad-=.0055*Math.exp(-Math.pow(bearingGap(phi,q)/.14,2));
+        pad+=.011*Math.pow(Math.sin(Math.PI*f),.6)*Math.pow(Math.sin(Math.PI*clamp(near/.42,0,1)),.6);
+        // The crown is filled deeper than the cheeks, so the hood stands over
+        // the head instead of ringing the face.
+        pad+=.020*smooth(v,.5,1)*(1-.4*smooth(Math.min(phi,tau-phi),1.3,2.2));
+        for(const s of hoodQuiltV)pad-=.0052*Math.exp(-Math.pow((v-s)/.030,2));
+        for(const q of hoodQuiltU)pad-=.0052*Math.exp(-Math.pow(bearingGap(phi,q)/.12,2));
         return pad;
       };
       const headSurface=d=>1/Math.hypot(d[0]/headR[0],d[1]/headR[1],d[2]/headR[2]);
@@ -652,7 +655,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         const tn=Math.hypot(t[0],t[1],t[2])||1;
         const n=[p[0]-headC[0],p[1]-headC[1],p[2]-headC[2]];
         const nn=Math.hypot(n[0],n[1],n[2])||1;
-        const r=.0072*Math.cos(phi),w=.0072*Math.sin(phi);
+        const r=.0062*Math.cos(phi),w=.0062*Math.sin(phi);
         return [p[0]+r*n[0]/nn+w*t[0]/tn,p[1]+w*t[1]/tn,p[2]+r*n[2]/nn+w*t[2]/tn];
       });
       // --- two-way zip

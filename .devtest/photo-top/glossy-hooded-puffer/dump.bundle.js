@@ -15073,7 +15073,7 @@
         const headC = [0, 1.648 * KY, -8e-3];
         const headR = [0.079, 0.113, 0.092];
         const crownTheta = 0.17;
-        const hoodQuiltV = [0.3, 0.6, 0.86], hoodQuiltU = [0, Math.PI * 0.5, -Math.PI * 0.5];
+        const hoodQuiltV = [0.34, 0.6, 0.84], hoodQuiltU = [0, 0.72, -0.72, 1.55, -1.55];
         const edgeTheta = (phi) => {
           const a2 = Math.min(phi, tau5 - phi);
           if (a2 <= 1.05) return 0.95 + 0.78 * Math.pow(a2 / 1.05, 1.35);
@@ -15088,9 +15088,10 @@
           const f2 = clamp5((v3 - lo2) / Math.max(1e-4, hi2 - lo2), 0, 1);
           let near = Math.PI;
           for (const q2 of hoodQuiltU) near = Math.min(near, bearingGap(phi, q2));
-          pad += 0.012 * Math.pow(Math.sin(Math.PI * f2), 0.6) * Math.pow(Math.sin(Math.PI * clamp5(near / (Math.PI * 0.5), 0, 1)), 0.6);
-          for (const s2 of hoodQuiltV) pad -= 55e-4 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
-          for (const q2 of hoodQuiltU) pad -= 55e-4 * Math.exp(-Math.pow(bearingGap(phi, q2) / 0.14, 2));
+          pad += 0.011 * Math.pow(Math.sin(Math.PI * f2), 0.6) * Math.pow(Math.sin(Math.PI * clamp5(near / 0.42, 0, 1)), 0.6);
+          pad += 0.02 * smooth(v3, 0.5, 1) * (1 - 0.4 * smooth(Math.min(phi, tau5 - phi), 1.3, 2.2));
+          for (const s2 of hoodQuiltV) pad -= 52e-4 * Math.exp(-Math.pow((v3 - s2) / 0.03, 2));
+          for (const q2 of hoodQuiltU) pad -= 52e-4 * Math.exp(-Math.pow(bearingGap(phi, q2) / 0.12, 2));
           return pad;
         };
         const headSurface = (d2) => 1 / Math.hypot(d2[0] / headR[0], d2[1] / headR[1], d2[2] / headR[2]);
@@ -15107,7 +15108,7 @@
           const tn2 = Math.hypot(t2[0], t2[1], t2[2]) || 1;
           const n2 = [p2[0] - headC[0], p2[1] - headC[1], p2[2] - headC[2]];
           const nn2 = Math.hypot(n2[0], n2[1], n2[2]) || 1;
-          const r2 = 72e-4 * Math.cos(phi), w2 = 72e-4 * Math.sin(phi);
+          const r2 = 62e-4 * Math.cos(phi), w2 = 62e-4 * Math.sin(phi);
           return [p2[0] + r2 * n2[0] / nn2 + w2 * t2[0] / tn2, p2[1] + w2 * t2[1] / tn2, p2[2] + r2 * n2[2] / nn2 + w2 * t2[2] / tn2];
         });
         const zipAt = (t2, x2, lift) => {
