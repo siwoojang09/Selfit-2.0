@@ -96,8 +96,8 @@ i[data-icon],span[data-icon]{display:inline-flex;align-items:center;justify-cont
 .empty button{border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:11.5px;background:#fff}
 
 /* ── stage ──────────────────────────────────────────────────── */
-.stage-shell{min-width:0;min-height:0;position:relative}
-#stage{position:relative;height:100%;border-radius:22px;overflow:hidden;isolation:isolate;background:radial-gradient(120% 86% at 50% 8%,var(--stage-a) 0%,var(--stage-b) 74%,#DED8CD 100%);border:1px solid var(--line)}
+.stage-shell{min-width:0;min-height:0;position:relative;display:flex;flex-direction:column}
+#stage{position:relative;flex:1;min-height:0;border-radius:22px 22px 0 0;overflow:hidden;isolation:isolate;background:radial-gradient(120% 86% at 50% 8%,var(--stage-a) 0%,var(--stage-b) 74%,#DED8CD 100%);border:1px solid var(--line);border-bottom:0}
 #stage.body-study{background:radial-gradient(120% 86% at 50% 8%,#E9EBE8 0%,#DCDFDC 78%,#D3D6D3 100%)}
 #still,#liveScene{position:absolute;inset:0;width:100%;height:100%;display:block}
 #still{object-fit:contain;z-index:1;background:transparent}
@@ -135,6 +135,21 @@ i[data-icon],span[data-icon]{display:inline-flex;align-items:center;justify-cont
 .turntable .arc{width:54px;height:1px;background:linear-gradient(90deg,transparent,#A9A196,transparent)}
 .mode-chip{display:inline-flex;align-items:center;gap:7px;background:#ffffffcc;border:1px solid #fff;border-radius:999px;padding:6px 11px;font-size:10px;letter-spacing:.02em;color:#6E6A61}
 .mode-chip i{width:5px;height:5px;border-radius:50%;background:#8FA37F;box-shadow:0 0 0 3px #8FA37F26}
+
+/* ── size dock: the size bar stays attached under the 3D stage ─── */
+.size-dock{flex:none;display:flex;flex-direction:column;gap:7px;padding:9px 12px 10px;background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line-soft);border-radius:0 0 22px 22px;box-shadow:var(--shadow)}
+.size-dock[hidden]{display:none}
+.dock-row{display:flex;align-items:center;gap:10px;min-width:0}
+.dock-who{display:flex;align-items:baseline;gap:6px;min-width:0;max-width:210px;padding:0;text-align:left}
+.dock-role{flex:none;font-size:9px;line-height:1.2;letter-spacing:.1em;color:var(--muted-2);border:1px solid var(--line);border-radius:999px;padding:2px 6px;transition:.15s}
+.dock-active .dock-role{background:var(--ink);border-color:var(--ink);color:#fff}
+.dock-name{min-width:0;font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dock-active .dock-name{color:var(--ink)}
+.dock-sizes{display:flex;align-items:center;gap:4px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.dock-sizes button{border:1px solid var(--line);background:#fff;border-radius:7px;min-width:30px;padding:5px 6px;font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;transition:.12s}
+.dock-sizes button:hover{border-color:#D5CFC5}
+.dock-sizes button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.dock-ease{flex:none;margin-left:auto;font-size:10px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ── right panel ────────────────────────────────────────────── */
 .look{display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;scrollbar-width:none}
@@ -257,6 +272,15 @@ tr.current{background:#F6F4EF;font-weight:600}
 @media(max-width:1240px){
   .shell{grid-template-columns:330px minmax(0,1fr) 330px;gap:12px;padding:0 14px 14px}
   .tagline{display:none}
+  /* The stage column narrows here, so the dock gives the sizes their own line
+     and the turntable steps aside for the stage buttons. */
+  .dock-row{flex-wrap:wrap;gap:4px 8px}
+  .dock-who{flex:0 1 auto;max-width:100%}
+  .dock-sizes{order:3;flex:1 1 100%}
+  .turntable{display:none}
+  .stage-bottom{gap:8px}
+  .stage-bar>button{white-space:nowrap;font-size:11px;padding:0 12px;height:34px}
+  .mode-chip{white-space:nowrap;font-size:9.5px;padding:5px 9px}
 }
 @media(max-width:1040px){
   .shell{grid-template-columns:300px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
@@ -267,7 +291,13 @@ tr.current{background:#F6F4EF;font-weight:600}
 }
 @media(max-width:820px){
   .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;gap:12px}
-  .stage-shell{order:1;height:min(78svh,620px)}
+  .stage-shell{order:1;height:clamp(376px,62svh,560px)}
+  .size-dock{padding:8px 10px 9px;gap:6px;border-radius:0 0 18px 18px}
+  .dock-row{flex-wrap:wrap;gap:4px 8px}
+  .dock-who{max-width:none;flex:1 1 auto}
+  .dock-ease{margin-left:0;font-size:9.5px}
+  .dock-sizes{order:3;flex:1 1 100%;flex-wrap:nowrap;justify-content:space-between}
+  .dock-sizes button{flex:1 1 0;min-width:26px;max-width:70px;padding:6px 2px}
   .look{order:2;flex-direction:column;overflow:visible}
   .look>.card{flex:none}
   .closet{order:3;max-height:none}
@@ -285,13 +315,17 @@ tr.current{background:#F6F4EF;font-weight:600}
   .stage-top{top:12px;left:12px;right:12px}
   .stage-bottom{padding:12px}
   .turntable{display:none}
-  #stage{border-radius:18px}
+  #stage{border-radius:18px 18px 0 0}
   .closet{padding:16px 14px 0}
   .closet-brand .serif{font-size:22px}
 }
 @media(max-width:430px){
   .samples{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px}
-  .stage-shell{height:min(72svh,560px)}
+  .stage-shell{height:clamp(352px,58svh,520px)}
   .fit-numbers{gap:8px}
   .shell{padding:0 10px 12px}
+  .stage-bottom{padding:11px 10px;gap:6px}
+  .stage-bar{gap:5px}
+  .stage-bar>button{height:32px;padding:0 10px;font-size:10.5px}
+  .mode-chip{font-size:9px;padding:5px 8px}
 }

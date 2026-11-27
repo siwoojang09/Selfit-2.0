@@ -183,8 +183,68 @@ function product(){
   $('sizes').innerHTML=selected.sizes.map(m=>'<button type="button" data-size="'+esc(m.label)+'" aria-pressed="'+(m.label===size)+'">'+esc(m.label)+'</button>').join('');
   const row=measures();
   $('quickMeasures').innerHTML=fieldsFor(selected.type).filter(([key])=>row[key]!=null).map(([key,label])=>'<span>'+label+' <strong>'+row[key]+' cm</strong></span>').join('');
-  renderWorn();renderRecommended();
+  renderWorn();renderSizeDock();renderRecommended();
 }
+// The dock sits under the 3D stage so a size can be changed without scrolling
+// the page: one row per worn garment, the row of the sample being edited marked.
+// Both the dock and the Style & Fit card read the same `size`/measurement rows,
+// so the two sets of buttons cannot drift apart.
+function dockGarment(role){
+  const editingTop=!isPants(),isTop=role==='top';
+  if(isTop?isPants()&&!upper:!isPants()&&!pants)return null;
+  const item=isTop?(editingTop?selected:activeTop):(editingTop?activePants:selected);
+  const row=isTop?(editingTop?measures():upper?.measurements):(editingTop?pants?.measurements:measures());
+  if(!item||!row)return null;
+  return {role:isTop?'상의':'하의',item,row,active:isTop===editingTop};
+}
+function dockEase(g){
+  if(g.role==='하의'){
+    const f=pantsFit(g.row,avatar,bodyInputsByModel[avatar]);
+    return '허리 여유 '+signed(f.waistEase)+' cm';
+  }
+  const f=hoodieFit(g.row,currentWearer());
+  return '가슴 여유 '+signed(f.ease)+' cm'+(g.item.id===adidas.id?' · '+f.fitLabel:'');
+}
+function renderSizeDock(){
+  const dock=$('sizeDock');
+  if(!dock)return;
+  const rows=['top','bottom'].map(dockGarment).filter(Boolean);
+  if(!rows.length){dock.replaceChildren();dock.hidden=true;return;}
+  dock.hidden=false;dock.innerHTML=rows.map(g=>'<div class="dock-row'+(g.active?' dock-active':'')+'">'+
+    '<button type="button" class="dock-who" data-dock-item="'+esc(g.item.id)+'" tabindex="'+(g.active?'-1':'0')+'">'+
+      '<span class="dock-role">'+g.role+'</span><span class="dock-name">'+esc(g.item.name)+'</span></button>'+
+    '<div class="dock-sizes" role="group" aria-label="'+g.role+' '+esc(g.item.name)+' 사이즈">'+g.item.sizes.map(m=>'<button type="button" data-dock-size="'+esc(m.label)+'" data-dock-role="'+(g.role==='상의'?'top':'bottom')+'" aria-pressed="'+(m.label===g.row.label)+'">'+esc(m.label)+'</button>').join('')+'</div>'+
+    '<span class="dock-ease">'+esc(dockEase(g))+'</span></div>').join('');
+}
+function setGarmentSize(role,label){
+  const isTopRow=role==='top';
+  const item=isTopRow?activeTop:activePants;
+  const onSelected=(isTopRow&&!isPants())||(!isTopRow&&isPants());
+  if(onSelected){
+    if(size===label&&!bodyOnly&&live)return;
+    size=label;
+    if(bodyOnly||!live){bodyOnly=false;cameraView=fittingView();}
+    live=true;setWornItem();product();apply();
+    return;
+  }
+  // Sizing the other garment also brings it into Style & Fit and Your Look, so
+  // the two sets of size buttons never describe different samples.
+  if(!item||!item.sizes.some(m=>m.label===label))return;
+  const crossedType=isPants()!==(item.type==='pants');
+  const wasBody=bodyOnly;
+  selected=item;size=label;
+  if(crossedType||wasBody){bodyOnly=false;cameraView=fittingView();zoom=1;}
+  live=true;setWornItem();product();renderShelf();apply();
+}
+$('sizeDock').onclick=e=>{
+  const sizeBtn=e.target.closest('[data-dock-size]');
+  if(sizeBtn){setGarmentSize(sizeBtn.dataset.dockRole,sizeBtn.dataset.dockSize);return;}
+  const who=e.target.closest('[data-dock-item]');
+  if(who&&who.dataset.dockItem!==selected.id){
+    const item=collections().find(i=>i.id===who.dataset.dockItem);
+    if(item)choose(item);
+  }
+};
 function cuffPosition(fit){
   return '손목 '+(fit.cuffOffset<0?'위 ':'아래 ')+fmt(Math.abs(fit.cuffOffset)*100)+' cm';
 }
@@ -358,7 +418,7 @@ function updateStill(){
   $('still').src='catalog/hoodie-'+avatar+'.webp';
   $('still').alt='아디다스 후드 집업 '+(avatar==='male'?'남성':'여성')+' 착장 예시';
 }
-document.querySelector('.gender').onclick=e=>{const b=e.target.closest('[data-model]');if(!b||avatar===b.dataset.model)return;avatar=b.dataset.model;updateStill();renderFitReport();if(bodyInputsByModel[avatar])live=true;apply();};
+document.querySelector('.gender').onclick=e=>{const b=e.target.closest('[data-model]');if(!b||avatar===b.dataset.model)return;avatar=b.dataset.model;updateStill();renderFitReport();renderSizeDock();if(bodyInputsByModel[avatar])live=true;apply();};
 function tick(){
   tickId=0;
   if(!playing)return;
