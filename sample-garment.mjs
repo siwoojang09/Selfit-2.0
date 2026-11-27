@@ -280,7 +280,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // the pattern encloses the wearer and the flat measurements survive.
     const fitted=adidas||imported||workjacket;
     const anatomy=fitted?frame:null;
-    const pattern=fitted?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
+    // A dropped shoulder's sleeve is measured from the shoulder point out on
+    // the arm; the pattern hangs it from the joint, so the runway between the
+    // two comes off the length or the sleeve spends it in balloon folds.
+    const sleeveRun=workjacket?clamp((shoulder-43)*.48,2,9):0;
+    const pattern=fitted?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),
+      sleeve:actual(measured.sleeve,58,7,85)-sleeveRun},anatomy,workjacket?{gather:.38}:{}):null;
     const fit=pattern?.fit, sy=anatomy?.sy||1;
     const bodyLength=fit?fit.length/sy:actual(measured.length,hoodie?62:65,33,99)*.00955;
     const sleeve=actual(measured.sleeve,long?58:22,7,85)*.0094;
@@ -547,20 +552,21 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         // A kangaroo pocket is one piece across the belly, its mouth cut in at
         // both sides. The pocket cloth lifts off the body so the opening casts
         // its own thin edge in the light.
+        const pocketLift=workjacket?.0210:.0032;
         panel(upper,pocketMat,'Kangaroo pocket',16,40,(v,u)=>{
           const x=lerp(-width*.60,width*.60,u);
           const mouth=.640+.020*Math.abs(u-.5)*2;
           const t=lerp(mouth,.912,v);
-          return frontAt(t,x,.0032+.0034*Math.sin(Math.PI*u)*Math.sin(Math.PI*v));
+          return frontAt(t,x,pocketLift+(workjacket?.0030:.0034)*Math.sin(Math.PI*u)*Math.sin(Math.PI*v));
         });
         for(const side of [-1,1]) panel(upper,trim,'Pocket opening lip',13,2,(v,u)=>{
           const x=side*width*lerp(.60,.30,smooth(v,0,1));
-          return frontAt(lerp(.660,.640,v)+.004*u,x,.0056);
+          return frontAt(lerp(.660,.640,v)+.004*u,x,workjacket?.0222:.0056);
         });
         panel(upper,threadMat,'Pocket mouth topstitch',2,40,(v,u)=>{
           const x=lerp(-width*.60,width*.60,u);
           const mouth=.640+.020*Math.abs(u-.5)*2;
-          return frontAt(mouth+.006+v*.0025,x,.0064);
+          return frontAt(mouth+.006+v*.0025,x,workjacket?.0226:.0064);
         });
         // Two flat drawcords drop from the hood's mouth; their waxed tips are
         // the only hard parts on the front.
@@ -860,15 +866,15 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // wearer's left panel: the one hard-edged rectangle on an otherwise soft
       // front, and the reason the pocket reads as a work pocket rather than a
       // hoodie's.
-      const patchX=[.044,.098],patchT=[.566,.638];
+      const patchX=[.044,.098],patchT=[.562,.636];
       panel(upper,trim,'Patch label',10,10,(v,u)=>{
         const x=lerp(patchX[0],patchX[1],u),t=lerp(patchT[0],patchT[1],v);
-        return frontAt(t,x,.0030+.0018*Math.sin(Math.PI*u)*Math.sin(Math.PI*v));
+        return frontAt(t,x,.0155+.0022*Math.sin(Math.PI*u)*Math.sin(Math.PI*v));
       });
       panel(upper,threadMat,'Patch stitch',2,10,(v,u)=>frontAt(patchT[0]+.005+v*.0016,
-        lerp(patchX[0]+.004,patchX[1]-.004,u),.0044));
+        lerp(patchX[0]+.004,patchX[1]-.004,u),.0172));
       panel(upper,threadMat,'Patch stitch',2,10,(v,u)=>frontAt(patchT[1]-.006-v*.0016,
-        lerp(patchX[0]+.004,patchX[1]-.004,u),.0044));
+        lerp(patchX[0]+.004,patchX[1]-.004,u),.0172));
     }
     if(adidas&&!photoHoodie){
       // Small three-leaf chest embroidery, cut by three horizontal stitch bars.
@@ -925,7 +931,10 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           // Nested folds return some fabric along the arm. Their shallow radial relief
           // keeps the silhouette soft even when the cuff takes up considerable slack.
           tuck=foldAmplitude*Math.cos(phase)*gather/sy;
-          const bunch=foldAmplitude*.27*Math.sin(phase)*gather;
+          // Heavy canvas folds rather than puffs: the radial part of the
+          // sleeve's own relief is held back, so the arm does not read as a
+          // stack of rings.
+          const bunch=foldAmplitude*(workjacket?.10:.27)*Math.sin(phase)*gather;
           rx+=upperFold+bunch;rz+=upperFold+bunch;
 
         }

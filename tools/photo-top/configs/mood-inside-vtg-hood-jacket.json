@@ -21,22 +21,23 @@
       3760
     ],
     "tone": [
-      36,
-      36,
-      40
+      50,
+      50,
+      55
     ],
     "relief": 2.6,
     "fine": 0.9,
     "coarse": 2.6,
-    "roughness": 0.84,
-    "tile": 0.08,
+    "roughness": 0.86,
+    "tile": 0.12,
     "tile_px": 512,
-    "colour_detail": 0.38
+    "colour_detail": 0.3
   },
   "atlas": {
     "size": 2048,
     "circumference": 1.48,
-    "length": 0.65
+    "length": 0.65,
+    "apex": 1.383
   },
   "pieces": {
     "atlas": [
@@ -44,8 +45,6 @@
     ],
     "tile": [
       "Sleeve",
-      "Kangaroo pocket",
-      "Pocket opening lip",
       "Drawstring",
       "Lined hood opening",
       "Shoulder seam"
@@ -57,10 +56,7 @@
       "Neck lining",
       "Folded bottom hem"
     ],
-    "thread": [
-      "Pocket mouth topstitch",
-      "Patch stitch"
-    ],
+    "thread": [],
     "metal": [
       "Silver coil zipper",
       "Zipper slider",
@@ -72,26 +68,24 @@
     "button": [],
     "shade": [
       "Folded hood",
-      "Patch label",
       "Zip tape"
+    ],
+    "atlas_shade": [
+      "Kangaroo pocket",
+      "Patch label",
+      "Pocket opening lip",
+      "Pocket mouth topstitch",
+      "Patch stitch"
     ]
   },
   "sleeve_repeat": [
-    5.4,
-    7.6
+    4.2,
+    5.1
   ],
   "piece_repeat": {
-    "Kangaroo pocket": [
-      3.5,
-      2.2
-    ],
-    "Pocket opening lip": [
-      1.2,
-      0.4
-    ],
     "Folded hood": [
-      3.6,
-      3.2
+      2.4,
+      2.1
     ],
     "Lined hood opening": [
       4.9,
@@ -128,9 +122,9 @@
   },
   "rib": {
     "tone": [
-      26,
-      26,
-      28
+      30,
+      30,
+      33
     ],
     "tile": 0.045,
     "period_mm": 4.8,
@@ -139,9 +133,9 @@
   },
   "normal_scale": 1.25,
   "thread": [
-    44,
-    44,
-    48
+    64,
+    64,
+    68
   ],
   "button": [
     20,
@@ -149,8 +143,8 @@
     22
   ],
   "metal": [
-    0.40,
-    0.40,
+    0.4,
+    0.4,
     0.42
   ],
   "gain": [
@@ -160,5 +154,12 @@
   ],
   "shade": {
     "gain": 0.86
-  }
+  },
+  "atlas_map": [
+    "Kangaroo pocket",
+    "Pocket opening lip",
+    "Pocket mouth topstitch",
+    "Patch label",
+    "Patch stitch"
+  ]
 }

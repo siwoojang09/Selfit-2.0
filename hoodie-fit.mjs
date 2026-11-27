@@ -67,7 +67,11 @@ function perimeter(r){
 
 // Reconstruct horizontal pattern sections under two constraints: enclose the body and
 // retain the flat pattern perimeter. Excess cloth is distributed around sides and back.
-export function cutHoodie(m,w){
+// `opts.gather` scales the loose cloth's own folds: a heavy canvas hangs in a
+// few broad creases where a fleece bunches into many, and the front panel has
+// to stay calm enough for a pocket sewn onto it to sit proud of it.
+export function cutHoodie(m,w,opts={}){
+  const gatherGain=opts.gather??1;
   const fit=hoodieFit(m,w),N=48;
   const rings=[];
   const chestT=.25;
@@ -93,7 +97,7 @@ export function cutHoodie(m,w){
       const waistFold=Math.max(0,Math.sin(Math.PI*clamp((t-.22)/.73,0,1)));
       const side=.36+.64*s*s;
       const gathers=(Math.sin(8*a+1.7*t)+.43*Math.sin(13*a-2.8*t))*
-        clamp(chestExtra*3,.14,1.2)*side*waistFold;
+        clamp(chestExtra*3,.14,1.2)*side*waistFold*gatherGain;
       weights.push(Math.max(.09,1+.44*s*s+.20*(1-c)-.24*Math.max(c,0)**20+gathers*.64));
     }
     let lo=0,hi=.3;

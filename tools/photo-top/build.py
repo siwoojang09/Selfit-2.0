@@ -459,6 +459,24 @@ def build_glb(cfg, work):
                                work / 'tile-normal.png', work / 'tile-rough.png',
                                [x * float(shade.get('gain', .9)) for x in gain], 1,
                                cfg.get('normal_scale', 1.0))
+    # A piece of the same cloth laid on the body (a pouch pocket, a label
+    # patch) reads by its edge: it is shaded a touch deeper than the panel it
+    # sits on, and samples the same atlas so the weave still runs through it.
+    # The same atlas, dyed a shade deeper: one set of textures for both, so a
+    # pocket does not cost a second copy of the body's maps.
+    shade_gain = [x * float(shade.get('gain', .9)) for x in gain]
+    base = g.materials[mat_atlas]
+    mat_atlas_shade = len(g.materials)
+    g.materials.append({
+        'name': cfg['id'] + ' body shade', 'doubleSided': True,
+        'pbrMetallicRoughness': {
+            'baseColorFactor': list(shade_gain) + [1.0],
+            'baseColorTexture': dict(base['pbrMetallicRoughness']['baseColorTexture']),
+            'metallicRoughnessTexture': dict(base['pbrMetallicRoughness']['metallicRoughnessTexture']),
+            'metallicFactor': 0.0, 'roughnessFactor': 1.0,
+        },
+        'normalTexture': dict(base['normalTexture']),
+    })
     mat_thread = plain('tonal topstitch', [c / 255 * .92 for c in cfg.get('thread', (235, 235, 233))], .86)
     mat_button = plain('resin button', [c / 255 for c in cfg.get('button', (23, 23, 24))], .5)
     metal = cfg.get('metal', (.58, .57, .55))
@@ -468,12 +486,15 @@ def build_glb(cfg, work):
     for mat, names in (('atlas', groups.get('atlas', [])), ('tile', groups.get('tile', [])),
                        ('rib', groups.get('rib', [])), ('thread', groups.get('thread', [])),
                        ('metal', groups.get('metal', [])), ('button', groups.get('button', [])),
-                       ('shade', groups.get('shade', []))):
+                       ('shade', groups.get('shade', [])),
+                       ('atlas_shade', groups.get('atlas_shade', []))):
         for n in names:
             lookup[n] = mat
+    for n in groups.get('atlas_shade', []):
+        lookup[n] = 'atlas_shade'
     material_index = {'atlas': mat_atlas, 'tile': mat_tile, 'rib': mat_rib,
                       'thread': mat_thread, 'metal': mat_metal, 'button': mat_button,
-                      'shade': mat_shade}
+                      'shade': mat_shade, 'atlas_shade': mat_atlas_shade}
     rep_u, rep_v = cfg.get('sleeve_repeat', [4.0, 5.0])
     piece_repeat = cfg.get('piece_repeat', {})
 
@@ -506,7 +527,17 @@ def build_glb(cfg, work):
                 # collar's length, so the piece's two axes trade places before
                 # the tile is laid on.
                 uv = uv[:, ::-1]
-            if tag == 'atlas':
+            if m['name'] in cfg.get('atlas_map', []):
+                # A piece sewn onto the body (a pouch pocket, a label patch) is
+                # cut from the same cloth and sits on the same panel, so its
+                # texture is read from the body's own atlas by position instead
+                # of from a tiled swatch: the weave then runs on unbroken from
+                # the panel onto the pocket.
+                apex = float(cfg['atlas'].get('apex', 1.383))
+                u = (np.arctan2(pos[:, 0], pos[:, 2]) / (2 * np.pi)) % 1.0
+                v = (apex - pos[:, 1]) / float(cfg['atlas']['length'])
+                uv = np.stack([u, v], 1)
+            elif tag == 'atlas':
                 uv = np.clip(uv, 0, 1)
             elif tag in ('tile', 'rib', 'shade'):
                 ru, rv = piece_repeat.get(m['name'], (rep_u, rep_v))

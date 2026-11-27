@@ -62,7 +62,9 @@ def sample(tex, uv):
 
 def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False):
     g, bin_ = load_glb()
-    prims = [(m['name'], p) for m in g['meshes'] for p in m['primitives']]
+    only = os.environ.get('PREVIEW_ONLY') or ''
+    prims = [(m['name'], p) for m in g['meshes'] for p in m['primitives']
+             if not only or only in m['name']]
     # The rig hangs the arms out to clear a padded body; the asset stores them
     # in the shoulder's own frame, so a still render has to splay them itself.
     splay = float(os.environ.get('ARM_SPLAY') or 0)
