@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27p';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27p';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27p';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27p';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27p';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27p';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27q';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27q';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27q';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27q';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27q';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27q';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -570,7 +570,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           // The pouch is washed pale along its edge: a strip of the same cloth
           // shows under the pocket, a few millimetres wider, so the pocket's
           // outline is the pale line the photograph has and not a drawn border.
-          panel(upper,edgeMat,'Pocket edge',16,40,(v,u)=>pocketAt(v,u,workjacket?.0096:.0030,.0075));
+          panel(upper,edgeMat,'Pocket edge',16,40,(v,u)=>pocketAt(v,u,workjacket?.0096:.0030,.0090));
         }
         panel(upper,pocketMat,'Kangaroo pocket',16,40,(v,u)=>pocketAt(v,u,pocketLift));
         for(const side of [-1,1]) panel(upper,trim,'Pocket opening lip',13,2,(v,u)=>{
