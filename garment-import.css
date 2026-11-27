@@ -1,0 +1,19 @@
+.link-form .field-grid,.import-photos {margin-block:14px}
+.link-form .field input,.link-form .field select {min-width:0}
+.link-form .form-footer {flex-wrap:wrap}
+.link-form h3,.import-result h3 {margin:0 0 8px}
+.link-form .form-section {margin-top:18px}
+.import-confirm {display:flex;align-items:center;gap:8px}
+.import-note {font-size:.88rem;color:#5b5751}
+.import-photos {display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px}
+.import-photos figure {margin:0;text-align:center;font-size:.82rem}
+.import-photos img,.import-result img {display:block;width:100%;object-fit:contain;background:#f0eeea;border-radius:8px}
+.import-photos img {aspect-ratio:1}
+.import-photos figcaption {padding-top:4px}
+.import-result {display:grid;grid-template-columns:minmax(78px,110px) minmax(0,1fr);gap:14px;align-items:start}
+.import-result p {margin:4px 0 8px}
+.import-result img {aspect-ratio:1}
+.import-progress {padding-block:12px}
+#openGarmentImport {margin-bottom:14px}
+
+.import-progress:empty {display:none}

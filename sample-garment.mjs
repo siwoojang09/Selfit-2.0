@@ -248,7 +248,8 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // stripe tapes, embroidery and topstitching are left out, because every one
     // of them is in the photograph already and a second set of lines laid over
     // the photo reads as a ghost of the pattern.
-    const photoHoodie=adidas&&opts.photoHoodie!==false;
+    const imported=opts.imported===true&&(opts.type||opts.template)==='ziphoodie';
+    const photoHoodie=(adidas&&opts.photoHoodie!==false)||imported;
     const photoTop=Boolean(opts.topAsset)||Boolean(photoHoodie&&opts.hoodieAsset);
     photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:(opts.topAsset?opts.topAsset.byName:null);
     photoUsed={};
@@ -270,8 +271,8 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // was authored on the 178 cm frame onto the shaped mannequin.
     const frame=wearer(body.model||'female',opts.person);
     const KY=frame.base.ky||1;
-    const anatomy=adidas?frame:null;
-    const pattern=adidas?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
+    const anatomy=adidas||imported?frame:null;
+    const pattern=anatomy?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
     const fit=pattern?.fit, sy=anatomy?.sy||1;
     const bodyLength=fit?fit.length/sy:actual(measured.length,hoodie?62:65,33,99)*.00955;
     const sleeve=actual(measured.sleeve,long?58:22,7,85)*.0094;
@@ -389,7 +390,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       });
     }
     const source=opts.image||opts.photo;
-    if(!adidas && source && typeof document!=='undefined'){
+    if(!adidas && !imported && source && typeof document!=='undefined'){
       const generation=revision;
       printFront(source,type,mainColor).then(tex=>{
         if(disposed||generation!==revision){tex.dispose();return;}
@@ -1010,7 +1011,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
   }
   function update(changes) {
     opts={...opts,...changes};
-    const key=JSON.stringify([opts.id,opts.sampleId,opts.type,opts.template,opts.adidas,opts.pattern,opts.color,opts.material,opts.measurements,opts.person,opts.image||opts.photo,Boolean(opts.hoodieAsset)]);
+    const key=JSON.stringify([opts.id,opts.sampleId,opts.type,opts.template,opts.adidas,opts.pattern,opts.color,opts.material,opts.measurements,opts.person,opts.imported,opts.image||opts.photo,Boolean(opts.hoodieAsset),Boolean(opts.topAsset)]);
     if(key===signature)return;
     signature=key;revision++;clear();build();
   }

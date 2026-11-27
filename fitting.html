@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#F8F7F4"><title>Selfit 2.0 — 드레싱룸</title><meta name="description" content="사진과 실측으로 의류 샘플을 등록하고, 3D 모델에 입혀 사이즈와 보행을 확인하는 드레싱룸."><link rel="stylesheet" href="style.css?v=2026-11-27c"></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#F8F7F4"><title>Selfit 2.0 — 드레싱룸</title><meta name="description" content="사진과 실측으로 의류 샘플을 등록하고, 3D 모델에 입혀 사이즈와 보행을 확인하는 드레싱룸."><link rel="stylesheet" href="style.css?v=2026-11-27c"><meta name="selfit-garment-api" content=""><link rel="stylesheet" href="garment-import.css?v=2026-11-27d"></head>
 <body>
 <div class="app">
 <header class="topbar"><nav class="mainnav" aria-label="주 메뉴"><button id="allNav" class="navlink nav-on">드레싱룸</button><button id="ownNav" class="navlink">내 샘플</button></nav>
@@ -59,7 +59,7 @@
     </div>
     <div class="size-block" id="sizeBlock" hidden><div class="size-head"><span>사이즈</span><small>실측 단면 기준</small></div><div id="sizes" aria-label="착용 사이즈"></div><div id="quickMeasures" class="quick-measures"></div></div>
     <button id="fitPreview" class="primary-pill" hidden>3D 착장 전체 보기</button>
-    <div class="secondary-row"><button id="measureTable" class="textlink" hidden><i data-icon="ruler"></i>실측표 보기</button><button id="removeSample" class="textlink" hidden>샘플 삭제</button></div>
+    <div class="secondary-row"><button id="measureTable" class="textlink" hidden><i data-icon="ruler"></i>실측표 보기</button><button id="downloadGlb" class="textlink" type="button" hidden>GLB 다운로드</button><button id="removeSample" class="textlink" hidden>샘플 삭제</button></div>
   </section>
 
   <section class="card rec-card">
@@ -70,4 +70,4 @@
 </main>
 </div>
 <dialog id="dialog"><div class="dialog-header"><h2 id="dialogTitle"></h2><button id="close" class="icon-button" aria-label="닫기" data-icon="close"></button></div><div id="dialogBody"></div></dialog><div id="notice" role="status" aria-live="polite"></div>
-<script src="engine.js?v=2026-11-27c"></script><script type="module" src="app.js?v=2026-11-27c"></script></body></html>
+<script src="engine.js?v=2026-11-27d"></script><script type="module" src="app.js?v=2026-11-27d"></script></body></html>

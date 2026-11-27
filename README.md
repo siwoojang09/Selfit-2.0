@@ -145,3 +145,7 @@ python3 -m http.server 8080
   냅니다. 봉제선은 아틀라스 노멀맵에 홈과 실선 대시로 그려 형상의 홈과 맞물립니다.
 - 등록: `catalog-data.mjs`의 `glossyPuffer`. 브랜드(DRAPE STUDIO)와 실측표는 임시값이며
   사용자가 라벨 실측을 주면 그 값으로 바꿉니다.
+
+## 상품 링크로 3D 피팅
+
+드레싱룸에서 무신사 후드 집업 링크를 등록하고 사진·실측을 확인한 뒤 3D 모델을 생성할 수 있습니다. 서버 실행, 제휴 상품 피드 연결, GitHub Pages 설정 방법은 [가져오기 서버 안내](garment_service/README.md)에 있습니다.

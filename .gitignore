@@ -2,3 +2,5 @@
 # Headless build output (copied tree + bundle); regenerate with .devtest/build_bundle.py
 .devtest/work/
 __pycache__/
+
+.garment-data/

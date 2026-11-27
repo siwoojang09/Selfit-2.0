@@ -1,9 +1,16 @@
+import {openGarmentImport} from './garment-import.mjs?v=2026-11-27d';
 import {products as feedProducts} from './fit-matches.mjs?v=2026-11-24p';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-24p';
 import {getReference,listReferences} from './reference-store.mjs?v=2026-11-24p';
 import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24p';
 import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-24p';
 const $=id=>document.getElementById(id);
+const garmentUrls=new WeakMap();
+function garmentUrl(asset){
+  if(!asset)return null;
+  if(!garmentUrls.has(asset))garmentUrls.set(asset,URL.createObjectURL(asset));
+  return garmentUrls.get(asset);
+}
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
  hanger:'<path d="M10 5a2.4 2.4 0 1 1 4 1.8c-1.1.8-2 1.3-2 3v1l9.2 6.4a1.4 1.4 0 0 1-.8 2.5H3.6a1.4 1.4 0 0 1-.8-2.5L12 11"/>',
@@ -166,13 +173,14 @@ function setWornItem(){
     pants={id:selected.id,type:'pants',color:selected.color,material:selected.material||'denim',measurements:measures()};
   }else{
     activeTop=selected;
-    upper={id:selected.id,type:selected.type,color:selected.color,pattern:selected.pattern||'',material:selected.material||'cotton',image:selected.custom?selected.photo:null,measurements:measures()};
+    upper={id:selected.id,type:selected.type,color:selected.color,pattern:selected.pattern||'',material:selected.material||'cotton',image:selected.custom&&!selected.asset?selected.photo:null,assetUrl:garmentUrl(selected.asset),imported:Boolean(selected.asset),adidas:selected.assetKind==='catalog',measurements:measures()};
   }
 }
 function product(){
   const hasSelection=Boolean(selected);
   $('removeSample').hidden=!selected?.custom;
   $('measureTable').hidden=!hasSelection;
+  $('downloadGlb').hidden=!selected?.asset;
   $('sizeBlock').hidden=!hasSelection;
   $('brand').textContent=selected?brandName(selected):'';
   $('sku').textContent=selected?.code||'';
@@ -263,7 +271,7 @@ function reportCells(stats){
   }).join('');
 }
 function renderFitReport(hemLift=0){
-  const show=selected?.id===adidas.id||isPants();
+  const show=selected?.id===adidas.id||Boolean(selected?.asset)||isPants();
   $('fitReport').hidden=!show;
   if(!show)return;
   const w=currentWearer();
@@ -305,10 +313,10 @@ $('compareFit').onclick=()=>{
       return '<tr class="'+(m.label===size?'current':'')+'"><th><button type="button" data-fit-size="'+esc(m.label)+'">'+esc(m.label)+'</button></th><td>'+signed(f.waistEase)+'</td><td>'+signed(f.hipEase)+'</td><td>'+fmt(f.stack)+'</td></tr>';
     }).join('');
     modal('바지 사이즈별 핏 비교','<p>현재 체형의 허리둘레 '+fmt(w.waist)+' cm, 엉덩이둘레 '+fmt(w.hip)+' cm 기준입니다. 사이즈를 눌러 입혀보세요.</p><div class="table-wrap"><table><thead><tr><th>사이즈</th><th>허리 여유 (cm)</th><th>엉덩이 여유 (cm)</th><th>예상 밑단 접힘 (cm)</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
-  }else modal('사이즈별 핏 비교','<p>현재 모델의 가슴둘레 '+fmt(w.chest)+' cm를 기준으로 계산했습니다. 단위는 cm입니다.</p><div class="table-wrap"><table><thead><tr><th>사이즈</th><th>옷 가슴둘레</th><th>가슴 여유</th><th>총장</th><th>소매길이</th><th>예상 소맷단 위치</th></tr></thead><tbody>'+adidas.sizes.map(m=>{
+  }else modal('사이즈별 핏 비교','<p>현재 모델의 가슴둘레 '+fmt(w.chest)+' cm를 기준으로 계산했습니다. 단위는 cm입니다.</p><div class="table-wrap"><table><thead><tr><th>사이즈</th><th>옷 가슴둘레</th><th>가슴 여유</th><th>총장</th><th>소매길이</th><th>예상 소맷단 위치</th></tr></thead><tbody>'+selected.sizes.map(m=>{
     const f=hoodieFit(m,w);
-    return '<tr class="'+(m.label===size?'current':'')+'"><th><button type="button" data-fit-size="'+m.label+'">'+m.label+'</button></th><td>'+fmt(f.chestM*100)+'</td><td>'+signed(f.ease)+'</td><td>'+m.length+'</td><td>'+m.sleeve+'</td><td>'+cuffPosition(f)+'</td></tr>';
-  }).join('')+'</tbody></table></div><p>사이즈 이름을 누르면 해당 사이즈를 입혀봅니다. 같은 가슴단면을 가진 XXS와 XS는 총장과 소매길이가 다릅니다.</p>');
+    return '<tr class="'+(m.label===size?'current':'')+'"><th><button type="button" data-fit-size="'+esc(m.label)+'">'+esc(m.label)+'</button></th><td>'+fmt(f.chestM*100)+'</td><td>'+signed(f.ease)+'</td><td>'+m.length+'</td><td>'+m.sleeve+'</td><td>'+cuffPosition(f)+'</td></tr>';
+  }).join('')+'</tbody></table></div><p>사이즈 이름을 누르면 해당 사이즈를 입혀봅니다. </p>');
   $('dialogBody').querySelectorAll('[data-fit-size]').forEach(b=>b.onclick=()=>{size=b.dataset.fitSize;setWornItem();product();$('dialog').close();showFit();});
 };
 $('fitMethod').onclick=()=>{
@@ -318,6 +326,15 @@ $('fitMethod').onclick=()=>{
     return;
   }
   const m=measures(),w=currentWearer(),f=hoodieFit(m,w);
+  if(selected.asset){
+    modal('가져온 후드 집업의 계산 근거','<dl class="help"><dt>실측 출처</dt><dd>'+esc(selected.source)+
+      ' · '+esc(size)+' · 가슴단면 '+m.chest+' cm × 2를 모델 가슴둘레와 비교합니다.</dd>'+
+      '<dt>마감과 원단</dt><dd>밑단단면 '+(m.hem==null?'미제공 · 가슴단면의 84.5%로 추정':m.hem+' cm 사용')+
+      ' · 원단 굽힘과 신축성은 코튼 프리셋을 적용합니다.</dd><dt>착용 결과</dt>'+
+      '<dd>소맷단과 밑단의 위치는 선택한 실측과 체형으로 계산합니다. 실제 옷의 패턴과 원단 시험값이 있으면 더 정확히 맞출 수 있습니다.</dd></dl>'+
+      '<a class="textlink" href="'+esc(selected.productUrl)+'" target="_blank" rel="noopener noreferrer">무신사 상품 원본</a>');
+    return;
+  }
   modal('소재와 계산 근거','<dl class="help"><dt>상품 실측 · '+size+'</dt><dd>제공된 사이즈표의 가슴단면 '+m.chest+' cm × 2 = 옷 가슴둘레 '+fmt(f.chestM*100)+' cm입니다. 몸의 가슴둘레 '+fmt(w.chest)+' cm를 빼면 여유가 '+signed(f.ease)+' cm입니다. 음수는 착용에 신축이 필요하다는 뜻입니다.</dd><dt>밑단과 주름</dt><dd>'+(f.hemMeasured?'XS의 밑단단면 44 cm를 사용했습니다.':'밑단단면은 미제공입니다. XS의 밑단 대 가슴단면 비율 44/56을 적용한 '+fmt(f.hemM*50)+' cm를 사용했습니다.')+' 밑단은 하의의 바깥 표면을 따릅니다. 드롭 숄더에서 손목까지 필요한 길이를 구하고, 여분은 손등을 덮는 길이와 시보리 위에 모이는 주름으로 나눴습니다. 패턴과 원단 시험값이 없어 밑단 위치와 주름은 추정입니다.</dd><dt>원단과 마감</dt><dd>KC9315 상품 고시 기준 주소재는 면 100%, 배색 소재는 면 99%·엘라스테인 1%입니다. 사진을 기준으로 검은 몸판, 크림색 세 줄 테이프와 골지 시보리의 표면을 따로 재현했습니다. 원단 중량·두께·방향별 신장률과 굽힘 강성은 미확인입니다.</dd><dt>착용 모델</dt><dd>기본 치수는 3D 인체의 가슴·허리·엉덩이 단면에서 측정했습니다. 입력한 둘레를 적용할 때는 같은 높이의 단면을 비례 조정합니다. 어깨와 팔 길이는 선택한 모델의 비례를 따릅니다.</dd></dl><div class="fit-links"><a target="_blank" rel="noopener" href="https://www.musinsa.com/products/5329359">무신사 제품 설명</a><a target="_blank" rel="noopener" href="https://shinsegaemall.ssg.com/item/itemView.ssg?itemId=1000875360137">신세계몰 소재 고시</a></div>');
 };
 $('bodyInputs').onclick=()=>{
@@ -343,7 +360,7 @@ function sync(){
   $('stage').classList.toggle('show3d',ready);
   $('mode').textContent=!ready?'3D 불러오는 중':playing?'3D 보행 중':
     bodyOnly?'3D 체형':!upper&&!pants&&bottom==='none'?'기본 3D 마네킹':
-    selected?.id===adidas.id||isPants()?'3D 실측 핏':'3D 피팅';
+    selected?.id===adidas.id||Boolean(selected?.asset)||isPants()?'3D 실측 핏':'3D 피팅';
   $('play').querySelector('i').innerHTML=icon(playing?'pause':'play');
   $('play').querySelector('span').textContent=playing?'일시정지':'보행 시뮬레이션';
   $('play').setAttribute('aria-pressed',playing);
@@ -435,7 +452,7 @@ function changeZoom(delta){zoom=Math.max(.7,Math.min(1.7,Math.round((zoom+delta)
 $('zoomIn').onclick=()=>changeZoom(.1);$('zoomOut').onclick=()=>changeZoom(-.1);
 $('recenter').onclick=()=>{zoom=1;cameraView=bodyOnly?'study':fittingView();if(ready)window.DrapeEngine.set({view:cameraView,zoom:1});apply();};
 $('expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('fitting').requestFullscreen();}catch{toast('이 브라우저에서는 전체 화면을 사용할 수 없습니다.');}};
-function modal(title,body){$('dialogTitle').textContent=title;$('dialogBody').innerHTML=body;$('dialog').showModal();}
+function modal(title,body){$('dialogTitle').textContent=title;$('dialogBody').innerHTML=body;if(!$('dialog').open)$('dialog').showModal();}
 $('close').onclick=()=>$('dialog').close();$('dialog').onclick=e=>{if(e.target===$('dialog')){const b=$('dialog').getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)$('dialog').close();}};
 $('measureTable').onclick=()=>{
   const measureFields=fieldsFor(selected.type);
@@ -483,13 +500,21 @@ function addSizeRow(values={}){
   $('rows').append(row);
 }
 function openRegister(){
-  modal('의류 샘플 등록','<p>옷의 정면 사진을 선택한 뒤 의류 유형별 실측을 입력하세요. 등록한 옷은 이 브라우저의 내 샘플에 저장됩니다.</p>'+
+  modal('의류 샘플 등록','<button class="primary" id="openGarmentImport" type="button">무신사 링크로 가져오기</button><p>옷의 정면 사진을 선택한 뒤 의류 유형별 실측을 입력하세요. 등록한 옷은 이 브라우저의 내 샘플에 저장됩니다.</p>'+
   '<form id="sampleForm"><div class="field-grid"><label class="field wide">상품 사진<input name="image" type="file" accept="image/jpeg,image/png,image/webp" required><small>단색 배경의 정면 사진 · JPG, PNG, WebP · 최대 12MB</small></label>'+
   '<label class="field">상품명<input name="name" maxlength="65" required placeholder="예: 코튼 후드 집업"></label><label class="field">브랜드 (선택)<input name="brand" maxlength="45" placeholder="브랜드명"></label>'+
   '<label class="field">의류 유형<select name="type">'+Object.entries(garmentTypes).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></label><label class="field">품번 (선택)<input name="code" maxlength="45" placeholder="상품 코드"></label>'+
   '<label class="field">기본 색상<input type="color" name="color" value="#363a39"></label><label class="field">원단 프리셋<select name="material"><option value="cotton">코튼</option><option value="linen">리넨</option><option value="denim">데님</option><option value="silk">실크</option></select></label></div>'+
   '<h3 class="form-section">사이즈별 실측 (cm)</h3><div class="sample-rows"><div class="measurement-row labels"><span>사이즈</span>'+measurementFields.map(([,n])=>'<span>'+n+'</span>').join('')+'<span></span></div><div id="rows"></div></div><button type="button" class="secondary" id="addSize">＋ 사이즈 추가</button>'+
   '<p id="formError" class="form-error" role="alert"></p><div class="form-footer"><button class="primary" type="submit">등록하고 입혀보기</button></div></form>');
+  $('openGarmentImport').onclick=()=>{
+    modal('상품 링크로 3D 피팅','');
+    openGarmentImport({dialog:$('dialog'),body:$('dialogBody'),onManual:openRegister,onSave:async sample=>{
+      await saveSample(sample);
+      samples.unshift(sample);scope='mine';query='';filter='all';brand='ALL';$('search').value='';
+      $('dialog').close();choose(sample);toast('옷장에 저장하고 피팅룸에 적용했습니다.');
+    }});
+  };
   const form=$('sampleForm'),drafts=new Map();
   let group='upper';
   addSizeRow();$('addSize').onclick=()=>addSizeRow();
@@ -525,6 +550,13 @@ function openRegister(){
     }catch(err){error.textContent=err.name==='QuotaExceededError'?'브라우저 저장 공간이 부족합니다.':err.message||'샘플을 저장하지 못했습니다. 저장 공간을 확인해 주세요.';submit.disabled=false;submit.textContent='등록하고 입혀보기';}
   };
 }
+$('downloadGlb').onclick=()=>{
+  if(!selected?.asset)return;
+  const link=document.createElement('a');
+  link.href=garmentUrl(selected.asset);
+  link.download=(selected.code||selected.name).replace(/[\\/:*?"<>|]/g,'-')+'.glb';
+  link.click();
+};
 $('removeSample').onclick=()=>{
   const item=selected;
   if(!item?.custom)return;

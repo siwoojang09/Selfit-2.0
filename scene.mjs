@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24p';
-import { attachSample } from './sample-garment.mjs?v=2026-11-24p';
+import { attachSample } from './sample-garment.mjs?v=2026-11-27d';
 import { createWardrobe } from './wardrobe.mjs?v=2026-11-27c';
 import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24p';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-24p';
@@ -8,7 +8,7 @@ import {wearer} from './hoodie-fit.mjs?v=2026-11-24p';
 import { makeMannequin } from './mannequin.mjs?v=2026-11-27c';
 import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24p';
 import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24p';
-import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24p';
+import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-27d';
 import { createSoftwareRenderer } from './software.mjs?v=2026-11-24p';
 
 const limit = THREE.MathUtils.clamp;
@@ -407,7 +407,7 @@ export function createScene(container, opts) {
     if (!topLoading[id]) {
       topLoading[id] = true;
       document.documentElement.dataset.top = 'loading ' + id;
-      loadTopAsset(id).then(asset => {
+      loadTopAsset(id, sample.assetUrl).then(asset => {
         topAssets[id] = asset;
         document.documentElement.dataset.top = 'worn ' + asset.parts.length;
         if (opts.sample?.id===id) update({sample:opts.sample});
@@ -544,7 +544,7 @@ export function createScene(container, opts) {
       heightRatio=user?.sy||1;
       body.group.scale.y=heightRatio;
       const width=displayTop?.measurements?.chest||0;
-      const bodyChest=opts.sample?.id==='KC9315'?(user||wearer(opts.model)).chest:2*width;
+      const bodyChest=(displayTop?.id==='KC9315'||displayTop?.imported)?(user||wearer(opts.model)).chest:2*width;
       body.group.userData.armClearance=.145+Math.min(.13,Math.max(0,2*width-bodyChest)*.002)+Math.max(0,(user?.chest||0)-(user?.base.chest||0))*.004
         // A wide-hip trouser stands off the body by the tape's own ease, so the
         // hanging arms step aside instead of disappearing into the cloth.
@@ -560,7 +560,7 @@ export function createScene(container, opts) {
       const photographedTop=hasPhotoTop(displayTop);
       const readyToWear=(!photographed||adoptHoodieAsset())&&(!photographedTop||adoptTopAsset(displayTop));
       if(displayTop&&readyToWear){
-        const upper={...displayTop,person:opts.person,photoHoodie:photographed,
+        const upper={...displayTop,person:opts.person,photoHoodie:photographed||displayTop.adidas,
           hoodieAsset:photographed?hoodieAsset:null,
           topAsset:photographedTop?topAssets[String(displayTop.id)]:null,onReady:()=>{dirty=true;}};
         if(sampleGarment)sampleGarment.update(upper);

@@ -1,0 +1,12 @@
+**
+!garment_service/
+!garment_service/*.py
+!garment_service/pattern.mjs
+!garment_service/requirements.txt
+!*.mjs
+!vendor/
+!vendor/**
+!catalog/
+!catalog/hoodie.webp
+!assets/
+!assets/adidas-kc9315.glb

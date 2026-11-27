@@ -21,7 +21,7 @@ const PHOTO_TOPS = new Set(['nike-sport-tee-white', 'underoff-university-hoodie'
   'polo-cable-halfzip', 'trillion-striped-oxford', 'glossy-hooded-puffer']);
 
 export function hasPhotoTop(sample) {
-  return Boolean(sample && PHOTO_TOPS.has(String(sample.id || '')));
+  return Boolean(sample && (sample.assetUrl || PHOTO_TOPS.has(String(sample.id || ''))));
 }
 
 export function peekTopAsset(id) {
@@ -34,9 +34,9 @@ export function pieceKey(name) {
   return String(name || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
-export function loadTopAsset(id) {
+export function loadTopAsset(id, importedUrl) {
   if (!pending.has(id)) {
-    const url = new URL(`./assets/${id}.glb`, import.meta.url).href + '?v=' + ASSET_VERSION;
+    const url = importedUrl || new URL(`./assets/${id}.glb`, import.meta.url).href + '?v=' + ASSET_VERSION;
     const base = url.slice(0, url.lastIndexOf('/') + 1);
     const job = fetch(url)
       .then(response => {
