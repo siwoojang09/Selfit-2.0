@@ -174,13 +174,15 @@ function go(hash){
 /* screens */
 function viewSplash(){
   return `<div class="splash">
-    <div class="splash-text">
-      <div class="brand-xl">Selfit <span class="ver">2.0</span></div>
-      <p class="kicker">AI Personal Stylist</p>
-      <p class="splash-copy">당신의 스타일을 더 특별하게,<br>이제는 AI와 함께.</p>
-    </div>
+    <header class="splash-head">
+      <div class="splash-title">
+        <h1 class="splash-brand">Selfit <span class="ver">2.0</span></h1>
+        <p class="kicker">AI PERSONAL STYLIST</p>
+      </div>
+      <p class="splash-sub">내 몸에 맞는 핏을, 화면에서.</p>
+    </header>
     <div class="splash-art"><img src="looks/female-tailored.webp" alt="미니멀 오피스 룩을 입은 모델" fetchpriority="high"></div>
-    <div class="splash-actions">
+    <div class="splash-foot">
       <button class="btn primary block" data-action="start">시작하기</button>
       <button class="login" data-action="guest">로그인</button>
     </div>
@@ -213,18 +215,24 @@ function viewHome(){
     <button class="icon-btn" data-action="sheet" data-kind="notifications" aria-label="알림">${icon('bell')}</button>
   </header>
   <form class="search-row" id="homeSearch" role="search">
-    <div class="search-field">${icon('search')}<input type="search" name="q" placeholder="지금, 어떤 스타일을 찾고 있나요?" aria-label="상품 검색" value="${esc(state.shopQuery||'')}"></div>
+    <div class="search-field">${icon('search')}<input type="search" name="q" placeholder="상품, 브랜드, 스타일 검색" aria-label="상품 검색" value="${esc(state.shopQuery||'')}"></div>
   </form>
   <section class="hero-card" aria-label="오늘의 추천 코디">
-    <img src="${look.image}" alt="${esc(look.title)}" fetchpriority="high">
-    <div class="hero-copy"><span class="eyebrow">TODAY'S PICK</span><h2>오늘의 추천 코디</h2><p>당신의 스타일에 맞춘<br>코디를 확인해보세요.</p></div>
-    <button class="hero-arrow" data-action="open-look" data-id="${look.id}" aria-label="오늘의 추천 코디 보기">${icon('arrow')}</button>
+    <button class="hero-media" data-action="open-look" data-id="${look.id}" aria-label="오늘의 추천 코디 보기"><img src="${look.image}" alt="${esc(look.title)}" fetchpriority="high"></button>
+    <div class="hero-copy">
+      <p class="eyebrow">TODAY'S PICK</p>
+      <h2>오늘의 추천 코디</h2>
+      <div class="hero-row">
+        <p>${esc(look.title)} · ${esc(look.tag)}</p>
+        <button class="hero-link" data-action="open-look" data-id="${look.id}">코디 보기 ${icon('arrow','sm')}</button>
+      </div>
+    </div>
   </section>
   <section class="quick-row" aria-label="바로가기">
-    <button class="quick" data-action="open-look" data-id="${look.id}"><span class="bubble">${icon('looks')}</span>코디</button>
-    <a class="quick" href="#shop"><span class="bubble">${icon('bag')}</span>쇼핑</a>
-    <a class="quick" href="#closet"><span class="bubble">${icon('closet')}</span>옷장</a>
-    <a class="quick" href="#stylist"><span class="bubble">${icon('sparkle')}</span>AI 스타일리스트</a>
+    <button class="quick" data-action="open-look" data-id="${look.id}">${icon('looks')}<span>코디</span></button>
+    <a class="quick" href="#shop">${icon('bag')}<span>쇼핑</span></a>
+    <a class="quick" href="#closet">${icon('closet')}<span>옷장</span></a>
+    <a class="quick" href="#stylist">${icon('sparkle')}<span>AI 스타일리스트</span></a>
   </section>
   <section class="block">
     <div class="block-head"><h2>지금 인기 있는 스타일</h2><a class="text-link" href="#stylist">더 보기</a></div>
