@@ -1,4 +1,45 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f9f9f6"><meta name="description" content="내가 좋아하는 옷의 실측으로 다른 브랜드에서 비슷한 핏과 사이즈를 찾아보세요."><title>Selfit 2.0 · 내 옷으로 찾는 핏</title><script>if(['#fit','#body'].includes(location.hash))location.replace('fitting.html'+location.search+location.hash)</script><link rel="stylesheet" href="discovery.css"><link rel="stylesheet" href="compare-fit.css"></head>
-<body><header class="topbar"><div class="wrap headrow"><a class="wordmark" aria-label="Selfit 2.0 홈" href="#home">Selfit<span>2.0</span></a><nav class="topnav" aria-label="메인"></nav><a class="studio" href="fitting.html#fit"><i data-icon="box"></i> 3D 피팅룸</a></div></header>
-<main class="wrap" id="content"></main><nav class="bottomnav" aria-label="하단 탐색"></nav><div id="feedbackNotice" role="status" aria-live="polite"></div><script type="module" src="discovery.mjs"></script></body></html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f2ed">
+  <meta name="description" content="상품을 둘러보고, Selfit에서 입어보고, 나만의 코디를 공유하세요.">
+  <title>Selfit 2.0 · 쇼핑과 피팅</title>
+  <script>
+    if (['#fit','#body'].includes(location.hash)) location.replace('fitting.html'+location.search+location.hash);
+    else if (['#discover','#closet','#wardrobe','#matches','#saved'].includes(location.hash)) location.replace('discovery.html'+location.search+location.hash);
+  </script>
+  <link rel="stylesheet" href="store.css?v=2026-11-27r">
+</head>
+<body>
+  <a class="skip" href="#content">본문으로</a>
+  <header class="mast">
+    <div class="frame mast-inner">
+      <a href="#home" class="brand" aria-label="Selfit 2.0 홈">selfit<span>2.0</span></a>
+      <nav class="mainnav" aria-label="주 메뉴">
+        <a href="#home" data-nav="home">홈</a>
+        <a href="#shop" data-nav="shop">쇼핑</a>
+        <a href="fitting.html">피팅룸</a>
+        <a href="#community" data-nav="community">커뮤니티</a>
+      </nav>
+      <div class="header-actions">
+        <button data-action="search" type="button" class="icon-button" aria-label="상품 검색" data-icon="search"></button>
+        <button data-action="account" type="button" class="account-button" data-icon="user"><span id="account-label">로그인</span></button>
+        <button data-action="cart" type="button" class="icon-button cart-toggle" aria-label="장바구니" data-icon="bag"><span id="cart-count" hidden></span></button>
+      </div>
+    </div>
+  </header>
+  <main class="frame" id="content" tabindex="-1"></main>
+  <footer class="frame footer">
+    <a href="#home" class="brand">selfit<span>2.0</span></a>
+    <nav aria-label="하단 탐색"><a href="#shop">쇼핑</a><a href="fitting.html">피팅룸</a><a href="#community">코디 커뮤니티</a><a href="discovery.html">핏 추천</a></nav>
+  </footer>
+  <dialog id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head"><h2 id="sheet-title"></h2><button type="button" class="icon-button" data-action="close" data-icon="close" aria-label="닫기"></button></div>
+    <div id="sheet-content"></div>
+  </dialog>
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="store.mjs?v=2026-11-27r"></script>
+</body>
+</html>
