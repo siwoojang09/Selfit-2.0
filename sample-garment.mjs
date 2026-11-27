@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27m';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27m';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27m';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27m';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27m';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27m';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27n';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27n';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27n';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27n';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27n';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27n';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -295,7 +295,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // A dropped shoulder's sleeve hangs from the body's own shoulder edge, a
     // hand's width below the joint; it is shortened by that much so the cuff
     // still closes at the measured height on the wrist.
-    const sleeveHang=workjacket?.048:0;
+    const sleeveHang=workjacket?.062:0;
     const sleeveLength=fit?(fit.seamDrop+fit.sleeveProjection)/sy-shoulderRise-sleeveHang:
       // A shirt's cuff closes on the wrist, so it stops a little above the hand
       // rather than being dragged over the fingers.

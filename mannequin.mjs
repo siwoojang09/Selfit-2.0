@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
 
-import {anatomyLibrary} from './body-library.mjs?v=2026-11-27m';
-import {attachAnatomicalBody} from './body-skin.mjs?v=2026-11-27m';
-import {getAvatarFit, bodyWidth} from './fit-body-sections.mjs?v=2026-11-27m';
+import {anatomyLibrary} from './body-library.mjs?v=2026-11-27n';
+import {attachAnatomicalBody} from './body-skin.mjs?v=2026-11-27n';
+import {getAvatarFit, bodyWidth} from './fit-body-sections.mjs?v=2026-11-27n';
 
 // The rig below was authored for a 178 cm figure. The body it dresses is now an
 // ordinary one, so the same rig is carried onto it: every height takes the
