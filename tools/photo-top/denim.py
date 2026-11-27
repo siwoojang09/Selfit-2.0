@@ -44,9 +44,11 @@ def wash(w, h, span, seed=11, cell_scale=1.0):
     wide running down the cloth, so the streak field is stretched tall.
     """
     c = cell_scale
-    blotch = (0.60 * _noise(w, h, span, .075 * c, seed)
-              + 0.34 * _noise(w, h, span, .190 * c, seed + 1)
-              + 0.20 * _noise(w, h, span, .420 * c, seed + 2))
+    blotch = (0.62 * _noise(w, h, span, .075 * c, seed)
+              + 0.34 * _noise(w, h, span, .185 * c, seed + 1)
+              + 0.16 * _noise(w, h, span, .420 * c, seed + 2)
+              + 0.13 * _noise(w, h, span, .026 * c, seed + 5)
+              + 0.08 * _noise(w, h, span, .009 * c, seed + 6))
     # Cells a centimetre wide and 15 cm tall: the streaks of a wash.
     rng = np.random.default_rng(seed + 3)
     cx = max(3, int(round(span[0] / (.030 * c))) + 1)
