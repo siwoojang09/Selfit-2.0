@@ -75,7 +75,7 @@ function measurement(v) {
   return Number.isFinite(n)&&n>0?n:null;
 }
 
-function compareSize(reference,product,size,lengthTarget) {
+export function compareSize(reference,product,size,lengthTarget) {
   const pants=product.type==='pants',definitions=pants?pantsMeasures:upperMeasures;
   const deltas={},issues={};
   let matched=0,error=0,weight=0;
