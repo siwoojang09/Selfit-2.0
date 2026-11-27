@@ -169,7 +169,7 @@ def body_seams(w, h, circ, length):
     above_hem = length - v
     hem = _band(above_hem, .058, .030) * np.clip((above_hem - .020) / .02, 0, 1)
     pucker = (0.5 + 0.5 * np.cos(2 * np.pi * u / .0095)) * _band(above_hem, .062, .028)
-    lift += .20 * hem + .15 * pucker
+    lift += .13 * hem + .08 * pucker
     pale += .07 * hem
     # The rib line itself: a shadowed fold where the cloth turns under.
     lift -= .55 * _band(above_hem, .034, .0045)

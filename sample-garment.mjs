@@ -980,13 +980,14 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           const loft=puffAt(t,sleeveSeams,.019,.010,smooth(t,.055,.19)*(1-smooth(t,.79,.90)))+.013*loose;
           rx+=loft;rz+=loft;
         }
-        // A dropped shoulder's cap is not a dome standing over the body's
-        // shoulder: its crown leans in against the cloth that carries it, so
-        // the sleeve leaves the shoulder as a slope and only then falls to the
-        // arm.
+        // A dropped shoulder's cap is cut on a slope, not moulded as a dome: the
+        // cloth runs from the body's shoulder line down over the arm, so the
+        // outer half of the cap sits lower than its inner half and the sleeve
+        // leaves the shoulder as one continuous slope.
         const lean=workjacket?.030*(1-smooth(t,.02,.17)):0;
         const s=Math.sin(a),c=Math.cos(a),x=rx*s-sign*lean,z=rz*c;
-        const yy=y;
+        const capTilt=workjacket?.55*(rx*s*sign)*(1-smooth(t,.20,.34)):0;
+        const yy=y-capTilt;
         const factor=hand && t>.60?hand(y,x,z,rx,rz):1;
         return [x*factor+lift*s,yy,z*factor+lift*c];
       }
