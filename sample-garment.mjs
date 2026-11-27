@@ -907,7 +907,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // so it falls down the side of the cloth rather than through it.
       const armhole=workjacket&&pattern?pattern.point(.085,Math.PI/2):null;
       const dropX=armhole?clamp(Math.abs(armhole[0])-.18,0,.14):0;
-      const mount=group(joint),cap=armhole?armhole[1]-anatomy.base.shoulderY-.010:puffer?-.050:fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
+      const mount=group(joint),cap=armhole?armhole[1]-anatomy.base.shoulderY-.030:puffer?-.050:fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
       if(dropX)mount.position.x=sign*dropX;
       if(fit)mount.scale.set(1/torso.scale.x,1,1/torso.scale.z);
       // A shirt's cuff ends on the wrist; the hand guide is for a knit's ribbed
