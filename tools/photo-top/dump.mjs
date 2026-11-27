@@ -50,7 +50,11 @@ globalThis.__dumpTop = (config) => {
     id: config.id, type: config.type, category: config.category || 'top',
     color: config.color, material: config.material || 'cotton',
     pattern: config.pattern || '', measurements: config.measurements,
-    adidas: false, photo: true
+    adidas: false, photo: true,
+    // The runtime hands the builder its baked asset, and a photographed
+    // garment draws no stitch tubes of its own; the dump must build the same
+    // pieces, so it gets an empty asset instead of none.
+    topAsset: { byName: {} }
   };
   attachSample(body, opts, []);
   body.group.updateMatrixWorld(true);

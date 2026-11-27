@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-24p';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-24p';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-24p';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-24p';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-24p';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-24p';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27g';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27g';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27g';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27g';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27g';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27g';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -254,8 +254,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     photoParts=photoHoodie&&opts.hoodieAsset?opts.hoodieAsset.byName:(opts.topAsset?opts.topAsset.byName:null);
     photoUsed={};
     const raw=opts.type||opts.template||'ziphoodie';
-    const type=['ziphoodie','hoodie','halfzip','tee','shirt','polo','sweatshirt','puffer'].includes(raw)?raw:'ziphoodie';
-    const hoodie=type==='ziphoodie',pullover=type==='hoodie',halfzip=type==='halfzip';
+    const type=['ziphoodie','hoodie','halfzip','tee','shirt','polo','sweatshirt','puffer','workjacket'].includes(raw)?raw:'ziphoodie';
+    // A hooded work jacket closes on the same zip as a hoodie, but the cloth is
+    // heavier, the cut is cropped and boxy, and the front carries one pouch
+    // pocket across the belly instead of two hand pockets.
+    const workjacket=type==='workjacket';
+    const hoodie=type==='ziphoodie'||workjacket,pullover=type==='hoodie',halfzip=type==='halfzip';
     // A down jacket: sewn in horizontal channels that each swell with filling,
     // closed by a two-way zip under a stand collar and a quilted hood.
     const puffer=type==='puffer';
@@ -271,8 +275,12 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // was authored on the 178 cm frame onto the shaped mannequin.
     const frame=wearer(body.model||'female',opts.person);
     const KY=frame.base.ky||1;
-    const anatomy=adidas||imported?frame:null;
-    const pattern=anatomy?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
+    // A photographed work jacket is measured like the adidas hoodie: its
+    // dropped shoulder only makes sense once the cloth is cut onto a body, so
+    // the pattern encloses the wearer and the flat measurements survive.
+    const fitted=adidas||imported||workjacket;
+    const anatomy=fitted?frame:null;
+    const pattern=fitted?cutHoodie({...measured,chest,shoulder,length:actual(measured.length,62,33,99),sleeve:actual(measured.sleeve,58,7,85)},anatomy):null;
     const fit=pattern?.fit, sy=anatomy?.sy||1;
     const bodyLength=fit?fit.length/sy:actual(measured.length,hoodie?62:65,33,99)*.00955;
     const sleeve=actual(measured.sleeve,long?58:22,7,85)*.0094;
@@ -308,7 +316,9 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     const threadColor=rgb.clone().multiplyScalar(.74).lerp(new T.Color('#737473'),.12);
     const threadMat=material(threadColor,.86);
     const bodyThread=new StitchLines();
-    if(fit){
+    if(fit&&!workjacket){
+      // The adidas hoodie wears its own knitted surface; a photographed work
+      // jacket takes its surface from the asset instead.
       const fabric=(mat,role,width,height)=>applyHoodieTextile(T,mat,role,width,height,opts.onReady);
       fabric(frontMat,'shell',fit.chestM,fit.length);
       fabric(shell,'shell',.52,.21);
@@ -519,7 +529,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         return [Math.sin(a)*lerp(.0575,.056,v),1.463*KY-.030*Math.max(c,0)**2-.024*v,Math.cos(a)*lerp(.0495,.048,v)+.0030];
       });
       for(const side of [-1,1]){
-        if(pullover) break;
+        if(pullover||workjacket) break;
         if(photoHoodie) continue;
         panel(upper,pocketMat,'Split hand pocket',13,9,(v,u)=>{
           const x=side*lerp(.014,width*lerp(.44,.77,smooth(v,0,.8)),u);
@@ -533,7 +543,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           return frontAt(lerp(.712,.91,v),x,.0054);
         });
       }
-      if(pullover){
+      if(pullover||workjacket){
         // A kangaroo pocket is one piece across the belly, its mouth cut in at
         // both sides. The pocket cloth lifts off the body so the opening casts
         // its own thin edge in the light.
@@ -582,6 +592,13 @@ export function attachSample(body,initial={},lowerColliders=[]) {
           const tp=frontAt(.05,.002,.006);
           panel(upper,shine,'Zipper slider',6,6,(v,u)=>[tp[0]+(u-.5)*.0075,tp[1]-v*.009,tp[2]+.0013*Math.sin(u*Math.PI)]);
           panel(upper,shine,'Zipper pull',13,6,(v,u)=>{const a=v*tau;return [tp[0]+.0020*Math.cos(a)*(1+.35*u),tp[1]-.011+.006*Math.sin(a)*(1+.15*u),tp[2]+.0019+u*.0005];});
+        }
+        if(workjacket){
+          // A two-way zip opens from the hem as well as from the chin: a second
+          // slider sits at the bottom stop and its pull hangs past the hem.
+          const bp=frontAt(.952,.002,.006);
+          panel(upper,shine,'Lower zipper slider',6,6,(v,u)=>[bp[0]+(u-.5)*.0075,bp[1]+v*.009,bp[2]+.0013*Math.sin(u*Math.PI)]);
+          panel(upper,shine,'Lower zipper pull',13,6,(v,u)=>{const a=v*tau;return [bp[0]+.0020*Math.cos(a)*(1+.35*u),bp[1]+.011-.006*Math.sin(a)*(1+.15*u),bp[2]+.0019+u*.0005];});
         }
       }
     } else if(puffer){
@@ -838,6 +855,21 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         }
       }
     }
+    if(workjacket){
+      // A small square label patch is sewn above the mouth of the pouch on the
+      // wearer's left panel: the one hard-edged rectangle on an otherwise soft
+      // front, and the reason the pocket reads as a work pocket rather than a
+      // hoodie's.
+      const patchX=[.044,.098],patchT=[.566,.638];
+      panel(upper,trim,'Patch label',10,10,(v,u)=>{
+        const x=lerp(patchX[0],patchX[1],u),t=lerp(patchT[0],patchT[1],v);
+        return frontAt(t,x,.0030+.0018*Math.sin(Math.PI*u)*Math.sin(Math.PI*v));
+      });
+      panel(upper,threadMat,'Patch stitch',2,10,(v,u)=>frontAt(patchT[0]+.005+v*.0016,
+        lerp(patchX[0]+.004,patchX[1]-.004,u),.0044));
+      panel(upper,threadMat,'Patch stitch',2,10,(v,u)=>frontAt(patchT[1]-.006-v*.0016,
+        lerp(patchX[0]+.004,patchX[1]-.004,u),.0044));
+    }
     if(adidas&&!photoHoodie){
       // Small three-leaf chest embroidery, cut by three horizontal stitch bars.
       const x0=width*.41,t0=.28,p=frontAt(t0,x0,.006);
@@ -861,8 +893,16 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       // A short sleeve's cap sits inside the bodice's shoulder line. Raised
       // above it, the cap reads as a puff sleeve rather than a grown-on sleeve.
       // A padded sleeve is set into the shoulder seam, not balanced on top of
-      // the joint: the cap hangs a little below the pivot.
-      const mount=group(joint),cap=puffer?-.050:fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
+      // the joint: the cap hangs a little below the pivot. A dropped shoulder's
+      // armhole is out on the upper arm, so its sleeve is mounted out along the
+      // shoulder line and a little under it, where the cloth actually hangs.
+      // A work jacket's dropped armhole is out on the upper arm: the sleeve is
+      // hung from the body's own shoulder edge instead of the joint inside it,
+      // so it falls down the side of the cloth rather than through it.
+      const armhole=workjacket&&pattern?pattern.point(.085,Math.PI/2):null;
+      const dropX=armhole?clamp(Math.abs(armhole[0])-.18,0,.14):0;
+      const mount=group(joint),cap=armhole?armhole[1]-anatomy.base.shoulderY-.010:puffer?-.050:fit?shoulderRise+.002:(long?.014:.017),loose=clamp(chest/54,.82,1.3);
+      if(dropX)mount.position.x=sign*dropX;
       if(fit)mount.scale.set(1/torso.scale.x,1,1/torso.scale.z);
       // A shirt's cuff ends on the wrist; the hand guide is for a knit's ribbed
       // cuff, and at the palm it pulls stray facets out of the sleeve.
@@ -916,6 +956,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
       }
       const sleeveMesh=panel(mount,sleeveMat,'Sleeve',puffer?72:fit?80:28,puffer?56:34,(t,u)=>sleeveAt(t,tau*u));
       if(fit)panel(mount,trim,'Dropped shoulder seam',2,36,(v,u)=>sleeveAt(seamT+(v-.5)*.003,tau*u,.0013));
+
       panel(mount,cuffMat,'Sleeve cuff',4,36,(v,u)=>sleeveAt(lerp(long?.917:.952,1,v),tau*u,.00095));
       const sleeveThread=new StitchLines();
       addFoldedEdge({panel,parent:mount,material:cuffMat,name:'Turned cuff edge',around:sleeveAt,

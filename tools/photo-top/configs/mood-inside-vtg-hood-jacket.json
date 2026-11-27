@@ -1,0 +1,164 @@
+{
+  "id": "mood-inside-vtg-hood-jacket",
+  "type": "workjacket",
+  "category": "outer",
+  "color": "#2b2c30",
+  "material": "cotton",
+  "measurements": {
+    "length": 65,
+    "shoulder": 59.5,
+    "chest": 74,
+    "sleeve": 63,
+    "hem": 63
+  },
+  "photos": "/workspace/downloads/mood-inside-4399019",
+  "fabric": {
+    "photo": "img13.jpg",
+    "crop": [
+      760,
+      3560,
+      960,
+      3760
+    ],
+    "tone": [
+      36,
+      36,
+      40
+    ],
+    "relief": 2.6,
+    "fine": 0.9,
+    "coarse": 2.6,
+    "roughness": 0.84,
+    "tile": 0.08,
+    "tile_px": 512,
+    "colour_detail": 0.38
+  },
+  "atlas": {
+    "size": 2048,
+    "circumference": 1.48,
+    "length": 0.65
+  },
+  "pieces": {
+    "atlas": [
+      "Measured garment body"
+    ],
+    "tile": [
+      "Sleeve",
+      "Kangaroo pocket",
+      "Pocket opening lip",
+      "Drawstring",
+      "Lined hood opening",
+      "Shoulder seam"
+    ],
+    "rib": [
+      "Ribbed waistband",
+      "Sleeve cuff",
+      "Turned cuff edge",
+      "Neck lining",
+      "Folded bottom hem"
+    ],
+    "thread": [
+      "Pocket mouth topstitch",
+      "Patch stitch"
+    ],
+    "metal": [
+      "Silver coil zipper",
+      "Zipper slider",
+      "Zipper pull",
+      "Lower zipper slider",
+      "Lower zipper pull",
+      "Drawstring tip"
+    ],
+    "button": [],
+    "shade": [
+      "Folded hood",
+      "Patch label",
+      "Zip tape"
+    ]
+  },
+  "sleeve_repeat": [
+    5.4,
+    7.6
+  ],
+  "piece_repeat": {
+    "Kangaroo pocket": [
+      3.5,
+      2.2
+    ],
+    "Pocket opening lip": [
+      1.2,
+      0.4
+    ],
+    "Folded hood": [
+      3.6,
+      3.2
+    ],
+    "Lined hood opening": [
+      4.9,
+      0.4
+    ],
+    "Drawstring": [
+      0.35,
+      1.3
+    ],
+    "Shoulder seam": [
+      5.4,
+      1.0
+    ],
+    "Sleeve cuff": [
+      4.8,
+      0.9
+    ],
+    "Turned cuff edge": [
+      4.8,
+      1.3
+    ],
+    "Ribbed waistband": [
+      33.0,
+      1.0
+    ],
+    "Neck lining": [
+      22.0,
+      0.6
+    ],
+    "Folded bottom hem": [
+      33.0,
+      0.5
+    ]
+  },
+  "rib": {
+    "tone": [
+      26,
+      26,
+      28
+    ],
+    "tile": 0.045,
+    "period_mm": 4.8,
+    "depth": 0.34,
+    "roughness": 0.86
+  },
+  "normal_scale": 1.25,
+  "thread": [
+    44,
+    44,
+    48
+  ],
+  "button": [
+    20,
+    20,
+    22
+  ],
+  "metal": [
+    0.40,
+    0.40,
+    0.42
+  ],
+  "gain": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "shade": {
+    "gain": 0.86
+  }
+}

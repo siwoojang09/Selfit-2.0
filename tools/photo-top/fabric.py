@@ -83,7 +83,8 @@ def build(name):
         Image.fromarray((rough * 255).astype(np.uint8)).save(out / 'tile-rough.png')
         print(name, 'cable swatch', colour.shape, 'mean', colour.reshape(-1, 3).mean(0).round(1))
         return
-    photo = np.asarray(Image.open(pathlib.Path('/workspace/attachments/2026-11-23') / cfg['fabric']['photo']).convert('RGB')).astype(np.float32)
+    photo_dir = pathlib.Path(cfg.get('photos') or '/workspace/attachments/2026-11-23')
+    photo = np.asarray(Image.open(photo_dir / cfg['fabric']['photo']).convert('RGB')).astype(np.float32)
     x0, y0, x1, y1 = cfg['fabric']['crop']
     patch = photo[y0:y1, x0:x1]
     if cfg['fabric'].get('rotate'):

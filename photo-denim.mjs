@@ -13,7 +13,7 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 // Bumped whenever the baked asset changes: GitHub Pages caches files for ten
 // minutes, and a garment that arrives stale reads as the wrong fabric entirely.
-const ASSET_VERSION = '2026-11-24p';
+const ASSET_VERSION = '2026-11-27g';
 const pending = new Map();   // id -> Promise of the parsed asset
 const ready = new Map();     // id -> parsed asset, once the transfer finished
 

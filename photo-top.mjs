@@ -11,14 +11,15 @@
 // show something the user did not photograph.
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 
-const ASSET_VERSION = '2026-11-24p';
+const ASSET_VERSION = '2026-11-27g';
 const pending = new Map();
 const ready = new Map();
 
 // id -> the catalog item that wears it. A sample registered by hand with a
 // different id is cut and shaded from its own pattern.
 const PHOTO_TOPS = new Set(['nike-sport-tee-white', 'underoff-university-hoodie',
-  'polo-cable-halfzip', 'trillion-striped-oxford', 'glossy-hooded-puffer']);
+  'polo-cable-halfzip', 'trillion-striped-oxford', 'glossy-hooded-puffer',
+  'mood-inside-vtg-hood-jacket']);
 
 export function hasPhotoTop(sample) {
   return Boolean(sample && (sample.assetUrl || PHOTO_TOPS.has(String(sample.id || ''))));

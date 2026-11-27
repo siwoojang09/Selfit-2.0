@@ -1,6 +1,6 @@
 export const measurementFields=[['length','총장'],['shoulder','어깨너비'],['chest','가슴단면'],['sleeve','소매길이'],['hem','밑단단면']];
 export const pantsMeasurementFields=[['length','총장'],['waist','허리단면'],['hip','엉덩이단면'],['thigh','허벅지단면'],['rise','밑위'],['hem','밑단단면']];
-export const garmentTypes={ziphoodie:'후드 집업',hoodie:'후드티',halfzip:'하프집업 니트',tee:'반소매 티셔츠',shirt:'긴소매 셔츠',polo:'폴로셔츠',sweatshirt:'스웨트셔츠',puffer:'다운 패딩',pants:'바지'};
+export const garmentTypes={ziphoodie:'후드 집업',hoodie:'후드티',halfzip:'하프집업 니트',tee:'반소매 티셔츠',shirt:'긴소매 셔츠',polo:'폴로셔츠',sweatshirt:'스웨트셔츠',puffer:'다운 패딩',workjacket:'후드 워크 자켓',pants:'바지'};
 const sizeRow=([label,length,shoulder,chest,sleeve,hem=null])=>({label,length,shoulder,chest,sleeve,hem});
 export const adidas={id:'KC9315',code:'KC9315',brand:'adidas',name:'후드 집업',colourName:'블랙 / 크림화이트',color:'#1d1c20',type:'ziphoodie',category:'outer',photo:'catalog/hoodie.webp',material:'cotton',source:'무신사 상품 실측표',sizes:[
   ['2XS',58,58,54,56],['XS',60,60,56,57],['S',61.5,60.5,58.5,57.5],['M',62,62,60.5,58],['L',64,64,62.5,58.5],['XL',66,65,68,59],['2XL',68,65.5,69,59.5],['3XL',69,66,69.5,59.5],['4XL',70,66.5,70,60]
@@ -14,6 +14,19 @@ export const glossyPuffer={
   source:'표준 숏패딩 실측표(임시)',
   sizes:[
     ['M',67,52,63,61,58],['L',69,53,66,62,60],['XL',71,54,69,63,62]
+  ].map(sizeRow)
+};
+// MOOD INSIDE's VTG washed hood jacket: heavy duck canvas, pigment washed black,
+// cropped and boxy over a dropped shoulder, one pouch pocket with a square label
+// patch, a two-way zip and black ribbed cuffs and hem. The shop lists M only
+// (L and XL are sold out), so L/XL follow M's run proportionally and the hem is
+// taken at 0.85 of the chest, the ratio the flat lay shows.
+export const moodJacket={
+  id:'mood-inside-vtg-hood-jacket',code:'4399019',brand:'MOOD INSIDE',name:'VTG 워시드 후드 자켓',colourName:'워시드 블랙',
+  type:'workjacket',category:'outer',color:'#2b2c30',photo:'catalog/mood-inside-vtg-hood-jacket.webp',material:'cotton',
+  source:'무신사 실측표(M) · L/XL 비례 산출 · 밑단 추정',
+  sizes:[
+    ['M',65,59.5,74,63,62.9],['L',67,61.5,76.5,64.5,65.0],['XL',69,63.5,79,66,67.2]
   ].map(sizeRow)
 };
 export const denim={
@@ -65,7 +78,7 @@ export const trillionOxford={
 // Only the garments the owner actually has: the studio's drawn samples are not
 // products, and a wardrobe of stand-ins makes the fitting room look emptier than
 // it is. The mannequin and the studio crew remain as the body it is fitted on.
-export const builtins=[adidas,glossyPuffer,nikeTee,underoffHoodie,poloCable,trillionOxford,chino,denim];
+export const builtins=[adidas,glossyPuffer,moodJacket,nikeTee,underoffHoodie,poloCable,trillionOxford,chino,denim];
 let connection;
 function openStore(){
   if(connection)return connection;

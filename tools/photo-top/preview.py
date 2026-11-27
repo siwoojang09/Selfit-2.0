@@ -68,16 +68,18 @@ def render(view='front', width=760, height=1200, yaw=0.0, out=None, solid=False)
     splay = float(os.environ.get('ARM_SPLAY') or 0)
 
     def splayed(name, pos):
-        if not splay or not ('Sleeve' in name or 'Cuff' in name):
+        if not splay or not ('Sleeve' in name or 'Cuff' in name or 'Shoulder' in name):
             return pos
         side = 1 if pos[:, 0].mean() > 0 else -1
         a = side * splay
         c, s = np.cos(a), np.sin(a)
-        x = pos[:, 0] - side * .18
-        y = pos[:, 1] - 1.402
+        ax = float(os.environ.get('ARM_X') or .18)
+        ay = float(os.environ.get('ARM_Y') or 1.402)
+        x = pos[:, 0] - side * ax
+        y = pos[:, 1] - ay
         out = pos.copy()
-        out[:, 0] = side * .18 + x * c - y * s
-        out[:, 1] = 1.402 + x * s + y * c
+        out[:, 0] = side * ax + x * c - y * s
+        out[:, 1] = ay + x * s + y * c
         return out
     tex = {}
     for mi, mat in enumerate(g['materials']):

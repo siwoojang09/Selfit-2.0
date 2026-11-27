@@ -12,7 +12,7 @@ Usage:
     python3 tools/photo-top/dump_pieces.py nike-sport-tee-white
     python3 tools/photo-top/build.py nike-sport-tee-white
 """
-import io, json, pathlib, struct, sys
+import io, json, os, pathlib, struct, sys
 import numpy as np
 import cv2
 from PIL import Image, ImageFilter
@@ -23,6 +23,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONFIGS = ROOT / 'tools/photo-top/configs'
 PHOTOS = pathlib.Path('/workspace/attachments/2026-11-23')
 LUM = np.array([.213, .715, .072], np.float32)
+ARM_X = float(os.environ.get('ARM_X') or .18)
+ARM_Y = float(os.environ.get('ARM_Y') or 1.402)
+
+
+def photo_root(cfg):
+    return pathlib.Path(cfg.get('photos') or '/workspace/attachments/2026-11-23')
 
 
 def crop_named(path, box):
@@ -70,7 +76,7 @@ def draw_decals(cfg, atlas, size, circ, length):
             sprite = np.asarray(Image.open(pathlib.Path(__file__).parent / 'sprites' / decal['sprite']).convert('L')).astype(np.float32) / 255.0
             alpha = sprite
         else:
-            src = crop_named(PHOTOS / decal['photo'], decal['crop'])
+            src = crop_named(photo_root(cfg) / decal['photo'], decal['crop'])
             alpha = decal_alpha(src, decal)
         if not alpha.any():
             print('decal empty', decal['photo'], decal['crop'])
@@ -507,8 +513,10 @@ def build_glb(cfg, work):
                 uv = np.stack([uv[:, 0] * ru, uv[:, 1] * rv], 1)
         if arm:
             # Assemble the sleeves onto the shoulders, as the builder hangs them.
+            # The rig's own shoulder joint is per body; the preview and this
+            # package use the female figure unless told otherwise.
             side = 1 if m['frame'] == 'arm1' else -1
-            pos = pos + np.array([0.18 * side, 1.402, 0.0], np.float32)
+            pos = pos + np.array([ARM_X * side, ARM_Y, 0.0], np.float32)
         nrm = compute_normals(pos, idx)
         dtype = np.uint16 if len(pos) < 65536 else np.uint32
         prim = {

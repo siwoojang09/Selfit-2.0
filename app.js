@@ -1,9 +1,9 @@
-import {openGarmentImport} from './garment-import.mjs?v=2026-11-27d';
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-24p';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-24p';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-24p';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24p';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-24p';
+import {openGarmentImport} from './garment-import.mjs?v=2026-11-27g';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-27g';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-27g';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-27g';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-27g';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-27g';
 const $=id=>document.getElementById(id);
 const garmentUrls=new WeakMap();
 function garmentUrl(asset){
@@ -548,7 +548,7 @@ function openRegister(){
       });
       submit.disabled=true;submit.textContent='등록 중…';
       const photo=await readProductPhoto(data.get('image'));
-      const type=data.get('type');const sample={id:'own-'+crypto.randomUUID(),custom:true,created:Date.now(),name,brand:data.get('brand').trim(),code:data.get('code').trim(),type,category:type==='pants'?'bottom':type==='ziphoodie'?'outer':'top',photo,color:data.get('color'),colourName:data.get('color').toUpperCase(),material:data.get('material'),source:'직접 입력한 실측',sizes};
+      const type=data.get('type');const sample={id:'own-'+crypto.randomUUID(),custom:true,created:Date.now(),name,brand:data.get('brand').trim(),code:data.get('code').trim(),type,category:type==='pants'?'bottom':['ziphoodie','puffer','workjacket'].includes(type)?'outer':'top',photo,color:data.get('color'),colourName:data.get('color').toUpperCase(),material:data.get('material'),source:'직접 입력한 실측',sizes};
       await saveSample(sample);samples.unshift(sample);scope='mine';query='';filter='all';$('search').value='';
       $('dialog').close();choose(sample);toast('샘플을 저장하고 3D 모델에 적용했습니다.');
     }catch(err){error.textContent=err.name==='QuotaExceededError'?'브라우저 저장 공간이 부족합니다.':err.message||'샘플을 저장하지 못했습니다. 저장 공간을 확인해 주세요.';submit.disabled=false;submit.textContent='등록하고 입혀보기';}
