@@ -16,14 +16,15 @@ export const glossyPuffer={
     ['M',67,52,63,61,58],['L',69,53,66,62,60],['XL',71,54,69,63,62]
   ].map(sizeRow)
 };
-// MOOD INSIDE's VTG washed hood jacket: heavy duck canvas, pigment washed black,
-// cropped and boxy over a dropped shoulder, one pouch pocket with a square label
-// patch, a two-way zip and black ribbed cuffs and hem. The shop lists M only
+// MOOD INSIDE's VTG washed hood jacket: washed black denim, pigment-washed so
+// the pale stone wash sits in clouds over a charcoal ground, cropped and boxy
+// over a dropped shoulder, one pouch pocket with a square label patch, a two-way
+// zip and black ribbed cuffs and hem. The shop lists M only
 // (L and XL are sold out), so L/XL follow M's run proportionally and the hem is
 // taken at 0.85 of the chest, the ratio the flat lay shows.
 export const moodJacket={
   id:'mood-inside-vtg-hood-jacket',code:'4399019',brand:'MOOD INSIDE',name:'VTG 워시드 후드 자켓',colourName:'워시드 블랙',
-  type:'workjacket',category:'outer',color:'#2b2c30',photo:'catalog/mood-inside-vtg-hood-jacket.webp',material:'cotton',
+  type:'workjacket',category:'outer',color:'#2b2c30',photo:'catalog/mood-inside-vtg-hood-jacket.webp',material:'denim',
   source:'무신사 실측표(M) · L/XL 비례 산출 · 밑단 추정',
   sizes:[
     ['M',65,59.5,74,63,62.9],['L',67,61.5,76.5,64.5,65.0],['XL',69,63.5,79,66,67.2]

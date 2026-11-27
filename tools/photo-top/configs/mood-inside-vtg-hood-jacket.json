@@ -3,7 +3,7 @@
   "type": "workjacket",
   "category": "outer",
   "color": "#2b2c30",
-  "material": "cotton",
+  "material": "denim",
   "measurements": {
     "length": 65,
     "shoulder": 59.5,
@@ -13,6 +13,7 @@
   },
   "photos": "/workspace/downloads/mood-inside-4399019",
   "fabric": {
+    "mode": "denim",
     "photo": "img13.jpg",
     "crop": [
       760,
@@ -20,18 +21,33 @@
       960,
       3760
     ],
-    "tone": [
-      50,
-      50,
-      55
+    "tile": 0.42,
+    "tile_px": 1024,
+    "thread_mm": 1.05,
+    "diag_mm": 2.55,
+    "base": [
+      30,
+      31,
+      35
     ],
-    "relief": 2.6,
-    "fine": 0.9,
-    "coarse": 2.6,
-    "roughness": 0.86,
-    "tile": 0.12,
-    "tile_px": 512,
-    "colour_detail": 0.3
+    "mid": [
+      58,
+      60,
+      65
+    ],
+    "wash_tone": [
+      150,
+      157,
+      165
+    ],
+    "wash_amount": 1.0,
+    "wash_bias": 0.02,
+    "relief": 0.15,
+    "roughness": 0.78,
+    "rough_var": 0.03,
+    "seed": 11,
+    "tile_cell_scale": 1.7,
+    "tile_wash_bias": -0.07
   },
   "atlas": {
     "size": 2048,
@@ -77,48 +93,52 @@
       "Kangaroo pocket",
       "Patch label",
       "Pocket opening lip"
+    ],
+    "edge": [
+      "Pocket edge",
+      "Patch edge"
     ]
   },
   "sleeve_repeat": [
-    4.2,
-    5.1
+    1.2,
+    1.42
   ],
   "piece_repeat": {
     "Folded hood": [
-      2.4,
-      2.1
-    ],
-    "Lined hood opening": [
-      4.9,
-      0.4
-    ],
-    "Drawstring": [
-      0.35,
-      1.3
-    ],
-    "Shoulder seam": [
-      5.4,
-      1.0
-    ],
-    "Sleeve cuff": [
-      4.8,
-      0.9
-    ],
-    "Turned cuff edge": [
-      4.8,
-      1.3
-    ],
-    "Ribbed waistband": [
-      33.0,
-      1.0
-    ],
-    "Neck lining": [
-      22.0,
+      0.69,
       0.6
     ],
+    "Lined hood opening": [
+      1.4,
+      0.11
+    ],
+    "Drawstring": [
+      0.1,
+      0.37
+    ],
+    "Shoulder seam": [
+      1.54,
+      0.29
+    ],
+    "Sleeve cuff": [
+      1.37,
+      0.26
+    ],
+    "Turned cuff edge": [
+      1.37,
+      0.37
+    ],
+    "Ribbed waistband": [
+      9.43,
+      0.29
+    ],
+    "Neck lining": [
+      6.29,
+      0.17
+    ],
     "Folded bottom hem": [
-      33.0,
-      0.5
+      9.43,
+      0.14
     ]
   },
   "rib": {
@@ -132,7 +152,7 @@
     "depth": 0.34,
     "roughness": 0.86
   },
-  "normal_scale": 1.25,
+  "normal_scale": 1.15,
   "thread": [
     104,
     104,
@@ -154,16 +174,21 @@
     1.0
   ],
   "shade": {
-    "gain": 0.88
+    "gain": 0.9
   },
   "atlas_map": [
     "Kangaroo pocket",
     "Pocket opening lip",
     "Pocket mouth topstitch",
     "Patch label",
-    "Patch stitch"
+    "Patch stitch",
+    "Pocket edge",
+    "Patch edge"
   ],
   "atlas_shade": {
-    "gain": 0.72
+    "gain": 0.95
+  },
+  "edge": {
+    "gain": 1.75
   }
 }

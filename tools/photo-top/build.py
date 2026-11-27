@@ -18,6 +18,7 @@ import cv2
 from PIL import Image, ImageFilter
 
 import weave
+import denim
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONFIGS = ROOT / 'tools/photo-top/configs'
@@ -215,6 +216,55 @@ def build_atlas(cfg, work):
     tile_m = fabric['tile']
     rep_u = circ / tile_m
     rep_v = length / tile_m
+    if fabric.get('mode') == 'denim':
+        # Washed black denim: a twill ground, pigment-washed blotches and the
+        # wear the seams and ribs have taken, all drawn in metres. The atlas'
+        # own parameter space is the pattern's, so the placket and hem wear are
+        # painted where the seams are actually sewn.
+        params = dict(base=tuple(fabric.get('base', (30, 31, 35))),
+                      mid=tuple(fabric.get('mid', (56, 58, 63))),
+                      wash_tone=tuple(fabric.get('wash_tone', (152, 159, 167))),
+                      thread_mm=fabric.get('thread_mm', 1.05),
+                      diag_mm=fabric.get('diag_mm', 2.55),
+                      relief=fabric.get('relief', .16),
+                      rough=fabric.get('roughness', .78),
+                      rough_var=fabric.get('rough_var', .028),
+                      wash_amount=fabric.get('wash_amount', 1.0),
+                      wash_bias=fabric.get('wash_bias', 0.0),
+                      cell_scale=fabric.get('cell_scale', 1.0))
+        lift, pale = denim.body_seams(size, size, circ, length)
+        atlas, nrm, rgh = denim.maps(size, size, (circ, length), seed=fabric.get('seed', 11),
+                                     extra_wash=lift, extra_mask=pale, **params)
+
+        def wrap(img, n=72):
+            # u=0 and u=1 are the same centre-front line.
+            wgt = np.linspace(0, 1, n).reshape((1, n) + (1,) * (img.ndim - 2))
+            edge = img[:, :n] * (1 - wgt) + img[:, -n:] * wgt
+            img[:, :n] = edge
+            img[:, -n:] = edge[:, ::-1]
+            return img
+        atlas = wrap(atlas)
+        nrm = wrap(nrm)
+        rgh = wrap(rgh[..., None])[..., 0]
+        Image.fromarray(np.clip(atlas, 0, 255).astype(np.uint8)).save(work / 'atlas.png')
+        Image.fromarray(((np.clip(nrm, -1, 1) * .5 + .5) * 255).astype(np.uint8)).save(work / 'atlas-normal.png')
+        Image.fromarray((np.clip(rgh, 0, 1) * 255).astype(np.uint8)).save(work / 'atlas-rough.png')
+
+        # The sleeves, cuffs and hood wear the same cloth as one swatch wide
+        # enough that its blotches do not repeat down the arm.
+        px = int(fabric.get('tile_px', 1024))
+        tile_m = fabric['tile']
+        tile_params = dict(params)
+        tile_params['cell_scale'] = float(fabric.get('tile_cell_scale', 1.6))
+        tile_params['wash_bias'] = float(fabric.get('tile_wash_bias', 0.0))
+        tcol, tnrm, trgh = denim.maps(px, px, (tile_m, tile_m), seed=fabric.get('seed', 11) + 40,
+                                      **tile_params)
+        Image.fromarray(np.clip(tcol, 0, 255).astype(np.uint8)).save(work / 'tile-color.png')
+        Image.fromarray(((np.clip(tnrm, -1, 1) * .5 + .5) * 255).astype(np.uint8)).save(work / 'tile-normal.png')
+        Image.fromarray((np.clip(trgh, 0, 1) * 255).astype(np.uint8)).save(work / 'tile-rough.png')
+        print('denim atlas', atlas.shape, 'mean', atlas.reshape(-1, 3).mean(0).round(1),
+              'tile mean', tcol.reshape(-1, 3).mean(0).round(1))
+        return
     if fabric.get('mode') == 'stripes':
         # The stripe goes straight into the pattern's own grid: there is no
         # swatch resampled up to atlas size, and no repeat seam to hide.
@@ -478,6 +528,20 @@ def build_glb(cfg, work):
         },
         'normalTexture': dict(base['normalTexture']),
     })
+    # A washed edge (a pocket's rim, a label's cut edge) is the same cloth read
+    # a shade paler, so it samples the body's atlas with the gain lifted.
+    edge_gain = [x * float(cfg.get('edge', {}).get('gain', 1.35)) for x in gain]
+    mat_edge = len(g.materials)
+    g.materials.append({
+        'name': cfg['id'] + ' body edge', 'doubleSided': True,
+        'pbrMetallicRoughness': {
+            'baseColorFactor': list(edge_gain) + [1.0],
+            'baseColorTexture': dict(base['pbrMetallicRoughness']['baseColorTexture']),
+            'metallicRoughnessTexture': dict(base['pbrMetallicRoughness']['metallicRoughnessTexture']),
+            'metallicFactor': 0.0, 'roughnessFactor': 1.0,
+        },
+        'normalTexture': dict(base['normalTexture']),
+    })
     mat_thread = plain('tonal topstitch', [c / 255 * .92 for c in cfg.get('thread', (235, 235, 233))], .86)
     mat_button = plain('resin button', [c / 255 for c in cfg.get('button', (23, 23, 24))], .5)
     metal = cfg.get('metal', (.58, .57, .55))
@@ -488,14 +552,15 @@ def build_glb(cfg, work):
                        ('rib', groups.get('rib', [])), ('thread', groups.get('thread', [])),
                        ('metal', groups.get('metal', [])), ('button', groups.get('button', [])),
                        ('shade', groups.get('shade', [])),
-                       ('atlas_shade', groups.get('atlas_shade', []))):
+                       ('atlas_shade', groups.get('atlas_shade', [])),
+                       ('edge', groups.get('edge', []))):
         for n in names:
             lookup[n] = mat
     for n in groups.get('atlas_shade', []):
         lookup[n] = 'atlas_shade'
     material_index = {'atlas': mat_atlas, 'tile': mat_tile, 'rib': mat_rib,
                       'thread': mat_thread, 'metal': mat_metal, 'button': mat_button,
-                      'shade': mat_shade, 'atlas_shade': mat_atlas_shade}
+                      'shade': mat_shade, 'atlas_shade': mat_atlas_shade, 'edge': mat_edge}
     rep_u, rep_v = cfg.get('sleeve_repeat', [4.0, 5.0])
     piece_repeat = cfg.get('piece_repeat', {})
 
