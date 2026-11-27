@@ -512,12 +512,12 @@ function viewMypage(){
         <div><dt>체형</dt><dd>${fmt.format(state.profile.height)}cm</dd></div>
         <div><dt>보유</dt><dd>${items.length}벌</dd></div>
       </dl>
-      <p class="mypage-foot">Selfit 2.0 · 실측 기반 AI 핏 추천<br>옷장 데이터는 이 브라우저에만 저장됩니다.</p>
     </section>
     <nav class="menu" aria-label="마이페이지 메뉴">
       ${menu.map(([key,label,ic])=>key==='closet'
         ?`<a class="menu-row" href="#closet">${icon(ic)}<span>${label}</span>${icon('right','sm chev')}</a>`
         :`<button class="menu-row" data-action="sheet" data-kind="${key}">${icon(ic)}<span>${label}</span>${icon('right','sm chev')}</button>`).join('')}
+      <p class="mypage-foot">Selfit 2.0 · 실측 기반 AI 핏 추천<br>옷장 데이터는 이 브라우저에만 저장됩니다.</p>
     </nav>
   </div>`;
 }
@@ -618,7 +618,7 @@ function sendChat(text){
   const input=$('#chatInput');if(input)input.focus({preventScroll:true});
 }
 function scrollChat(){
-  requestAnimationFrame(()=>{window.scrollTo(0,document.documentElement.scrollHeight);});
+  requestAnimationFrame(()=>{const chat=$('#chat');if(chat)chat.scrollTop=chat.scrollHeight;});
 }
 
 /* sheets */
