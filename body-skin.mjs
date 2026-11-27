@@ -55,6 +55,8 @@ export function attachAnatomicalBody(source, root, parts, model='female') {
   let coverageKey='';
   function setCoverage(bare,options){
     const sample=options.sample;
+    const openUpper=options.selectedOnly&&!sample;
+    const openLower=options.selectedOnly&&!options.pants&&options.bottom==='none';
     const type=sample?.type||(options.outfit==='tailored'?'shirt':'tee');
     const sleeve=Number(sample?.measurements?.sleeve)||(['shirt','sweatshirt','ziphoodie','hoodie','halfzip'].includes(type)?56:20);
     const length=Number(sample?.measurements?.length)||63;
@@ -68,25 +70,28 @@ export function attachAnatomicalBody(source, root, parts, model='female') {
     // and leaving that strip drawn put a bare patch between the hem and a
     // waistband the top was already covering.
     const topHem=1.460*ky-length*.00955;
+    // A single garment needs some hidden body overlap at its open edge.
+    const upperJoin=waistEdge-.11*ky;
+    const lowerJoin=topHem+.075*ky;
     const bareWaist=Boolean(trouser && topHem>trouser.waistY+.004);
     let sleeveEdge=1.402*ky-THREE.MathUtils.clamp(sleeve*.0094,.07,.59)+.065;
     if(sample?.id==='KC9315' && sample.measurements){
       const w=wearer(options.model,options.person),fit=hoodieFit(sample.measurements,w);
       sleeveEdge=w.base.shoulderY-(fit.seamDrop+fit.sleeveProjection)/w.sy+.034;
     }
-    const key=[bare,type,sleeveEdge,length,bottom,hemEdge,waistEdge,bareWaist].join('|');
+    const key=[bare,openUpper,openLower,type,sleeveEdge,length,bottom,hemEdge,waistEdge,bareWaist].join('|');
     if(key===coverageKey)return;
     coverageKey=key;
-    if(bare){geometry.setIndex(full);return;}
+    if(bare||(openUpper&&openLower)){geometry.setIndex(full);return;}
     const visible=new Uint8Array(position.count);
     for(let i=0;i<visible.length;i++){
       const x=Math.abs(rest[3*i]),y=rest[3*i+1];
-      if(region[i]===1){visible[i]=y<sleeveEdge;continue;}
+      if(region[i]===1){visible[i]=openUpper||y<sleeveEdge;continue;}
       if(region[i]===2){
-        visible[i]=y<hemEdge && y>.06 || (bareWaist && y>waistEdge && y<topHem);
+        visible[i]=openLower || (openUpper && y>upperJoin) || (y<hemEdge && y>.06) || (bareWaist && y>waistEdge && y<topHem);
         continue;
       }
-      visible[i]=y>1.49*ky || (y>1.458*ky && x<.052) || (bareWaist && y<topHem && y>waistEdge);
+      visible[i]=(openUpper&&y>upperJoin)||(openLower&&y<lowerJoin)||y>1.49*ky || (y>1.458*ky && x<.052) || (bareWaist && y<topHem && y>waistEdge);
     }
     const a=full.array,kept=[];
     // A triangle with a single visible corner is a spike: at the neckline it

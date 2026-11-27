@@ -99,10 +99,7 @@ i[data-icon],span[data-icon]{display:inline-flex;align-items:center;justify-cont
 .stage-shell{min-width:0;min-height:0;position:relative;display:flex;flex-direction:column}
 #stage{position:relative;flex:1;min-height:0;border-radius:22px 22px 0 0;overflow:hidden;isolation:isolate;background:radial-gradient(120% 86% at 50% 8%,var(--stage-a) 0%,var(--stage-b) 74%,#DED8CD 100%);border:1px solid var(--line);border-bottom:0}
 #stage.body-study{background:radial-gradient(120% 86% at 50% 8%,#E9EBE8 0%,#DCDFDC 78%,#D3D6D3 100%)}
-#still,#liveScene{position:absolute;inset:0;width:100%;height:100%;display:block}
-#still{object-fit:contain;z-index:1;background:transparent}
-#stage.show3d #still{visibility:hidden}
-#liveScene{visibility:hidden;z-index:1}
+#liveScene{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:hidden;z-index:1}
 #stage.show3d #liveScene{visibility:visible}
 .stage-top{position:absolute;z-index:3;top:16px;left:16px;right:16px;display:flex;align-items:center;justify-content:flex-end;gap:8px;pointer-events:none}
 .stage-top>*{pointer-events:auto}

@@ -3,7 +3,6 @@ import {pantsFit} from './pants-fit.mjs?v=2026-11-24p';
 import {getReference,listReferences} from './reference-store.mjs?v=2026-11-24p';
 import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-24p';
 import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-24p';
-import {hasPhotoGarment,loadGarmentAsset} from './photo-denim.mjs?v=2026-11-24p';
 const $=id=>document.getElementById(id);
 const paths={
  brand:'<path d="m3 17 8-12h9L12 17H3Zm3 3h8l8-12M4.5 15l7.8-.1"/>',
@@ -16,7 +15,7 @@ const paths={
  play:'<path d="m8 4 12 8-12 8z" fill="currentColor" stroke="none"/>',pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" stroke="none"/>',
  orbit:'<ellipse cx="12" cy="12" rx="10" ry="4.3" transform="rotate(-28 12 12)"/><path d="M7 13C5 6 7 2 10 3s7 7 7 13"/>',
  sliders:'<path d="M3 6h6m4 0h8M3 12h11m4 0h3M3 18h4m4 0h10"/><circle cx="11" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
- ruler:'<path d="m3 16 13-13 5 5L8 21zM7 12l2 2m1-5 2 2m1-5 2 2"/>',photo:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="16" cy="8" r="1.4"/>',
+ ruler:'<path d="m3 16 13-13 5 5L8 21zM7 12l2 2m1-5 2 2m1-5 2 2"/>',
  heart:'<path d="M12 20s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.8C19 15.6 12 20 12 20Z"/>',
  sparkle:'<path d="M12 3.5 13.7 9l5.3 1.7-5.3 1.8L12 18l-1.7-5.5L5 10.7 10.3 9Z"/><path d="M18.5 3v2.4M17.3 4.2h2.4"/>',
  chevron:'<path d="m9 5 7 7-7 7"/>'
@@ -24,17 +23,16 @@ const paths={
 const icon=name=>'<svg aria-hidden="true" class="ico" viewBox="0 0 24 24">'+paths[name]+'</svg>';
 for(const el of document.querySelectorAll('[data-icon]'))el.innerHTML=icon(el.dataset.icon);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-let samples=[],selected=adidas,size='M',scope='all',filter='all',brand='ALL',query='',avatar='female',bottom='trousers',lowerFabric='linen',zoom=1,wire=false,playing=false,live=false,ready=false,loader=null,applied={},upper,toastTimer,loadError='';
-let pants=null,activePants=null,activeTop=adidas,referenceSamples=[];
-const isPants=()=>selected.type==='pants';
+let samples=[],selected=null,size='',scope='all',filter='all',brand='ALL',query='',avatar='female',bottom='none',lowerFabric='linen',zoom=1,wire=false,playing=false,ready=false,loader=null,applied={},upper=null,toastTimer,loadError='';
+let pants=null,activePants=null,activeTop=null,referenceSamples=[];
+const isPants=()=>selected?.type==='pants';
 const fieldsFor=type=>type==='pants'?pantsMeasurementFields:measurementFields;
 // The landing frame is the whole look on its plinth; the torso close-up is
 // the `fit` view the guide and the view picker still reach.
 const fittingView=()=>isPants()?'pants':'front';
 let bodyOnly=window.location.hash==='#body',studyGrid=true;
 let poseWalk=false,loop=true,tickId=0,cameraView=bodyOnly?'study':'front';
-if(bodyOnly){avatar='male';live=true;updateStill();}
-if(window.location.hash==='#fit'){live=true;cameraView='fit';}
+if(bodyOnly)avatar='male';
 const bodyInputsByModel={female:null,male:null};
 const bodyFields={height:'키',chest:'가슴둘레',waist:'허리둘레',hip:'엉덩이둘레'};
 const fmt=n=>Number(n.toFixed(1)).toString();
@@ -42,12 +40,16 @@ const signed=n=>(n>0?'+':'')+fmt(n);
 const currentWearer=()=>wearer(avatar,bodyInputsByModel[avatar]);
 const physics={gravity:9.81,wind:2.4,direction:0,turbulence:.18,speed:1,grid:false};
 const fabrics={linen:'리넨',cotton:'코튼',denim:'데님',silk:'실크'};
+const bottomPresets={none:'선택 없음',trousers:'리넨 팬츠',slacks:'슬랙스',shorts:'쇼츠',skirt:'미디스커트'};
 const colors={linen:'#e6ddc9',cotton:'#c4c1b8',denim:'#465569',silk:'#bc887d'};
 const ownSamples=()=>[...samples,...referenceSamples.filter(ref=>!samples.some(item=>item.id===ref.id))];
 const collections=()=>[...builtins,...ownSamples()];
-const canShowPhoto=()=>!pants&&!bodyInputsByModel[avatar]&&!bodyOnly && selected.id===adidas.id && size==='M' && bottom==='trousers' && lowerFabric==='linen';
 const measures=()=>selected.sizes.find(row=>row.label===size)||selected.sizes[0];
 function toast(msg){$('notice').textContent=msg;$('notice').classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('notice').classList.remove('on'),3600);}
+window.addEventListener('drape:garment-error',event=>{
+  const item=[activeTop,activePants].find(item=>item?.id===event.detail);
+  if(item)toast(item.name+'의 3D 데이터를 불러오지 못했습니다.');
+});
 const wishlist=new Set(JSON.parse(localStorage.getItem('selfit.wishlist')||'[]'));
 const saveWishlist=()=>{try{localStorage.setItem('selfit.wishlist',JSON.stringify([...wishlist]));}catch{}};
 function brandName(item){return String(item.brand||(item.reference?'내 기준 옷':item.custom?'내 샘플':'DRAPE STUDIO')).toUpperCase();}
@@ -87,7 +89,7 @@ function renderShelf(){
     const card=document.createElement('div');
     card.className='sample';card.dataset.item=item.id;card.tabIndex=0;card.setAttribute('role','button');
     card.setAttribute('aria-label',[item.brand,item.name,item.code].filter(Boolean).join(' '));
-    card.setAttribute('aria-pressed',String(selected.id===item.id));
+    card.setAttribute('aria-pressed',String(selected?.id===item.id));
     card.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose(item);}};
     const info=document.createElement('span');info.className='sample-info';
     const b=document.createElement('small'),n=document.createElement('strong'),c=document.createElement('span');
@@ -103,19 +105,11 @@ function renderShelf(){
   }
 }
 function wornRows(){
-  // The rows name the samples that are worn, not the scene's option objects:
-  // those carry measurements only, so their name and photo would be blank.
-  const rows=[];
-  const topItem=isPants()?activeTop:selected;
-  const topSize=isPants()?(upper?.measurements?.label||'M'):size;
-  if(isPants()&&!upper){
-    // Only a lower garment was asked for, so the scene wears the plain studio
-    // crew it builds for that fitting — not the sample last looked at.
-    rows.push({item:{name:'스튜디오 크루넥',brand:'',virtual:true},role:'상의',size:'M'});
-  }else if(topItem)rows.push({item:topItem,role:'상의',size:topSize});
-  const bottomItem=isPants()?selected:activePants;
-  rows.push(bottomItem?{item:bottomItem,role:'하의',size:isPants()?size:(pants?.measurements?.label||size)}:{item:null,role:'하의',size:null});
-  return rows;
+  const preset=bottom==='none'||pants?null:{name:bottomPresets[bottom],virtual:true};
+  return [
+    {item:activeTop,role:'상의',size:upper?.measurements.label},
+    {item:activePants||preset,role:'하의',size:pants?.measurements.label}
+  ];
 }
 function renderWorn(){
   const rows=wornRows();
@@ -127,8 +121,8 @@ function renderWorn(){
     const meta=document.createElement('div');meta.className='worn-meta';
     const brandEl=document.createElement('small'),nameEl=document.createElement('strong'),sizeEl=document.createElement('span');
     brandEl.textContent=item?(item.virtual?'DRAPE STUDIO':brandName(item)):'—';
-    nameEl.textContent=item?item.name:(role==='하의'?'하의를 골라보세요':'선택 없음');
-    sizeEl.textContent=item?(role+' · '+size+' 사이즈'):role;
+    nameEl.textContent=item?item.name:role+'를 골라보세요';
+    sizeEl.textContent=size?role+' · '+size+' 사이즈':role;
     meta.append(brandEl,nameEl,sizeEl);
     const go=document.createElement('span');go.className='worn-go';go.innerHTML=icon('chevron');
     row.append(thumb,meta,go);
@@ -148,7 +142,7 @@ function renderWorn(){
   }
 }
 function renderRecommended(){
-  const items=collections().filter(item=>item.id!==selected.id&&item.photo);
+  const items=collections().filter(item=>item.id!==selected?.id&&item.photo);
   const picked=[];
   for(const category of ['outer','top','bottom']){
     const hit=items.find(item=>item.category===category&&!picked.includes(item));
@@ -176,20 +170,32 @@ function setWornItem(){
   }
 }
 function product(){
-  renderFitReport();
-  $('removeSample').hidden=!selected.custom;
-  $('brand').textContent=selected.brand||(selected.reference?'내 기준 옷':selected.custom?'내 샘플':'Drape Studio');$('sku').textContent=selected.code||'';$('productName').textContent=selected.name;
-  $('colourDot').style.background=selected.color;$('colourName').textContent=selected.colourName||selected.color;
-  $('sizes').innerHTML=selected.sizes.map(m=>'<button type="button" data-size="'+esc(m.label)+'" aria-pressed="'+(m.label===size)+'">'+esc(m.label)+'</button>').join('');
-  const row=measures();
-  $('quickMeasures').innerHTML=fieldsFor(selected.type).filter(([key])=>row[key]!=null).map(([key,label])=>'<span>'+label+' <strong>'+row[key]+' cm</strong></span>').join('');
-  renderWorn();renderSizeDock();renderRecommended();
+  const hasSelection=Boolean(selected);
+  $('removeSample').hidden=!selected?.custom;
+  $('measureTable').hidden=!hasSelection;
+  $('sizeBlock').hidden=!hasSelection;
+  $('brand').textContent=selected?brandName(selected):'';
+  $('sku').textContent=selected?.code||'';
+  $('productName').textContent=selected?.name||'옷을 선택해 주세요';
+  $('colourDot').style.background=selected?.color||'';
+  $('colourName').textContent=selected?.colourName||selected?.color||'';
+  $('colourName').parentElement.hidden=!hasSelection;
+  if(hasSelection){
+    $('sizes').innerHTML=selected.sizes.map(m=>'<button type="button" data-size="'+esc(m.label)+'" aria-pressed="'+(m.label===size)+'">'+esc(m.label)+'</button>').join('');
+    const row=measures();
+    $('quickMeasures').innerHTML=fieldsFor(selected.type).filter(([key])=>row[key]!=null).map(([key,label])=>'<span>'+label+' <strong>'+row[key]+' cm</strong></span>').join('');
+  }else{
+    $('sizes').replaceChildren();
+    $('quickMeasures').replaceChildren();
+  }
+  renderFitReport();renderWorn();renderSizeDock();renderRecommended();
 }
 // The dock sits under the 3D stage so a size can be changed without scrolling
 // the page: one row per worn garment, the row of the sample being edited marked.
 // Both the dock and the Style & Fit card read the same `size`/measurement rows,
 // so the two sets of buttons cannot drift apart.
 function dockGarment(role){
+  if(!selected)return null;
   const editingTop=!isPants(),isTop=role==='top';
   if(isTop?isPants()&&!upper:!isPants()&&!pants)return null;
   const item=isTop?(editingTop?selected:activeTop):(editingTop?activePants:selected);
@@ -219,12 +225,12 @@ function renderSizeDock(){
 function setGarmentSize(role,label){
   const isTopRow=role==='top';
   const item=isTopRow?activeTop:activePants;
-  const onSelected=(isTopRow&&!isPants())||(!isTopRow&&isPants());
+  const onSelected=item&&item===selected;
   if(onSelected){
-    if(size===label&&!bodyOnly&&live)return;
+    if(size===label&&!bodyOnly)return;
     size=label;
-    if(bodyOnly||!live){bodyOnly=false;cameraView=fittingView();}
-    live=true;setWornItem();product();apply();
+    if(bodyOnly){bodyOnly=false;cameraView=fittingView();}
+    setWornItem();product();apply();
     return;
   }
   // Sizing the other garment also brings it into Style & Fit and Your Look, so
@@ -234,13 +240,13 @@ function setGarmentSize(role,label){
   const wasBody=bodyOnly;
   selected=item;size=label;
   if(crossedType||wasBody){bodyOnly=false;cameraView=fittingView();zoom=1;}
-  live=true;setWornItem();product();renderShelf();apply();
+  setWornItem();product();renderShelf();apply();
 }
 $('sizeDock').onclick=e=>{
   const sizeBtn=e.target.closest('[data-dock-size]');
   if(sizeBtn){setGarmentSize(sizeBtn.dataset.dockRole,sizeBtn.dataset.dockSize);return;}
   const who=e.target.closest('[data-dock-item]');
-  if(who&&who.dataset.dockItem!==selected.id){
+  if(who&&who.dataset.dockItem!==selected?.id){
     const item=collections().find(i=>i.id===who.dataset.dockItem);
     if(item)choose(item);
   }
@@ -257,7 +263,7 @@ function reportCells(stats){
   }).join('');
 }
 function renderFitReport(hemLift=0){
-  const show=selected.id===adidas.id||isPants();
+  const show=selected?.id===adidas.id||isPants();
   $('fitReport').hidden=!show;
   if(!show)return;
   const w=currentWearer();
@@ -281,13 +287,13 @@ function renderFitReport(hemLift=0){
 
 }
 function showFit(){
-  bodyOnly=false;live=true;playing=false;poseWalk=false;zoom=1;cameraView=fittingView();apply();
+  bodyOnly=false;playing=false;poseWalk=false;zoom=1;cameraView=fittingView();apply();
 }
 $('fitPreview').onclick=showFit;
 $('finishView').onclick=()=>{
   const detailView=isPants()?'pants':'finish';
-  const detail=cameraView!==detailView||!live||bodyOnly;
-  bodyOnly=false;live=true;playing=false;poseWalk=false;zoom=1;
+  const detail=cameraView!==detailView||bodyOnly;
+  bodyOnly=false;playing=false;poseWalk=false;zoom=1;
   cameraView=detail?detailView:isPants()?'front':'fit';apply();
   $('stage').scrollIntoView({block:'center',behavior:'smooth'});
 };
@@ -320,52 +326,35 @@ $('bodyInputs').onclick=()=>{
     const min=k==='height'?140:Math.ceil(w.base[k]*.72),max=k==='height'?210:Math.floor(w.base[k]*1.45);
     return '<label class="field">'+label+' (cm)<input required type="number" name="'+k+'" step="0.1" min="'+min+'" max="'+max+'" value="'+fmt(w[k])+'"><small>'+min+'–'+max+' cm</small></label>';
   }).join('')+'</div><div class="form-footer"><button type="button" id="clearWearer" class="secondary">기본 모델로 복원</button><button type="submit" class="primary">핏에 적용</button></div></form>');
-  function finish(values){bodyInputsByModel[avatar]=values;setWornItem();product();$('dialog').close();showFit();}
+  function finish(values){bodyInputsByModel[avatar]=values;product();$('dialog').close();showFit();}
   $('clearWearer').onclick=()=>finish(null);
   $('wearerForm').onsubmit=e=>{e.preventDefault();const data=new FormData(e.currentTarget);finish(Object.fromEntries(Object.keys(bodyFields).map(k=>[k,Number(data.get(k))])));};
 };
 function sync(){
-  const detail=live&&!bodyOnly&&cameraView===(isPants()?'pants':'finish');
+  const detail=!bodyOnly&&cameraView===(isPants()?'pants':'finish');
+  $('finishView').hidden=!selected||bodyOnly;
   $('finishView').setAttribute('aria-pressed',String(detail));
   $('finishView').textContent=detail?'착장 전체':isPants()?'하체 핏':'소맷단·밑단';
-  $('fitPreview').hidden=false;
-  $('fitPreview').textContent=bodyOnly?'착장으로 돌아가기':live&&!playing&&!poseWalk?'3D 착장 전체 보기':'3D로 입어보기';
-  // Every sample in the wardrobe is worn in 3D now, not just the hoodie.
-  $('fitPreview').disabled=false;
-
+  $('fitPreview').hidden=!selected;
+  $('fitPreview').textContent=bodyOnly?'착장으로 돌아가기':'3D 착장 전체 보기';
   $('bodyView').setAttribute('aria-pressed',String(bodyOnly));
   $('dressedView').setAttribute('aria-pressed',String(!bodyOnly));
   $('stage').classList.toggle('body-study',bodyOnly);
-  $('stage').classList.toggle('show3d',live&&ready);$('mode').textContent=live?(ready?(playing?'3D 보행 중':bodyOnly?(poseWalk?'체형 · 보행 일시정지':'체형 · 기본 자세'):(selected.id===adidas.id||isPants())?'3D 실측 핏':'3D 피팅'):'3D 불러오는 중'):'정지 착장 예시';
-  $('play').querySelector('i').innerHTML=icon(playing?'pause':'play');$('play').querySelector('span').textContent=playing?'일시정지':'보행 시뮬레이션';
-  $('play').setAttribute('aria-pressed',playing);$('rotate').innerHTML=icon(live&&canShowPhoto()?'photo':'orbit');
-  const label=live&&canShowPhoto()?'정지 착장 예시로 돌아가기':'3D 회전 보기';
-  $('rotate').setAttribute('aria-label',label);$('rotate').title=label;$('rotate').hidden=live&&!canShowPhoto();
-  $('still').hidden=!canShowPhoto();
+  $('stage').classList.toggle('show3d',ready);
+  $('mode').textContent=!ready?'3D 불러오는 중':playing?'3D 보행 중':
+    bodyOnly?'3D 체형':!upper&&!pants&&bottom==='none'?'기본 3D 마네킹':
+    selected?.id===adidas.id||isPants()?'3D 실측 핏':'3D 피팅';
+  $('play').querySelector('i').innerHTML=icon(playing?'pause':'play');
+  $('play').querySelector('span').textContent=playing?'일시정지':'보행 시뮬레이션';
+  $('play').setAttribute('aria-pressed',playing);
   document.querySelectorAll('[data-model]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.model===avatar));
 }
 function options(){
   const outfit=bottom==='shorts'?'casual':bottom==='slacks'?'tailored':'classic';
-  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,sample:upper||null,pants,model:avatar,bottom:pants?'trousers':bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing:playing&&live,walking:poseWalk,speed:physics.speed,zoom,view:cameraView,render3D:live,wireframe:wire};
+  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,selectedOnly:true,sample:upper,pants,model:avatar,bottom:pants?'trousers':bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing,walking:poseWalk,speed:physics.speed,zoom,view:cameraView,wireframe:wire};
 }
 async function apply(){
   sync();
-  if(!live&&!loader)return;
-  // The photo denim has no drawn stand-in, so the scene is held until its own
-  // surface is in hand. A transfer that stalls must not hold the view forever:
-  // the scene then opens without the jeans and they appear when the file lands.
-  if(hasPhotoGarment(pants)){
-    const loaded=await Promise.race([
-      loadGarmentAsset(pants.id).then(asset=>asset,error=>error),
-      new Promise(resolve=>setTimeout(()=>resolve(null),20000))
-    ]);
-    if(loaded instanceof Error){
-      document.documentElement.dataset.denim='failed '+(loaded.message||loaded);
-      toast('데님 사진을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-    }else if(!loaded){
-      toast('데님 사진을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
-    }
-  }
   if(!loader){
     const opts=options();window.DrapeEngine.set(opts);applied=opts;
     loader=window.DrapeEngine.init($('liveScene'));
@@ -375,15 +364,15 @@ async function apply(){
     const opts=options(),changes=Object.fromEntries(Object.entries(opts).filter(([k,v])=>applied[k]!==v));
     if(Object.keys(changes).length)window.DrapeEngine.set(changes);
     applied=opts;ready=true;sync();
-    renderFitReport(live&&!bodyOnly?(window.DrapeEngine.getStats().hemLift||0):0);
+    renderFitReport(!bodyOnly?(window.DrapeEngine.getStats().hemLift||0):0);
   }catch{
-    ready=false;loader=null;playing=false;if(canShowPhoto())live=false;
-    sync();$('mode').textContent=canShowPhoto()?'정지 착장 예시':'3D 로드 실패';
+    ready=false;loader=null;playing=false;
+    sync();$('mode').textContent='3D 로드 실패';
     toast('3D 피팅을 열지 못했습니다. 보행 시뮬레이션을 눌러 다시 시도해 주세요.');
   }
 }
 function choose(item){
-  const keepPlaying=playing,fromStudy=bodyOnly;
+  const fromStudy=bodyOnly;
   bodyOnly=false;
   if(fromStudy)cameraView='front';
   const hadPantsSelected=isPants();
@@ -393,7 +382,7 @@ function choose(item){
   const previous=worn?.id===item.id?worn.measurements.label:null;
   size=item.sizes.find(s=>s.label===previous)?.label ?? item.sizes.find(s=>s.label==='M')?.label ?? item.sizes[0].label;
   setWornItem();
-  live=keepPlaying||fromStudy||!canShowPhoto();product();renderShelf();apply();
+  product();renderShelf();apply();
 }
 function navigate(next){
   scope=next;query='';filter='all';brand='ALL';$('search').value='';renderShelf();
@@ -401,7 +390,7 @@ function navigate(next){
 }
 function changeBodyView(show){
   if(bodyOnly===show)return;
-  bodyOnly=show;live=true;cameraView=show?'study':fittingView();
+  bodyOnly=show;cameraView=show?'study':fittingView();
   if(!playing)poseWalk=false;
   apply();
 }
@@ -413,12 +402,15 @@ $('filters').onclick=e=>{const btn=e.target.closest('[data-filter]');if(btn){fil
 $('searchToggle').onclick=()=>{const open=document.activeElement!==$('search');$('search').focus();$('searchToggle').setAttribute('aria-expanded',String(open));if(!open&&!$('search').value){query='';renderShelf();}};
 $('search').oninput=e=>{query=e.target.value;renderShelf();};
 $('samples').onclick=e=>{const btn=e.target.closest('[data-item]');if(!btn)return;choose(collections().find(i=>i.id===btn.dataset.item));if(matchMedia('(max-width:680px)').matches)$('fitting').scrollIntoView({behavior:'smooth',block:'start'});};
-$('sizes').onclick=e=>{const btn=e.target.closest('[data-size]');if(!btn||(size===btn.dataset.size&&!bodyOnly&&live))return;size=btn.dataset.size;if(bodyOnly||!live){bodyOnly=false;cameraView=fittingView();}live=true;setWornItem();product();apply();};
-function updateStill(){
-  $('still').src='catalog/hoodie-'+avatar+'.webp';
-  $('still').alt='아디다스 후드 집업 '+(avatar==='male'?'남성':'여성')+' 착장 예시';
-}
-document.querySelector('.gender').onclick=e=>{const b=e.target.closest('[data-model]');if(!b||avatar===b.dataset.model)return;avatar=b.dataset.model;updateStill();renderFitReport();renderSizeDock();if(bodyInputsByModel[avatar])live=true;apply();};
+$('sizes').onclick=e=>{
+  const btn=e.target.closest('[data-size]');
+  if(btn&&selected)setGarmentSize(isPants()?'bottom':'top',btn.dataset.size);
+};
+document.querySelector('.gender').onclick=e=>{
+  const b=e.target.closest('[data-model]');
+  if(!b||avatar===b.dataset.model)return;
+  avatar=b.dataset.model;renderFitReport();renderSizeDock();apply();
+};
 function tick(){
   tickId=0;
   if(!playing)return;
@@ -431,7 +423,7 @@ function tick(){
   if(playing)tickId=requestAnimationFrame(tick);
 }
 $('play').onclick=()=>{
-  live=true;playing=!playing;
+  playing=!playing;
   if(playing){
     poseWalk=true;
     if(ready && window.DrapeEngine.getStats().time>=8)window.DrapeEngine.set({time:0});
@@ -439,10 +431,9 @@ $('play').onclick=()=>{
   }
   apply();
 };
-$('rotate').onclick=()=>{if(live&&canShowPhoto()){playing=false;poseWalk=false;live=false;zoom=1;cameraView='front';$('still').style.transform='';}else live=true;apply();};
-function changeZoom(delta){zoom=Math.max(.7,Math.min(1.7,Math.round((zoom+delta)*10)/10));$('still').style.transform='scale('+zoom+')';apply();}
+function changeZoom(delta){zoom=Math.max(.7,Math.min(1.7,Math.round((zoom+delta)*10)/10));apply();}
 $('zoomIn').onclick=()=>changeZoom(.1);$('zoomOut').onclick=()=>changeZoom(-.1);
-$('recenter').onclick=()=>{zoom=1;cameraView=bodyOnly?'study':fittingView();$('still').style.transform='';if(ready)window.DrapeEngine.set({view:cameraView,zoom:1});apply();};
+$('recenter').onclick=()=>{zoom=1;cameraView=bodyOnly?'study':fittingView();if(ready)window.DrapeEngine.set({view:cameraView,zoom:1});apply();};
 $('expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('fitting').requestFullscreen();}catch{toast('이 브라우저에서는 전체 화면을 사용할 수 없습니다.');}};
 function modal(title,body){$('dialogTitle').textContent=title;$('dialogBody').innerHTML=body;$('dialog').showModal();}
 $('close').onclick=()=>$('dialog').close();$('dialog').onclick=e=>{if(e.target===$('dialog')){const b=$('dialog').getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)$('dialog').close();}};
@@ -454,26 +445,32 @@ $('guide').onclick=()=>modal('드레싱룸 이용 가이드','<dl class="help"><
 function environment(){
   const sliders=[['gravity','중력',0,20,.01,'m/s²'],['wind','풍속',0,12,.1,'m/s'],['direction','풍향',0,360,5,'°'],['turbulence','난류',0,1,.05,''],['speed','보행 속도',.25,2,.05,'×']];
   modal('물리 환경 설정',sliders.map(([key,label,min,max,step,unit])=>'<label class="parameter">'+label+'<input data-parameter="'+key+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+physics[key]+'"><output>'+physics[key]+' '+unit+'</output></label>').join('')+
-    '<label class="parameter">하의<select id="bottomPick">'+(pants?'<option selected value="measured">'+esc(activePants.name)+'</option>':'')+Object.entries({trousers:'리넨 팬츠',slacks:'슬랙스',shorts:'쇼츠',skirt:'미디스커트'}).map(([id,n])=>'<option value="'+id+'" '+(!pants&&id===bottom?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
-    '<label class="parameter">하의 원단<select id="fabricPick" '+(pants?'disabled':'')+'>'+Object.entries(fabrics).map(([id,n])=>'<option value="'+id+'" '+(id===(pants?.material||lowerFabric)?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+    '<label class="parameter">하의<select id="bottomPick">'+(pants?'<option selected value="measured">'+esc(activePants.name)+'</option>':'')+Object.entries(bottomPresets).map(([id,n])=>'<option value="'+id+'" '+(!pants&&id===bottom?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+    '<label class="parameter">하의 원단<select id="fabricPick" '+(pants||bottom==='none'?'disabled':'')+'>'+Object.entries(fabrics).map(([id,n])=>'<option value="'+id+'" '+(id===(pants?.material||lowerFabric)?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
     '<label class="parameter">3D 시점<select id="viewPick">'+Object.entries({pants:'하체 핏',finish:'소맷단과 밑단',fit:'상반신 핏',study:'사선',front:'정면',side:'측면',back:'후면'}).map(([value,n])=>'<option value="'+value+'" '+(cameraView===value?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
     '<label class="parameter">보행 시간<input type="range" id="timeSeek" aria-label="보행 시간" min="0" max="8" step=".01" value="'+(window.DrapeEngine.getStats().time||0)+'"><output id="timeOut">'+(window.DrapeEngine.getStats().time||0).toFixed(2)+' s</output></label>'+
     '<div class="checks"><label class="check"><input type="checkbox" id="repeatPick" '+(loop?'checked':'')+'>반복 재생</label><label class="check"><input id="gridPick" type="checkbox" '+((bodyOnly?studyGrid:physics.grid)?'checked':'')+'>바닥 그리드</label><label class="check"><input id="wirePick" type="checkbox" '+(wire?'checked':'')+'>와이어프레임</label></div>');
-  document.querySelectorAll('[data-parameter]').forEach((el,i)=>el.oninput=()=>{physics[el.dataset.parameter]=+el.value;el.nextElementSibling.textContent=el.value+' '+sliders[i][5];live=true;apply();});
+  document.querySelectorAll('[data-parameter]').forEach((el,i)=>el.oninput=()=>{physics[el.dataset.parameter]=+el.value;el.nextElementSibling.textContent=el.value+' '+sliders[i][5];apply();});
   $('bottomPick').onchange=e=>{
     if(e.target.value==='measured')return;
-    pants=null;activePants=null;$('fabricPick').disabled=false;
-    if(isPants()){selected=activeTop;size=upper?.measurements?.label||'M';setWornItem();product();renderShelf();}
+    const wasPants=isPants();
+    pants=null;activePants=null;
+    bottom=e.target.value;
+    lowerFabric=({trousers:'linen',skirt:'linen',slacks:'cotton',shorts:'denim'})[bottom]||'linen';
+    $('fabricPick').value=lowerFabric;
+    $('fabricPick').disabled=bottom==='none';
+    if(wasPants){selected=activeTop;size=upper?.measurements?.label||'';cameraView=fittingView();}
     e.target.querySelector('[value="measured"]')?.remove();
-    bottom=e.target.value;lowerFabric=({trousers:'linen',skirt:'linen',slacks:'cotton',shorts:'denim'})[bottom];$('fabricPick').value=lowerFabric;live=true;apply();};
-  $('fabricPick').onchange=e=>{lowerFabric=e.target.value;live=true;apply();};
-  $('viewPick').onchange=e=>{cameraView=e.target.value;live=true;apply();};
+    product();renderShelf();apply();
+  };
+  $('fabricPick').onchange=e=>{lowerFabric=e.target.value;apply();};
+  $('viewPick').onchange=e=>{cameraView=e.target.value;apply();};
   $('repeatPick').onchange=e=>{loop=e.target.checked;};
   $('timeSeek').oninput=async e=>{
-    const t=+e.target.value;live=true;playing=false;poseWalk=true;$('timeOut').textContent=t.toFixed(2)+' s';
+    const t=+e.target.value;playing=false;poseWalk=true;$('timeOut').textContent=t.toFixed(2)+' s';
     await apply();if(ready)window.DrapeEngine.set({time:t});
   };
-  $('gridPick').onchange=e=>{if(bodyOnly)studyGrid=e.target.checked;else physics.grid=e.target.checked;live=true;apply();};$('wirePick').onchange=e=>{wire=e.target.checked;live=true;apply();};
+  $('gridPick').onchange=e=>{if(bodyOnly)studyGrid=e.target.checked;else physics.grid=e.target.checked;apply();};$('wirePick').onchange=e=>{wire=e.target.checked;apply();};
 }
 $('settings').onclick=environment;
 function addSizeRow(values={}){
@@ -530,12 +527,21 @@ function openRegister(){
 }
 $('removeSample').onclick=()=>{
   const item=selected;
-  if(!item.custom)return;
+  if(!item?.custom)return;
   modal('등록한 샘플 삭제','<p>'+esc(item.name)+'의 사진과 실측을 이 브라우저의 내 샘플에서 삭제할까요?</p><div class="form-footer"><button class="secondary" id="cancelRemoval">취소</button><button class="primary" id="confirmRemoval">삭제</button></div>');
   $('cancelRemoval').onclick=()=>$('dialog').close();
   $('confirmRemoval').onclick=async e=>{
     const b=e.currentTarget;b.disabled=true;
-    try{await removeSample(item.id);samples=samples.filter(s=>s.id!==item.id);if(activePants?.id===item.id){activePants=null;pants=null;}$('dialog').close();choose(adidas);toast('샘플을 삭제했습니다.');}
+    try{
+      await removeSample(item.id);
+      samples=samples.filter(s=>s.id!==item.id);
+      if(activePants?.id===item.id){activePants=null;pants=null;}
+      if(activeTop?.id===item.id){activeTop=null;upper=null;}
+      selected=activeTop||activePants;
+      size=(upper||pants)?.measurements?.label||'';
+      cameraView=fittingView();
+      $('dialog').close();product();renderShelf();apply();toast('샘플을 삭제했습니다.');
+    }
     catch{b.disabled=false;toast('샘플을 삭제하지 못했습니다.');}
   };
 };
@@ -567,10 +573,10 @@ async function initialiseSelection(){
   if(requested){
     selected=requested;
     size=selected.sizes.find(row=>row.label===fittingQuery.get('size'))?.label || selected.sizes.find(row=>row.label==='M')?.label || selected.sizes[0].label;
-    live=true;bodyOnly=false;cameraView=isPants()?'pants':'front';
+    bodyOnly=false;cameraView=fittingView();
+    setWornItem();
   }
-  setWornItem();product();renderShelf();sync();
-  if(live)apply();
+  product();renderShelf();apply();
 }
 initialiseSelection();
 savedSamples.then(records=>{samples=records;renderShelf();}).catch(()=>{loadError='이 브라우저에서는 저장된 샘플에 접근할 수 없습니다.';renderShelf();});

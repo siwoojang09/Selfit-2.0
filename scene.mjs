@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-24p';
 import { attachSample } from './sample-garment.mjs?v=2026-11-24p';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-24p';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-27c';
 import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-24p';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-24p';
 import {wearer} from './hoodie-fit.mjs?v=2026-11-24p';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-24p';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-27c';
 import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-24p';
 import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-24p';
 import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-24p';
@@ -300,7 +300,6 @@ export function createScene(container, opts) {
   // The photographed tops share the same rule: one asset per garment for the
   // whole scene, worn only once it is in hand.
   let topAssets = {}, topLoading = {};
-  let wornTop = null;
   const lookCache = new Map();
   let motionSamples = [];
   const worldPoint = new THREE.Vector3();
@@ -347,7 +346,7 @@ export function createScene(container, opts) {
       if(ready)denimAssets.set(pantsId,ready);
     }
     const pantsAsset=pantsId?denimAssets.get(pantsId)||null:null;
-    const key=[model,outfit,opts.bottom||'',Boolean(opts.sample),opts.pants?opts.pants.id:'none',opts.pants?(opts.pants.material||'denim'):'default'].join('-');
+    const key=[model,outfit,Boolean(opts.selectedOnly),opts.bottom||'',Boolean(opts.sample),opts.pants?opts.pants.id:'none',opts.pants?(opts.pants.material||'denim'):'default'].join('-');
     if(key===lookKey)return false;
     if(body){sampleGarment?.dispose();sampleGarment=null;scene.remove(body.group,wardrobe.group);}
     let look=lookCache.get(key);
@@ -359,7 +358,7 @@ export function createScene(container, opts) {
         photoPants:hasPhotoGarment(opts.pants),photoAsset:pantsAsset});
       figure.pose(0,false);
       clothes.pose(0,{...opts,walking:false},0);
-      if(!opts.sample && !opts.pants)projectWardrobe(figure,clothes,model,outfit,{top:shirt,lower:bottom},()=>{dirty=true;});
+      if(!opts.selectedOnly && !opts.sample && !opts.pants)projectWardrobe(figure,clothes,model,outfit,{top:shirt,lower:bottom},()=>{dirty=true;});
       setTextile(shirt,'cotton',()=>{dirty=true;});
       look={body:figure,wardrobe:clothes,top:shirt,lower:bottom,pantsId};
       lookCache.set(key,look);
@@ -386,13 +385,11 @@ export function createScene(container, opts) {
         document.documentElement.dataset.hoodie = 'worn ' + asset.parts.length;
         // Nothing was built while the file was in flight, so ask for the same
         // top again: this time the builder has the photographs.
-        if (sampleGarment) sampleGarment.update({ photoHoodie: true, hoodieAsset });
-        else update({ sample: opts.sample });
-        settle();
-        dirty = true;
+        if (hasPhotoHoodie(opts.sample)) update({sample:opts.sample});
       }).catch(error => {
         document.documentElement.dataset.hoodie = 'failed ' + (error && error.message || error);
         console.warn('hoodie asset', error);
+        window.dispatchEvent(new CustomEvent('drape:garment-error',{detail:'KC9315'}));
       }).finally(() => { hoodieLoading = false; });
     }
     return false;
@@ -413,13 +410,11 @@ export function createScene(container, opts) {
       loadTopAsset(id).then(asset => {
         topAssets[id] = asset;
         document.documentElement.dataset.top = 'worn ' + asset.parts.length;
-        if (sampleGarment && wornTop) sampleGarment.update({ ...wornTop, topAsset: asset });
-        else update({ sample: opts.sample });
-        settle();
-        dirty = true;
+        if (opts.sample?.id===id) update({sample:opts.sample});
       }).catch(error => {
         document.documentElement.dataset.top = 'failed ' + (error && error.message || error);
         console.warn('top asset', error);
+        window.dispatchEvent(new CustomEvent('drape:garment-error',{detail:id}));
       }).finally(() => { topLoading[id] = false; });
     }
     return false;
@@ -445,13 +440,11 @@ export function createScene(container, opts) {
           if (look.pantsId === id) worn = look.wardrobe.setDenimAsset(loaded) || worn;
         }
         document.documentElement.dataset.denim = worn ? 'worn ' + id + ' ' + loaded.parts.length : 'mismatch ' + id;
-        if (worn) {
-          settle();
-          dirty = true;
-        }
+        if (opts.pants?.id===id) update({pants:opts.pants});
       }).catch(error => {
         document.documentElement.dataset.denim = 'failed ' + id + ' ' + (error && error.message || error);
         console.warn('denim asset', error);
+        window.dispatchEvent(new CustomEvent('drape:garment-error',{detail:id}));
       }).finally(() => { denimLoading.delete(id); });
       return;
     }
@@ -534,7 +527,7 @@ export function createScene(container, opts) {
     wardrobe.updatePants(opts);
     // A short dark crew reveals the waistband in a lower-garment fitting.
     let displayTop=opts.sample;
-    if(opts.pants && !displayTop){
+    if(!opts.selectedOnly && opts.pants && !displayTop){
       const f=pantsFit(opts.pants.measurements,opts.model,opts.person),w=f.w;
       // Cropped just above the waistband so the band, its loops and the fly are
       // what the fitting view is looking at. The hem overlaps the band by a
@@ -546,7 +539,7 @@ export function createScene(container, opts) {
           chest:Math.max(47,w.chest*.5+8),shoulder:Math.max(41,w.shoulder+4),sleeve:54}};
     }
     if(changedLook || ('sample' in changes || 'pants' in changes) || 'bodyOnly' in changes || 'person' in changes){
-      const active=opts.person && (opts.bodyOnly || opts.pants || opts.sample?.id==='KC9315');
+      const active=opts.person && (opts.selectedOnly || opts.bodyOnly || opts.pants || opts.sample?.id==='KC9315');
       const user=active?wearer(opts.model,opts.person):null;
       heightRatio=user?.sy||1;
       body.group.scale.y=heightRatio;
@@ -561,10 +554,8 @@ export function createScene(container, opts) {
       wardrobe.group.scale.set(hipScale,heightRatio,hipScale);
       body.anatomy.setWearer(user);
     }
-    if(changedLook || 'bodyOnly' in changes || ('sample' in changes || 'pants' in changes) || 'person' in changes){
-      body.anatomy.setCoverage(Boolean(opts.bodyOnly),{...opts,sample:displayTop});
-    }
-    if(changedLook || ('sample' in changes || 'pants' in changes) || 'person' in changes){
+    if (hasPhotoGarment(opts.pants)) adoptDenimAsset();
+    if(changedLook || 'sample' in changes || 'pants' in changes || 'person' in changes || 'bodyOnly' in changes){
       const photographed=hasPhotoHoodie(displayTop);
       const photographedTop=hasPhotoTop(displayTop);
       const readyToWear=(!photographed||adoptHoodieAsset())&&(!photographedTop||adoptTopAsset(displayTop));
@@ -572,17 +563,19 @@ export function createScene(container, opts) {
         const upper={...displayTop,person:opts.person,photoHoodie:photographed,
           hoodieAsset:photographed?hoodieAsset:null,
           topAsset:photographedTop?topAssets[String(displayTop.id)]:null,onReady:()=>{dirty=true;}};
-        wornTop=upper;
         if(sampleGarment)sampleGarment.update(upper);
         else sampleGarment=attachSample(body,upper,wardrobe.lowerColliders);
         sampleGarment.pose(phase,opts,0);
       }else if(sampleGarment){sampleGarment.dispose();sampleGarment=null;}
+      const lowerPending=opts.selectedOnly&&hasPhotoGarment(opts.pants)&&!wardrobe.denimAsset;
+      const bareLower=opts.selectedOnly&&(lowerPending||(!opts.pants&&opts.bottom==='none'));
+      body.shoeMeshes.forEach(mesh=>{mesh.visible=!bareLower;});
+      body.anatomy.setCoverage(Boolean(opts.bodyOnly),{
+        ...opts,sample:!opts.selectedOnly||readyToWear?displayTop:null,
+        pants:lowerPending?null:opts.pants,
+        bottom:lowerPending?'none':opts.bottom
+      });
     }
-    // The photographed garment is the only surface this pair is drawn with.
-    // Both the look that is on screen and every pooled look settle on it once
-    // the file is in hand, so switching model, size or top cannot bring back a
-    // drawn stand-in.
-    if (hasPhotoGarment(opts.pants)) adoptDenimAsset();
     // A photographed pair wears its own material on every piece, so the shared
     // cloth material is never painted for it.
     if (!hasPhotoGarment(opts.pants)) {

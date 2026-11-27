@@ -360,7 +360,8 @@ export function createWardrobe(T,body,materials,opts) {
   // modelled waistband, fly, pockets or topstitch, so the drawn jeans can never
   // be what the body wears, not even for the frames before the file arrives.
   const photoPants=Boolean(opts.photoPants);
-  const skirted=!measured && classic && (opts.bottom==='skirt' || (!opts.bottom && opts.model!=='male'));
+  const hasLower=measured||!opts.selectedOnly||opts.bottom!=='none';
+  const skirted=hasLower && !measured && classic && (opts.bottom==='skirt' || (!opts.bottom && opts.model!=='male'));
   let denimAsset=photoPants?(opts.photoAsset||null):null,lastOptions=opts;
   const syncPhotoVisibility=()=>{group.visible=!(photoPants&&!denimAsset);};
   const buildMeasured=options=>{
@@ -370,22 +371,22 @@ export function createWardrobe(T,body,materials,opts) {
     return built;
   };
   let main=measured?buildMeasured(opts):
-    skirted?makeSkirt(materials.lower):makePants(T,group,body,materials.lower,opts,ky);
+    skirted?makeSkirt(materials.lower):hasLower?makePants(T,group,body,materials.lower,opts,ky):null;
   if(skirted){
     main.mesh.userData.garmentPart='lower';
     group.add(main.mesh);
   }
   const tee=body.teeMeshes || [];
   const topPieces=Array.isArray(tee)?tee:[tee];
-  topPieces.forEach(m=>{m.visible=classic;});
-  const shirt=classic?null:makeShirt(T,body,materials.top,opts.outfit,ky,wide);
+  topPieces.forEach(m=>{m.visible=classic&&!opts.selectedOnly;});
+  const shirt=classic||opts.selectedOnly?null:makeShirt(T,body,materials.top,opts.outfit,ky,wide);
   const pose=(phase,options,dt)=>{
     shirt?.pose();
     if(skirted){
       main.step(dt,options,body.legs,body.hipsFromPose);
-    } else main.pose(phase,options,dt);
+    } else main?.pose(phase,options,dt);
   };
-  const reset=()=>main.reset();
+  const reset=()=>main?.reset();
   pose(0,opts,0);
   const lowerColliders=[];
   for(const part of [group,body.group.getObjectByName('Waist finish and pockets')]){
@@ -414,7 +415,7 @@ export function createWardrobe(T,body,materials,opts) {
     return true;
   }
   return {group,pose,reset,lowerColliders,updatePants,setDenimAsset,
-    get denimAsset(){return denimAsset;},get secondary(){return main.secondary||null;},
-    get probe(){return main.probe||null;},
-    get vertices(){return skirted?main.mesh.geometry.attributes.position.count:main.vertices;}};
+    get denimAsset(){return denimAsset;},get secondary(){return main?.secondary||null;},
+    get probe(){return main?.probe||null;},
+    get vertices(){return skirted?main.mesh.geometry.attributes.position.count:(main?.vertices||0);}};
 }
