@@ -378,7 +378,7 @@ async function apply(){
   sync();
   if(!loader){
     const opts=options();window.DrapeEngine.set(opts);applied=opts;
-    loader=window.DrapeEngine.init($('liveScene'));
+    loader=window.DrapeEngine.init($('liveScene'),$('stage'));
   }
   try{
     if(!await loader)throw Error();

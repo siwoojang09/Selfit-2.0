@@ -189,7 +189,7 @@ function makeContactShadow() {
 // The stage is a warm stone studio: a light backdrop with no horizon line, a
 // turntable the wearer stands on, and the light coming from above and slightly
 // left, so a matte black garment keeps its shade instead of turning grey.
-export function createScene(container, opts) {
+export function createScene(container, opts, gestureSurface = container) {
   const scene = new THREE.Scene();
   // A soft top-down studio gradient rather than a flat colour: the backdrop
   // falls off towards the plinth the way a paper sweep does.
@@ -501,45 +501,84 @@ export function createScene(container, opts) {
   new ResizeObserver(resize).observe(container);
   resize();
 
+  const nativeTouch = 'ontouchstart' in window;
+  const point = event => ({x:event.clientX, y:event.clientY});
+  function moveContacts(contacts, positions) {
+    const [oldA, oldB] = contacts.values();
+    if (!oldA) return;
+    for (const [id, position] of positions) {
+      const contact = contacts.get(id);
+      if (contact) contacts.set(id, {...contact, ...position});
+    }
+    const [a, b] = contacts.values();
+    if (!b) {
+      targetYaw -= (a.x - oldA.x) * .01;
+      targetPitch = limit(targetPitch + (a.y - oldA.y) * .005, -.16, .64);
+    } else {
+      const before = Math.hypot(oldA.x - oldB.x, oldA.y - oldB.y);
+      const after = Math.hypot(a.x - b.x, a.y - b.y);
+      if (before > 12 && after > 12) zoomBy(after / before);
+      targetPanX = limit(targetPanX + (a.x + b.x - oldA.x - oldB.x) * worldPerPixel / 2, -1.5, 1.5);
+      targetPanY = limit(targetPanY + (a.y + b.y - oldA.y - oldB.y) * worldPerPixel / 2, -1.5, 1.5);
+    }
+    dirty = true;
+  }
+
+  if (nativeTouch) {
+    const contacts = new Map();
+    const touchOptions = {capture:true, passive:false};
+    const touchPositions = event => Array.from(event.touches, touch => [touch.identifier, point(touch)]);
+    gestureSurface.addEventListener('touchstart', event => {
+      // One contact must start on the render area. Further contacts can land
+      // over the stage controls without turning a pinch into a rotation.
+      if (!contacts.size && !container.contains(event.target)) return;
+      event.preventDefault();
+      for (const touch of Array.from(event.touches)) {
+        if (gestureSurface.contains(touch.target)) contacts.set(touch.identifier, point(touch));
+      }
+    }, touchOptions);
+    gestureSurface.addEventListener('touchmove', event => {
+      if (!Array.from(event.changedTouches).some(touch => contacts.has(touch.identifier))) return;
+      event.preventDefault();
+      moveContacts(contacts, touchPositions(event));
+    }, touchOptions);
+    const endTouch = event => {
+      for (const touch of Array.from(event.changedTouches)) contacts.delete(touch.identifier);
+      // Rebase the surviving finger before switching back to rotation.
+      for (const [id, position] of touchPositions(event)) {
+        if (contacts.has(id)) contacts.set(id, position);
+      }
+    };
+    gestureSurface.addEventListener('touchend', endTouch, touchOptions);
+    gestureSurface.addEventListener('touchcancel', endTouch, touchOptions);
+    // Safari can dispatch its own page-zoom gesture alongside touch events.
+    const keepZoomInStage = event => {
+      if (contacts.size || container.contains(event.target)) event.preventDefault();
+    };
+    gestureSurface.addEventListener('gesturestart', keepZoomInStage, touchOptions);
+    gestureSurface.addEventListener('gesturechange', keepZoomInStage, touchOptions);
+  }
+
   const pointers = new Map();
-  canvas.addEventListener('pointerdown', event => {
-    if (event.button !== 0) return;
+  gestureSurface.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || (nativeTouch && event.pointerType === 'touch')) return;
     const first = pointers.values().next().value;
+    if (!first && !container.contains(event.target)) return;
     if (first && (first.type !== 'touch' || event.pointerType !== 'touch')) return;
-    pointers.set(event.pointerId, {x:event.clientX, y:event.clientY, type:event.pointerType});
-    canvas.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, {...point(event), type:event.pointerType});
+    if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
     canvas.style.cursor = 'grabbing';
   });
-  canvas.addEventListener('pointermove', event => {
-    const pointer = pointers.get(event.pointerId);
-    if (!pointer) return;
-    const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
-    if (pointers.size === 1) {
-      targetYaw -= dx * .01;
-      targetPitch = limit(targetPitch + dy * .005, -.16, .64);
-    } else {
-      const [first, second] = pointers.values();
-      const other = pointer === first ? second : pointer === second ? first : null;
-      if (other) {
-        const before = Math.hypot(pointer.x - other.x, pointer.y - other.y);
-        const after = Math.hypot(event.clientX - other.x, event.clientY - other.y);
-        if (before > 12 && after > 12) zoomBy(after / before);
-        // Each contact contributes half of the midpoint's screen movement.
-        targetPanX = limit(targetPanX + dx * worldPerPixel / 2, -1.5, 1.5);
-        targetPanY = limit(targetPanY + dy * worldPerPixel / 2, -1.5, 1.5);
-      }
-    }
-    pointer.x = event.clientX;
-    pointer.y = event.clientY;
-    dirty = true;
+  gestureSurface.addEventListener('pointermove', event => {
+    if (pointers.has(event.pointerId)) moveContacts(pointers, [[event.pointerId, point(event)]]);
   });
   const release = event => {
     pointers.delete(event.pointerId);
     if (!pointers.size) canvas.style.cursor = 'grab';
   };
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
-  canvas.addEventListener('lostpointercapture', release);
+  gestureSurface.addEventListener('pointerup', release);
+  gestureSurface.addEventListener('pointercancel', release);
+  gestureSurface.addEventListener('lostpointercapture', release);
   canvas.addEventListener('wheel', event => {
     if (!event.deltaY) return;
     event.preventDefault();

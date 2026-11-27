@@ -8,10 +8,10 @@
   let options = { ...initial };
   let engine, pending;
   window.DrapeEngine = {
-    init(container) {
+    init(container, gestureSurface) {
       if (pending) return pending;
-      pending = import(new URL('scene.mjs?v=2026-11-27e', base)).then(({ createScene }) => {
-        engine = createScene(container, options);
+      pending = import(new URL('scene.mjs?v=2026-11-27f', base)).then(({ createScene }) => {
+        engine = createScene(container, options, gestureSurface);
         window.dispatchEvent(new CustomEvent('drape:ready', {detail: engine.stats()}));
         return true;
       }).catch(error => {
