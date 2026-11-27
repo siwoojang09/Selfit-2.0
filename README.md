@@ -149,3 +149,27 @@ python3 -m http.server 8080
 ## 상품 링크로 3D 피팅
 
 드레싱룸에서 무신사 후드 집업 링크를 등록하고 사진·실측을 확인한 뒤 3D 모델을 생성할 수 있습니다. 서버 실행, 제휴 상품 피드 연결, GitHub Pages 설정 방법은 [가져오기 서버 안내](garment_service/README.md)에 있습니다.
+
+## 워크 자켓 파이프라인 (2026-11-27)
+
+`mood-inside-vtg-hood-jacket`(무드인사이드 VTG 워시드 후드 자켓, 무신사 4399019)는
+후드 집업과 같은 지퍼 잠금이지만 **재단이 다릅니다**. `sample-garment.mjs`의 `workjacket`
+타입은 adidas 집업처럼 실측 패턴(`cutHoodie`)으로 몸에 맞춰 재단하고, 그 위에 워크 자켓의
+부속을 얹습니다.
+
+- **드롭 숄더**: 어깨너비 59.5 cm짜리 어깨선이 몸판 위에 걸치므로, 소매는 관절이 아니라
+  몸판의 어깨 모서리(`pattern.point(.085, π/2)`)에 달고 그만큼 소매산을 내립니다. 실측
+  소매길이에는 어깨점에서 관절까지의 가로 거리(`sleeveRun`)를 빼서, 소매가 손목에 오게 합니다.
+- **캥거루 포켓 + 사각 라벨 패치**: 몸판 패널에 얹히는 조각이라 아틀라스의 같은 천을
+  위치로 읽습니다(`configs/*.json`의 `atlas_map`). 한 톤 깊은 재질(`atlas_shade`)로
+  같은 아틀라스를 공유하므로 텍스처를 두 벌 굽지 않습니다.
+- **투웨이 지퍼**: 위 slider와 밑단 slider 두 벌.
+- **검정 골지 시보리**: 밑단·소매 커프스는 `rib` 스와치(2×2 골지, 주기 4.8 mm).
+- **후드**: 목 뒤로 젖혀진 형태(`Folded hood` + `Lined hood opening`). 머리에 쓴 모자로
+  만들지 않습니다.
+- **원단**: `img13.jpg`의 헤비 덕 캔버스 클로즈업에서 8 cm 타일을 떠 알베도·노멀·러프니스
+  (0.86 무광)를 굽고, 아틀라스 2048에 실제 배율로 깔았습니다.
+
+    python3 tools/photo-top/fabric.py mood-inside-vtg-hood-jacket
+    python3 tools/photo-top/dump_pieces.py mood-inside-vtg-hood-jacket
+    ARM_Y=1.338 ARM_X=0.243 python3 tools/photo-top/build.py mood-inside-vtg-hood-jacket
