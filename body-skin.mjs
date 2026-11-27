@@ -3,12 +3,14 @@
 import * as THREE from './vendor/three.module.js';
 import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-27g';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27g';
+import {applyAvatarSkin,attachAvatarHair} from './avatar-appearance.mjs?v=2026-11-27h';
 import {getAvatarFit} from './fit-body-sections.mjs?v=2026-11-27g';
 
 export function attachAnatomicalBody(source, root, parts, model='female') {
   // Everything below is authored on the 178 cm frame; the body it classifies is
   // the shaped one, so a body height keeps its relation to the floor by ky.
   const ky=getAvatarFit(model).ky||1;
+  const setHairWireframe=attachAvatarHair(parts.head,ky,model);
   const named={pelvis:parts.pelvis,torso:parts.torso,head:parts.head};
   for(const [i,side] of ['L','R'].entries()){
     for(const [name,node] of Object.entries(parts.arms[i]))named[name+side]=node;
@@ -30,8 +32,8 @@ export function attachAnatomicalBody(source, root, parts, model='female') {
   const position=geometry.attributes.position,normal=geometry.attributes.normal;
   position.setUsage(THREE.DynamicDrawUsage);normal.setUsage(THREE.DynamicDrawUsage);
   const rest=position.array.slice(),restNormal=normal.array.slice();
-  const material=new THREE.MeshStandardMaterial({color:'#d7d8d5',roughness:.8,metalness:0});
-  material.userData.clay=true;
+  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.77,metalness:0});
+  material.userData.avatarSkin=true;
   const mesh=new THREE.Mesh(geometry,material);
   mesh.name='Anatomical fitting form';mesh.userData.anatomicalBody=true;
   mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.layers.enable(1);
@@ -52,11 +54,17 @@ export function attachAnatomicalBody(source, root, parts, model='female') {
       handPoints[n.endsWith('L')?0:1].push([rest[k],rest[k+1],rest[k+2]]);
     }
   }
-  let coverageKey='';
+  const setFittingLayers=applyAvatarSkin(geometry,material,region,ky,model);
+  let coverageKey='', layerKey=-1;
   function setCoverage(bare,options){
     const sample=options.sample;
     const openUpper=options.selectedOnly&&!sample;
     const openLower=options.selectedOnly&&!options.pants&&options.bottom==='none';
+    const layers=Number(bare||openUpper)+2*Number(bare||openLower);
+    if(layers!==layerKey){
+      layerKey=layers;
+      setFittingLayers(bare||openUpper,bare||openLower);
+    }
     const type=sample?.type||(options.outfit==='tailored'?'shirt':'tee');
     const sleeve=Number(sample?.measurements?.sleeve)||(['shirt','sweatshirt','ziphoodie','hoodie','halfzip'].includes(type)?56:20);
     const length=Number(sample?.measurements?.length)||63;
@@ -142,5 +150,9 @@ export function attachAnatomicalBody(source, root, parts, model='female') {
     }
     position.needsUpdate=true;normal.needsUpdate=true;
   }
-  return {mesh,deform,setCoverage,setWearer,handPoints};
+  function setWireframe(value){
+    material.wireframe=value;
+    setHairWireframe(value);
+  }
+  return {mesh,deform,setCoverage,setWearer,setWireframe,handPoints};
 }

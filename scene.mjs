@@ -5,11 +5,11 @@ import { createWardrobe } from './wardrobe.mjs?v=2026-11-27g';
 import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-27g';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27g';
 import {wearer} from './hoodie-fit.mjs?v=2026-11-27g';
-import { makeMannequin } from './mannequin.mjs?v=2026-11-27g';
+import { makeMannequin } from './mannequin.mjs?v=2026-11-27h';
 import { loadGarmentAsset, peekGarment, hasPhotoGarment } from './photo-denim.mjs?v=2026-11-27g';
 import { loadHoodieAsset, peekHoodieAsset, hasPhotoHoodie } from './photo-hoodie.mjs?v=2026-11-27g';
 import { loadTopAsset, peekTopAsset, hasPhotoTop } from './photo-top.mjs?v=2026-11-27g';
-import { createSoftwareRenderer } from './software.mjs?v=2026-11-27g';
+import { createSoftwareRenderer } from './software.mjs?v=2026-11-27h';
 
 const limit = THREE.MathUtils.clamp;
 const tau = Math.PI * 2;
@@ -693,7 +693,7 @@ export function createScene(container, opts, gestureSurface = container) {
     if (changedLook || 'topColor' in changes) top.color.set(opts.topColor && opts.topColor !== '#b4532e' ? opts.topColor : garmentColors(opts.outfit || 'classic').top);
     if (changedLook || 'wireframe' in changes) {
       lower.wireframe = top.wireframe = Boolean(opts.wireframe);
-      body.anatomy.mesh.material.wireframe = Boolean(opts.wireframe);
+      body.anatomy.setWireframe(Boolean(opts.wireframe));
     }
     if ('bodyOnly' in changes || 'grid' in changes){
       cam.layers.set(opts.bodyOnly?1:0);

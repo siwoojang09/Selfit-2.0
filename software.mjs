@@ -48,7 +48,6 @@ function texel(texture, level, u, v) {
   return level.rgba[y * level.width + x];
 }
 
-const stride = 10;
 function encodeUvs(buffer, j, attr, i, texture, iw) {
   const u = attr.getX(i), v = attr.getY(i), m = texture.matrix.elements;
   buffer[j] = (m[0] * u + m[3] * v + m[6]) * iw;
@@ -133,6 +132,8 @@ export function createSoftwareRenderer() {
       if (object.material.transparent && !object.material.depthWrite && object.geometry.type === 'PlaneGeometry') return;
       const geom=object.geometry, pos=geom.attributes.position, norm=geom.attributes.normal;
       const mat=Array.isArray(object.material)?object.material[0]:object.material;
+      const vertexColors=mat.vertexColors && geom.attributes.color;
+      const stride=vertexColors?13:10;
       const map = mat.map;
       const uv = geom.attributes.uv;
       const diffuse = uv ? texturePixels(map) : null;
@@ -153,6 +154,10 @@ export function createSoftwareRenderer() {
         verts[j+1]=(1-(transform[1]*x+transform[5]*y+transform[9]*z+transform[13])*iw)*height*.5;
         verts[j+2]=(transform[2]*x+transform[6]*y+transform[10]*z+transform[14])*iw;
         verts[j+4]=iw;
+        if(vertexColors){
+          color.fromBufferAttribute(vertexColors,i).convertLinearToSRGB();
+          verts[j+10]=color.r;verts[j+11]=color.g;verts[j+12]=color.b;
+        }
         if (diffuse) encodeUvs(verts,j+5,uv,i,map,iw);
         if (photo) {
           encodeUvs(verts,j+7,refUv,i,reference,iw);
@@ -163,7 +168,7 @@ export function createSoftwareRenderer() {
         const inv=1/(Math.hypot(nx,ny,nz)||1);
         const light=Math.max(0,(-.41*nx+.68*ny+.59*nz)*inv);
         const rimLight=Math.max(0,(.6*nx+.5*ny-.62*nz)*inv);
-        verts[j+3]=mat.userData.clay ? .53+.47*light+.12*rimLight+.04*ny*inv : .69+.34*light+.08*rimLight;
+        verts[j+3]=mat.userData.avatarSkin ? .61+.41*light+.11*rimLight : .69+.34*light+.08*rimLight;
       }
       mat.color.getRGB(color,THREE.SRGBColorSpace);
       const rr=color.r*255,gg=color.g*255,bb=color.b*255;
@@ -193,6 +198,11 @@ export function createSoftwareRenderer() {
             if(z>=depth[idx]) continue;
             const shade = w*verts[a+3]+v*verts[b+3]+u*verts[c+3];
             let red = rr*shade, green = gg*shade, blue = bb*shade;
+            if(vertexColors){
+              red*=w*verts[a+10]+v*verts[b+10]+u*verts[c+10];
+              green*=w*verts[a+11]+v*verts[b+11]+u*verts[c+11];
+              blue*=w*verts[a+12]+v*verts[b+12]+u*verts[c+12];
+            }
             let alpha = mat.opacity ?? 1;
             if (diffuseMip || photoMip) {
               const reciprocal = 1/(w*verts[a+4]+v*verts[b+4]+u*verts[c+4]);
