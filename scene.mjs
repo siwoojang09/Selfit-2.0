@@ -235,7 +235,7 @@ export function createScene(container, opts) {
     renderer = createSoftwareRenderer();
   }
   const canvas = renderer.domElement;
-  canvas.setAttribute('aria-label', '회전하고 확대할 수 있는 실시간 의상 시뮬레이션');
+  canvas.setAttribute('aria-label', '3D 피팅 화면. 드래그로 회전하고 두 손가락이나 마우스 휠로 확대·축소합니다.');
   Object.assign(canvas.style, {width: '100%', height: '100%', display: 'block', touchAction: 'none', cursor: 'grab'});
   container.appendChild(canvas);
 
@@ -457,13 +457,23 @@ export function createScene(container, opts) {
     }
   }
   let yaw = .045, pitch = .045, targetYaw = yaw, targetPitch = pitch;
+  let cameraZoom = 1, panX = 0, panY = 0, targetPanX = 0, targetPanY = 0;
+  let worldPerPixel = 0;
   let frameTime = Number(opts.time) || 0, phase = frameTime * tau * .83 * limit(Number(opts.speed) || 0, 0, 4) + .8;
   let previous = 0, accumulator = 0, lastStats = 0, frames = 0, fps = 0, dirty = true;
   let width = 1, height = 1, heightRatio=1;
   const stepSize = 1/60;
   const worldUp = new THREE.Vector3(0,1,0);
+  const getZoom = () => limit(Number(opts.zoom) || 1, .46, 3.3);
+  function zoomBy(factor) {
+    const current = getZoom();
+    const next = limit(current * factor, .46, 3.3);
+    if (next === current) return;
+    opts.zoom = next;
+    dirty = true;
+  }
   const updateCamera = () => {
-    const zoom = limit(Number(opts.zoom)||1, .46, 3.3);
+    const zoom = cameraZoom;
     const closePants=opts.view==='pants',closeFit=opts.view==='fit',detail=opts.view==='finish';
     // The stage is a full-height column, so the frame holds the wearer and the
     // turntable under them: about 2.5 m of height at the focus, not the 2 m a
@@ -473,7 +483,10 @@ export function createScene(container, opts) {
     cam.position.set(Math.sin(yaw) * Math.cos(pitch) * distance, focus + Math.sin(pitch) * distance, Math.cos(yaw) * Math.cos(pitch) * distance);
     cam.up.copy(worldUp);
     cam.lookAt(0, focus, 0);
+    cam.translateX(-panX);
+    cam.translateY(panY);
     cam.updateMatrixWorld();
+    worldPerPixel = 2 * distance * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / height;
   };
   const resize = () => {
     width = container.clientWidth;
@@ -488,23 +501,52 @@ export function createScene(container, opts) {
   new ResizeObserver(resize).observe(container);
   resize();
 
-  let pointer = null;
+  const pointers = new Map();
   canvas.addEventListener('pointerdown', event => {
     if (event.button !== 0) return;
-    pointer = {x:event.clientX,y:event.clientY,id:event.pointerId};
+    const first = pointers.values().next().value;
+    if (first && (first.type !== 'touch' || event.pointerType !== 'touch')) return;
+    pointers.set(event.pointerId, {x:event.clientX, y:event.clientY, type:event.pointerType});
     canvas.setPointerCapture(event.pointerId);
     canvas.style.cursor = 'grabbing';
   });
   canvas.addEventListener('pointermove', event => {
-    if (event.pointerId !== pointer?.id) return;
-    targetYaw -= (event.clientX - pointer.x) * .01;
-    targetPitch = limit(targetPitch + (event.clientY - pointer.y)*.005, -.16, .64);
-    pointer.x = event.clientX; pointer.y = event.clientY;
+    const pointer = pointers.get(event.pointerId);
+    if (!pointer) return;
+    const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
+    if (pointers.size === 1) {
+      targetYaw -= dx * .01;
+      targetPitch = limit(targetPitch + dy * .005, -.16, .64);
+    } else {
+      const [first, second] = pointers.values();
+      const other = pointer === first ? second : pointer === second ? first : null;
+      if (other) {
+        const before = Math.hypot(pointer.x - other.x, pointer.y - other.y);
+        const after = Math.hypot(event.clientX - other.x, event.clientY - other.y);
+        if (before > 12 && after > 12) zoomBy(after / before);
+        // Each contact contributes half of the midpoint's screen movement.
+        targetPanX = limit(targetPanX + dx * worldPerPixel / 2, -1.5, 1.5);
+        targetPanY = limit(targetPanY + dy * worldPerPixel / 2, -1.5, 1.5);
+      }
+    }
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
     dirty = true;
   });
-  const release = () => { pointer = null; canvas.style.cursor = 'grab'; };
+  const release = event => {
+    pointers.delete(event.pointerId);
+    if (!pointers.size) canvas.style.cursor = 'grab';
+  };
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('lostpointercapture', release);
+  canvas.addEventListener('wheel', event => {
+    if (!event.deltaY) return;
+    event.preventDefault();
+    const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1;
+    const pixels = event.deltaY * scale;
+    zoomBy(Math.exp(-limit(pixels * (event.ctrlKey ? .01 : .0015), -.3, .3)));
+  }, {passive:false});
 
   function poseAndStep(dt) {
     body.pose(phase, opts.walking, opts.bodyOnly);
@@ -628,6 +670,7 @@ export function createScene(container, opts) {
       targetPitch = opts.view==='study'?.29:.045;
       yaw = targetYaw;
       pitch = targetPitch;
+      panX = targetPanX = panY = targetPanY = 0;
     }
     if ('time' in changes) {
       frameTime = Math.max(0, Number(opts.time)||0);
@@ -680,10 +723,16 @@ export function createScene(container, opts) {
       }
       dirty = true;
     }
-    const orbiting = Math.abs(targetYaw-yaw) + Math.abs(targetPitch-pitch) > .0001;
-    if (!dirty && !orbiting) return;
-    yaw += (targetYaw - yaw) * .38;
-    pitch += (targetPitch - pitch) * .38;
+    const desiredZoom = getZoom();
+    const moving = Math.abs(targetYaw-yaw) + Math.abs(targetPitch-pitch) +
+      Math.abs(desiredZoom-cameraZoom) + Math.abs(targetPanX-panX) + Math.abs(targetPanY-panY) > .0001;
+    if (!dirty && !moving) return;
+    const easing = 1 - Math.pow(.62, (delta || stepSize) / stepSize);
+    yaw += (targetYaw - yaw) * easing;
+    pitch += (targetPitch - pitch) * easing;
+    cameraZoom += (desiredZoom - cameraZoom) * easing;
+    panX += (targetPanX - panX) * easing;
+    panY += (targetPanY - panY) * easing;
     updateCamera();
     if(opts.render3D!==false && !opts.portrait) renderer.render(scene, cam);
     dirty = false;
@@ -706,6 +755,6 @@ export function createScene(container, opts) {
       get topAsset(){ return topAssets[String(opts.sample?.id)] || null; }
     }, configurable: true});
   }
-  return {update, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
+  return {update, zoomBy, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
     reset() {yaw = targetYaw = .045; pitch = targetPitch = .045;}};
 }

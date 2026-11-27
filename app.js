@@ -30,7 +30,7 @@ const paths={
 const icon=name=>'<svg aria-hidden="true" class="ico" viewBox="0 0 24 24">'+paths[name]+'</svg>';
 for(const el of document.querySelectorAll('[data-icon]'))el.innerHTML=icon(el.dataset.icon);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-let samples=[],selected=null,size='',scope='all',filter='all',brand='ALL',query='',avatar='female',bottom='none',lowerFabric='linen',zoom=1,wire=false,playing=false,ready=false,loader=null,applied={},upper=null,toastTimer,loadError='';
+let samples=[],selected=null,size='',scope='all',filter='all',brand='ALL',query='',avatar='female',bottom='none',lowerFabric='linen',wire=false,playing=false,ready=false,loader=null,applied={},upper=null,toastTimer,loadError='';
 let pants=null,activePants=null,activeTop=null,referenceSamples=[];
 const isPants=()=>selected?.type==='pants';
 const fieldsFor=type=>type==='pants'?pantsMeasurementFields:measurementFields;
@@ -247,7 +247,7 @@ function setGarmentSize(role,label){
   const crossedType=isPants()!==(item.type==='pants');
   const wasBody=bodyOnly;
   selected=item;size=label;
-  if(crossedType||wasBody){bodyOnly=false;cameraView=fittingView();zoom=1;}
+  if(crossedType||wasBody){bodyOnly=false;resetCamera(fittingView());}
   setWornItem();product();renderShelf();apply();
 }
 $('sizeDock').onclick=e=>{
@@ -294,15 +294,19 @@ function renderFitReport(hemLift=0){
   $('fitHem').textContent='앞 밑단 예상 위치 · 허리선 '+(fromWaist>=0?'아래 ':'위 ')+fmt(Math.abs(fromWaist))+' cm'+(f.ease<0?' · 지퍼를 잠글 수 있는지는 원단 신장률 확인이 필요합니다.':'');
 
 }
+function resetCamera(view){
+  cameraView=view;
+  window.DrapeEngine.set({view,zoom:1});
+}
 function showFit(){
-  bodyOnly=false;playing=false;poseWalk=false;zoom=1;cameraView=fittingView();apply();
+  bodyOnly=false;playing=false;poseWalk=false;resetCamera(fittingView());apply();
 }
 $('fitPreview').onclick=showFit;
 $('finishView').onclick=()=>{
   const detailView=isPants()?'pants':'finish';
   const detail=cameraView!==detailView||bodyOnly;
-  bodyOnly=false;playing=false;poseWalk=false;zoom=1;
-  cameraView=detail?detailView:isPants()?'front':'fit';apply();
+  bodyOnly=false;playing=false;poseWalk=false;
+  resetCamera(detail?detailView:isPants()?'front':'fit');apply();
   $('stage').scrollIntoView({block:'center',behavior:'smooth'});
 };
 $('compareFit').onclick=()=>{
@@ -368,7 +372,7 @@ function sync(){
 }
 function options(){
   const outfit=bottom==='shorts'?'casual':bottom==='slacks'?'tailored':'classic';
-  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,selectedOnly:true,sample:upper,pants,model:avatar,bottom:pants?'trousers':bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing,walking:poseWalk,speed:physics.speed,zoom,view:cameraView,wireframe:wire};
+  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,selectedOnly:true,sample:upper,pants,model:avatar,bottom:pants?'trousers':bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing,walking:poseWalk,speed:physics.speed,view:cameraView,wireframe:wire};
 }
 async function apply(){
   sync();
@@ -394,7 +398,7 @@ function choose(item){
   if(fromStudy)cameraView='front';
   const hadPantsSelected=isPants();
   selected=item;
-  if(isPants()||hadPantsSelected){cameraView=fittingView();zoom=1;}
+  if(isPants()||hadPantsSelected)resetCamera(fittingView());
   const worn=isPants()?pants:upper;
   const previous=worn?.id===item.id?worn.measurements.label:null;
   size=item.sizes.find(s=>s.label===previous)?.label ?? item.sizes.find(s=>s.label==='M')?.label ?? item.sizes[0].label;
@@ -448,9 +452,9 @@ $('play').onclick=()=>{
   }
   apply();
 };
-function changeZoom(delta){zoom=Math.max(.7,Math.min(1.7,Math.round((zoom+delta)*10)/10));apply();}
-$('zoomIn').onclick=()=>changeZoom(.1);$('zoomOut').onclick=()=>changeZoom(-.1);
-$('recenter').onclick=()=>{zoom=1;cameraView=bodyOnly?'study':fittingView();if(ready)window.DrapeEngine.set({view:cameraView,zoom:1});apply();};
+$('zoomIn').onclick=()=>window.DrapeEngine.zoomBy(1.12);
+$('zoomOut').onclick=()=>window.DrapeEngine.zoomBy(1 / 1.12);
+$('recenter').onclick=()=>{resetCamera(bodyOnly?'study':fittingView());apply();};
 $('expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('fitting').requestFullscreen();}catch{toast('이 브라우저에서는 전체 화면을 사용할 수 없습니다.');}};
 function modal(title,body){$('dialogTitle').textContent=title;$('dialogBody').innerHTML=body;if(!$('dialog').open)$('dialog').showModal();}
 $('close').onclick=()=>$('dialog').close();$('dialog').onclick=e=>{if(e.target===$('dialog')){const b=$('dialog').getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)$('dialog').close();}};
@@ -458,7 +462,7 @@ $('measureTable').onclick=()=>{
   const measureFields=fieldsFor(selected.type);
   modal(selected.name+' 실측표','<p>'+esc(selected.source)+' · 단위 cm</p><div class="table-wrap"><table><thead><tr><th>사이즈</th>'+measureFields.map(([,label])=>'<th>'+label+'</th>').join('')+'</tr></thead><tbody>'+selected.sizes.map(m=>'<tr class="'+(size===m.label?'current':'')+'"><th scope="row">'+esc(m.label)+'</th>'+measureFields.map(([k])=>'<td>'+(m[k]??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div><p>'+(isPants()?'허리·엉덩이·허벅지·밑단은 옷을 평평하게 놓고 잰 단면 너비입니다.':'가슴과 밑단은 옷을 평평하게 놓고 잰 단면 너비입니다.')+' — 표시는 미제공 치수입니다.</p>');
 };
-$('guide').onclick=()=>modal('드레싱룸 이용 가이드','<dl class="help"><dt>샘플 입어보기</dt><dd>옷장에서 샘플을 고르고 사이즈를 바꿔 보세요. 신체 치수에서 키와 가슴·허리·엉덩이둘레를 적용하면 그 몸에 맞춰 다시 입습니다. 3D 모델을 드래그하면 옆면과 뒷면을 볼 수 있습니다.</dd><dt>옷장 찾기</dt><dd>분류(아우터·상의·하의)와 브랜드 칩으로 좁히고, 검색창에는 상품명·브랜드·품번을 넣습니다. 카드의 하트는 이 브라우저의 위시리스트에 담깁니다.</dd><dt>3D 체형</dt><dd>3D 체형을 누르면 팔을 벌린 무광 인체 모델을 볼 수 있습니다. 드래그해 회전하거나 보행을 재생하세요. 착장을 누르면 같은 모델에 선택한 옷을 다시 입힙니다.</dd><dt>3D 착장</dt><dd>모든 샘플은 실물 사진에서 뜬 원단과 그래픽으로 3D에 입혀집니다. 사이즈를 바꾸면 같은 사진의 결이 그 사이즈 패턴에 다시 깔리고, 보행하면 밑단과 소매가 흔들립니다.</dd><dt>실제 옷 등록</dt><dd>정면 사진과 상품명을 입력한 뒤 의류 유형을 선택하세요. 바지는 총장·허리단면·엉덩이단면·허벅지단면·밑위·밑단단면을, 상의는 총장·어깨너비·가슴단면·소매길이를 cm로 입력합니다. 사진은 단색 배경에서 바르게 펼친 모습이 좋습니다.</dd><dt>샘플 보관</dt><dd>직접 등록한 사진과 실측은 이 브라우저의 내 샘플에 저장됩니다. 정확한 핏을 검증하려면 앞·뒤 패턴, 원단의 두께·무게·신축성과 실제 피팅 모델의 신체 치수가 추가로 필요합니다.</dd></dl>');
+$('guide').onclick=()=>modal('드레싱룸 이용 가이드','<dl class="help"><dt>샘플 입어보기</dt><dd>옷장에서 샘플을 고르고 사이즈를 바꿔 보세요. 신체 치수에서 키와 가슴·허리·엉덩이둘레를 적용하면 그 몸에 맞춰 다시 입습니다.</dd><dt>3D 화면 조작</dt><dd>3D 화면을 한 손가락으로 밀거나 마우스로 드래그하면 모델이 회전합니다. 두 손가락을 벌리거나 오므리면 확대·축소되고, 두 손가락을 함께 움직이면 화면 속 위치를 옮길 수 있습니다. 마우스 휠로도 확대·축소할 수 있습니다.</dd><dt>옷장 찾기</dt><dd>분류(아우터·상의·하의)와 브랜드 칩으로 좁히고, 검색창에는 상품명·브랜드·품번을 넣습니다. 카드의 하트는 이 브라우저의 위시리스트에 담깁니다.</dd><dt>3D 체형</dt><dd>3D 체형을 누르면 팔을 벌린 무광 인체 모델을 볼 수 있습니다. 드래그해 회전하거나 보행을 재생하세요. 착장을 누르면 같은 모델에 선택한 옷을 다시 입힙니다.</dd><dt>3D 착장</dt><dd>모든 샘플은 실물 사진에서 뜬 원단과 그래픽으로 3D에 입혀집니다. 사이즈를 바꾸면 같은 사진의 결이 그 사이즈 패턴에 다시 깔리고, 보행하면 밑단과 소매가 흔들립니다.</dd><dt>실제 옷 등록</dt><dd>정면 사진과 상품명을 입력한 뒤 의류 유형을 선택하세요. 바지는 총장·허리단면·엉덩이단면·허벅지단면·밑위·밑단단면을, 상의는 총장·어깨너비·가슴단면·소매길이를 cm로 입력합니다. 사진은 단색 배경에서 바르게 펼친 모습이 좋습니다.</dd><dt>샘플 보관</dt><dd>직접 등록한 사진과 실측은 이 브라우저의 내 샘플에 저장됩니다. 정확한 핏을 검증하려면 앞·뒤 패턴, 원단의 두께·무게·신축성과 실제 피팅 모델의 신체 치수가 추가로 필요합니다.</dd></dl>');
 function environment(){
   const sliders=[['gravity','중력',0,20,.01,'m/s²'],['wind','풍속',0,12,.1,'m/s'],['direction','풍향',0,360,5,'°'],['turbulence','난류',0,1,.05,''],['speed','보행 속도',.25,2,.05,'×']];
   modal('물리 환경 설정',sliders.map(([key,label,min,max,step,unit])=>'<label class="parameter">'+label+'<input data-parameter="'+key+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+physics[key]+'"><output>'+physics[key]+' '+unit+'</output></label>').join('')+
