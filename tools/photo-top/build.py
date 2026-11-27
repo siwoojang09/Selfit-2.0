@@ -464,7 +464,8 @@ def build_glb(cfg, work):
     # sits on, and samples the same atlas so the weave still runs through it.
     # The same atlas, dyed a shade deeper: one set of textures for both, so a
     # pocket does not cost a second copy of the body's maps.
-    shade_gain = [x * float(shade.get('gain', .9)) for x in gain]
+    atlas_shade_cfg = cfg.get('atlas_shade', {})
+    shade_gain = [x * float(atlas_shade_cfg.get('gain', shade.get('gain', .9))) for x in gain]
     base = g.materials[mat_atlas]
     mat_atlas_shade = len(g.materials)
     g.materials.append({

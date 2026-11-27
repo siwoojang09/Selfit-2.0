@@ -56,7 +56,10 @@
       "Neck lining",
       "Folded bottom hem"
     ],
-    "thread": [],
+    "thread": [
+      "Pocket mouth topstitch",
+      "Patch stitch"
+    ],
     "metal": [
       "Silver coil zipper",
       "Zipper slider",
@@ -73,9 +76,7 @@
     "atlas_shade": [
       "Kangaroo pocket",
       "Patch label",
-      "Pocket opening lip",
-      "Pocket mouth topstitch",
-      "Patch stitch"
+      "Pocket opening lip"
     ]
   },
   "sleeve_repeat": [
@@ -133,9 +134,9 @@
   },
   "normal_scale": 1.25,
   "thread": [
-    64,
-    64,
-    68
+    104,
+    104,
+    108
   ],
   "button": [
     20,
@@ -153,7 +154,7 @@
     1.0
   ],
   "shade": {
-    "gain": 0.86
+    "gain": 0.88
   },
   "atlas_map": [
     "Kangaroo pocket",
@@ -161,5 +162,8 @@
     "Pocket mouth topstitch",
     "Patch label",
     "Patch stitch"
-  ]
+  ],
+  "atlas_shade": {
+    "gain": 0.72
+  }
 }
