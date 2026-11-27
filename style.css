@@ -371,9 +371,9 @@ tr.current{background:#F6F4EF;font-weight:600}
 .stage-bar #play[aria-pressed=true] { background: var(--ink); color: white; border-color: var(--ink); }
 .stage-bar .ico { flex-shrink: 0; }
 .mode-chip { flex-shrink: 0; white-space: nowrap; font-size: .75rem; }
-.dock-who { min-height: 32px; align-items: center; }
-.dock-name, .dock-ease { font-size: .75rem; }
-.dock-sizes button { min-height: 36px; font-size: .8125rem; font-weight: 600; }
+/* Keep a single size selector in the fit panel. */
+.size-dock { display: none; }
+#stage { border-radius: 22px; border-bottom: 1px solid var(--line); }
 .turntable { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
 #fitting:fullscreen { width: 100vw; height: 100dvh; }
 #fitting:fullscreen #stage { border-radius: 0; }
@@ -413,7 +413,17 @@ tr.current{background:#F6F4EF;font-weight:600}
   text-decoration: none;
   font-weight: 600;
 }
-.size-block { margin-top: 6px; padding-top: 8px; }
+.fit-card { display: flex; flex-direction: column; reading-flow: flex-visual; }
+.fit-card .card-head { order: -2; }
+.size-block {
+  order: -1;
+  margin-top: 3px;
+  margin-bottom: 11px;
+  padding-top: 0;
+  padding-bottom: 10px;
+  border-top: 0;
+  border-bottom: 1px solid var(--line-soft);
+}
 .size-head span { font-size: .875rem; font-weight: 700; }
 #sizes { gap: 5px; }
 #sizes button { min-width: 44px; min-height: 44px; font-size: .875rem; font-weight: 600; }
@@ -461,13 +471,13 @@ tr.current{background:#F6F4EF;font-weight:600}
 
 @media (max-width: 720px) {
   .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; padding-inline: 10px; reading-flow: grid-order; }
-  .closet { order: 2; }
-  .look { order: 3; }
+  .look { reading-flow: flex-visual; }
+  .look .fit-card { order: -1; }
+  #stage { border-radius: 18px; }
   .closet { padding-inline: 12px; }
   .topbar { padding-inline: 12px; }
   .stage-shell:not(:fullscreen) { height: auto; }
   .stage-shell:not(:fullscreen) #stage { flex: none; height: clamp(340px, 56svh, 520px); }
-  .dock-sizes button { min-height: 40px; }
   .stage-top { top: 9px; left: 9px; right: 9px; gap: 4px; }
   .view-tabs button, .gender button { padding-inline: 8px; }
   .rail-left { left: 8px; gap: 4px; }
