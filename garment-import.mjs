@@ -1,4 +1,4 @@
-import {adidas,measurementFields} from './catalog-data.mjs?v=2026-11-27k';
+import {adidas,measurementFields} from './catalog-data.mjs?v=2026-11-27m';
 
 const local=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const configured=document.querySelector('meta[name="selfit-garment-api"]')?.content.trim();

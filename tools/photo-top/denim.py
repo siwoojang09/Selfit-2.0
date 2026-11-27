@@ -98,7 +98,11 @@ def maps(w, h, span, base=(30, 31, 35), mid=(56, 58, 63), wash_tone=(152, 159, 1
     W = wash(w, h, span, seed, cell_scale)
     if extra_wash is not None:
         W = np.clip(W + extra_wash * wash_amount, 0, 1)
-    W = np.clip(W ** 1.75 + wash_bias, 0, 1)
+    # Stone washing takes the dye off unevenly: the ground stays near-black and
+    # the pale places lift away from it, but the ramp keeps a soft shoulder so
+    # the cloth is worn rather than painted.
+    W = np.clip(W + wash_bias, 0, 1)
+    W = np.clip(W, 0, 1) ** 1.35
     # The dye: a charcoal ground that lifts to silver where the wash took.
     k = W[..., None]
     colour = np.array(base, np.float32) + (np.array(wash_tone, np.float32)

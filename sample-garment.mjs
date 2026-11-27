@@ -1,11 +1,11 @@
 // Panel dimensions are expressed in metres; the catalog records retail flat-lay measurements in centimetres.
 import * as T from './vendor/three.module.js';
-import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27k';
-import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27k';
-import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27k';
-import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27k';
-import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27k';
-import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27k';
+import {createGarmentContact} from './garment-contact.mjs?v=2026-11-27m';
+import {wearer,cutHoodie} from './hoodie-fit.mjs?v=2026-11-27m';
+import {applyHoodieTextile} from './hoodie-textile.mjs?v=2026-11-27m';
+import {StitchLines,addFoldedEdge,addPocketFinish,addZipHardware} from './hoodie-finishes.mjs?v=2026-11-27m';
+import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27m';
+import {pieceKey} from './photo-hoodie.mjs?v=2026-11-27m';
 
 const tau=2*Math.PI;
 // Secondary motion is solved on short chains of bands: the bodice hem and each
@@ -295,7 +295,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
     // A dropped shoulder's sleeve hangs from the body's own shoulder edge, a
     // hand's width below the joint; it is shortened by that much so the cuff
     // still closes at the measured height on the wrist.
-    const sleeveHang=workjacket?.064:0;
+    const sleeveHang=workjacket?.048:0;
     const sleeveLength=fit?(fit.seamDrop+fit.sleeveProjection)/sy-shoulderRise-sleeveHang:
       // A shirt's cuff closes on the wrist, so it stops a little above the hand
       // rather than being dragged over the fingers.
@@ -989,7 +989,7 @@ export function attachSample(body,initial={},lowerColliders=[]) {
         // leaves the shoulder as one continuous slope.
         const lean=workjacket?.030*(1-smooth(t,.02,.17)):0;
         const s=Math.sin(a),c=Math.cos(a),x=rx*s-sign*lean,z=rz*c;
-        const capTilt=workjacket?.55*(rx*s*sign)*(1-smooth(t,.20,.34)):0;
+        const capTilt=workjacket?.38*(rx*s*sign)*(1-smooth(t,.20,.34)):0;
         const yy=y-capTilt;
         const factor=hand && t>.60?hand(y,x,z,rx,rz):1;
         return [x*factor+lift*s,yy,z*factor+lift*c];

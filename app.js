@@ -1,9 +1,9 @@
-import {openGarmentImport} from './garment-import.mjs?v=2026-11-27k';
-import {products as feedProducts} from './fit-matches.mjs?v=2026-11-27k';
-import {pantsFit} from './pants-fit.mjs?v=2026-11-27k';
-import {getReference,listReferences} from './reference-store.mjs?v=2026-11-27k';
-import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-27k';
-import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-27k';
+import {openGarmentImport} from './garment-import.mjs?v=2026-11-27m';
+import {products as feedProducts} from './fit-matches.mjs?v=2026-11-27m';
+import {pantsFit} from './pants-fit.mjs?v=2026-11-27m';
+import {getReference,listReferences} from './reference-store.mjs?v=2026-11-27m';
+import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-27m';
+import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-27m';
 const $=id=>document.getElementById(id);
 const garmentUrls=new WeakMap();
 function garmentUrl(asset){
