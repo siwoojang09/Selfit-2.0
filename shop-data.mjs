@@ -13,9 +13,16 @@ const photos = {
 };
 const order = ['mood-inside-vtg-hood-jacket','washed-denim-medium-blue','nike-sport-tee-white','SF-H01','KC9315','signature-wide-chino','SF-S01','SF-T01','underoff-university-hoodie','trillion-striped-oxford'];
 const all = [...builtins,...products];
+const brandAliases={adidas:'아디다스',nike:'나이키','mood inside':'무드인사이드',
+  'polo ralph lauren':'폴로 랄프 로렌',trillion:'트릴리온',underoff:'언더오프',signature:'시그니처'};
+export function matchesShopQuery(item,query,extra=''){
+  const terms=[item.name,item.brand,item.color,item.colourName,item.code,item.id,
+    brandAliases[item.brand?.toLowerCase()],extra].join(' ').toLowerCase();
+  return query.trim().toLowerCase().split(/\s+/).every(word=>terms.includes(word));
+}
 export const shopProducts = [...order.map(id=>all.find(item=>item.id===id)),...all.filter(item=>!order.includes(item.id))]
   .map(item=>({
-    id:item.id,name:item.name,brand:item.brand||'SELFIT FITTING',color:item.colourName,
+    id:item.id,code:item.code,name:item.name,brand:item.brand||'SELFIT FITTING',color:item.colourName,
     photo:photos[item.id]||item.photo,category:item.category,
     price:item.demo?item.price:null,url:storefront[item.id]||null,demo:!!item.demo,
     sizes:item.sizes.map(row=>({label:row.label,stock:row.stock!==false}))

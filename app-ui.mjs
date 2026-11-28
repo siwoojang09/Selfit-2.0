@@ -5,14 +5,17 @@ import {builtins,garmentTypes,measurementFields,pantsMeasurementFields} from './
 import {products as sampleProducts,recommend,compareSize} from './fit-matches.mjs?v=2026-11-27s';
 import {listReferences,saveReference} from './reference-store.mjs?v=2026-11-27q';
 import {openRegistration} from './register-fit.mjs?v=2026-11-27q';
+import {setSiteNav} from './site-nav.mjs?v=2026-11-28a';
+import {byId as storeCatalog,matchesShopQuery} from './shop-data.mjs?v=2026-11-28a';
+import {readCart,writeCart,addCartItem} from './shop-cart.mjs?v=2026-11-28a';
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=new Intl.NumberFormat('ko-KR',{maximumFractionDigits:1});
 const won=n=>fmt.format(n)+'원';
-const priceText=p=>p.price?won(p.price):'가격 미정';
-const priceHtml=p=>p.price?`<p class="product-price">${won(p.price)}</p>`:`<p class="product-price alt">가격 미정</p>`;
+const priceText=p=>p.price?won(p.price):storeCatalog.get(p.id)?.url?'판매처에서 가격 확인':'피팅 샘플';
+const priceHtml=p=>p.price?`<p class="product-price">${won(p.price)}</p>`:`<p class="product-price alt">${priceText(p)}</p>`;
 const sourceText=p=>p?.source?String(p.source).replace(/제공하신\s*/g,'').replace(/\s*상품\s*/g,' ').trim():'';
 const photoOk=src=>/^(?:catalog\/|looks\/|discovery-art\/|data:image\/(?:jpeg|png|webp);base64,|https:\/\/)/.test(src||'');
 const photoOf=p=>photoOk(p?.photo)?p.photo:'';
@@ -51,7 +54,7 @@ const icon=(n,cls='')=>`<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden
 /* data */
 const STATE_KEY='selfit-app-v1';
 const defaults=()=>({onboarded:false,styles:[],saved:[],cart:[],chat:[],sizes:{},compareRef:{},compareField:{},
-  shopCat:'all',shopQuery:'',profile:{name:'시우',height:174.5,gender:'male'}});
+  shopCat:'all',shopQuery:'',profile:{name:'',height:174.5,gender:'male'}});
 let state=defaults();
 try{
   const stored=JSON.parse(localStorage.getItem(STATE_KEY)||'null');
@@ -158,7 +161,6 @@ function sheet(title,html){
 
 /* routing */
 const TITLES={splash:'Selfit 2.0',onboarding:'스타일 선택 · Selfit 2.0',home:'Selfit 2.0 · AI 퍼스널 스타일리스트',stylist:'AI 스타일리스트 · Selfit 2.0',shop:'추천 상품 · Selfit 2.0',product:'상품 상세 · Selfit 2.0',compare:'핏 비교하기 · Selfit 2.0',closet:'내 옷장 · Selfit 2.0',mypage:'마이페이지 · Selfit 2.0'};
-const TABS=[['home','홈','home'],['stylist','코디','looks'],['shop','쇼핑','bag'],['closet','옷장','closet'],['mypage','마이','user']];
 function parseRoute(){
   const raw=location.hash.replace(/^#/,'');
   const [path,qs]=raw.split('?');
@@ -184,7 +186,7 @@ function viewSplash(){
     <div class="splash-art"><img src="looks/female-tailored.webp" alt="미니멀 오피스 룩을 입은 모델" fetchpriority="high"></div>
     <div class="splash-foot">
       <button class="btn primary block" data-action="start">시작하기</button>
-      <button class="login" data-action="guest">로그인</button>
+      <a class="login" href="store.html#login">로그인</a><a class="login" href="#home">둘러보기</a>
     </div>
   </div>`;
 }
@@ -209,35 +211,30 @@ function viewOnboarding(){
 
 function viewHome(){
   const look=LOOKS[0];
-  return `<header class="screen-head home-head">
-    <a class="wordmark" href="#home">Selfit<span class="ver">2.0</span></a>
-    <nav class="desk-nav" aria-label="주 메뉴"><a href="#stylist">코디</a><a href="#shop">쇼핑</a><a href="#closet">옷장</a><a href="#mypage">마이</a><a href="fitting.html">3D 피팅룸</a></nav>
-    <button class="icon-btn" data-action="sheet" data-kind="notifications" aria-label="알림">${icon('bell')}</button>
-  </header>
-  <form class="search-row" id="homeSearch" role="search">
-    <div class="search-field">${icon('search')}<input type="search" name="q" placeholder="상품, 브랜드, 스타일 검색" aria-label="상품 검색" value="${esc(state.shopQuery||'')}"></div>
-  </form>
-  <section class="hero-card" aria-label="오늘의 추천 코디">
-    <button class="hero-media" data-action="open-look" data-id="${look.id}" aria-label="오늘의 추천 코디 보기"><img src="${look.image}" alt="${esc(look.title)}" fetchpriority="high"></button>
-    <div class="hero-copy">
-      <p class="eyebrow">TODAY'S PICK</p>
-      <h2>오늘의 추천 코디</h2>
-      <div class="hero-row">
-        <p>${esc(look.title)} · ${esc(look.tag)}</p>
-        <button class="hero-link" data-action="open-look" data-id="${look.id}">코디 보기 ${icon('arrow','sm')}</button>
-      </div>
+  return `<section class="editorial-hero">
+    <div class="editorial-copy">
+      <h1>내 옷에서 찾는<br>나에게 맞는 핏</h1>
+      <p>잘 맞는 옷을 기준으로 새 옷의 실측을 비교하고, 같은 아바타에 입혀보세요.</p>
+      <div class="hero-actions"><a class="btn primary" href="#shop">상품 둘러보기 ${icon('arrow','sm')}</a><a class="btn secondary" href="fitting.html">${icon('cube','sm')} 3D 피팅룸</a></div>
     </div>
+    <button class="editorial-media" type="button" data-action="open-look" data-id="${look.id}" aria-label="추천 코디 ${esc(look.title)} 보기">
+      <img src="${look.image}" alt="블루 셔츠와 어두운 팬츠를 입은 모델" fetchpriority="high">
+      <span>${esc(look.title)} ${icon('arrow','sm')}</span>
+    </button>
   </section>
-  <section class="quick-row" aria-label="바로가기">
-    <button class="quick" data-action="open-look" data-id="${look.id}">${icon('looks')}<span>코디</span></button>
-    <a class="quick" href="#shop">${icon('bag')}<span>쇼핑</span></a>
-    <a class="quick" href="#closet">${icon('closet')}<span>옷장</span></a>
-    <a class="quick" href="#stylist">${icon('sparkle')}<span>AI 스타일리스트</span></a>
+  <nav class="home-shortcuts" aria-label="바로가기">
+    <a href="#closet">${icon('closet')}<span><strong>내 옷장</strong><small>잘 맞는 옷 등록</small></span>${icon('right','xs')}</a>
+    <a href="#stylist">${icon('sparkle')}<span><strong>코디 추천</strong><small>상황에 맞는 조합 보기</small></span>${icon('right','xs')}</a>
+    <a href="store.html#community">${icon('looks')}<span><strong>커뮤니티</strong><small>코디 공유와 의견 나누기</small></span>${icon('right','xs')}</a>
+  </nav>
+  <section class="block">
+    <div class="block-head"><h2>피팅룸에서 입어볼 옷</h2><a class="text-link" href="#shop">전체 상품 보기 ${icon('right','xs')}</a></div>
+    <div class="product-grid home-products">${allProducts.slice(0,4).map(productCard).join('')}</div>
   </section>
   <section class="block">
-    <div class="block-head"><h2>지금 인기 있는 스타일</h2><a class="text-link" href="#stylist">더 보기</a></div>
+    <div class="block-head"><h2>상황별 코디</h2><a class="text-link" href="#stylist">코디 추천 열기 ${icon('right','xs')}</a></div>
     <div class="hscroll">
-      ${LOOKS.slice(0,5).map(l=>`<button class="style-card" data-action="open-look" data-id="${l.id}" aria-label="${esc(l.tag)} ${esc(l.title)}"><img src="${l.image}" alt="" loading="lazy"><span class="label">${esc(l.tag)}</span></button>`).join('')}
+      ${LOOKS.slice(0,5).map(l=>`<button class="style-card" data-action="open-look" data-id="${l.id}"><img src="${l.image}" alt="" loading="lazy"><span class="label">${esc(l.tag)} · ${esc(l.title)}</span></button>`).join('')}
     </div>
   </section>`;
 }
@@ -245,18 +242,17 @@ function viewHome(){
 function viewShop(route){
   const query=route.query.has('q')?route.query.get('q'):state.shopQuery;
   state.shopQuery=query||'';
-  const cats=[['all','전체'],['top','상의'],['bottom','하의'],['outer','아우터'],['shoes','신발']];
+  const cats=[['all','전체'],['outer','아우터'],['top','상의'],['bottom','하의']];
   return `<header class="screen-head">
     <button class="icon-btn" data-nav="home" aria-label="홈으로">${icon('left')}</button>
-    <h1 class="head-title">추천 상품</h1>
-    <div class="head-action"><button class="icon-btn" data-action="sheet" data-kind="cart" aria-label="장바구니">${icon('bag')}<span class="badge" id="cartBadge" ${cartCount()?'':'hidden'}>${cartCount()}</span></button></div>
+    <h1 class="head-title">쇼핑</h1>
   </header>
   <div class="filter-row" id="shopCats" aria-label="카테고리">
     ${cats.map(([k,l])=>`<button class="chip" data-action="shop-cat" data-cat="${k}" aria-pressed="${(state.shopCat||'all')===k}">${l}</button>`).join('')}
   </div>
   <div class="shop-tools">
     <div class="search-field">${icon('search')}<input id="shopSearch" type="search" placeholder="상품명, 브랜드로 검색" aria-label="상품 검색" value="${esc(state.shopQuery)}"></div>
-    <span class="result-count" id="shopCount"></span>
+    <span class="result-count" id="shopCount" role="status"></span>
   </div>
   <div class="product-grid" id="shopGrid"></div>`;
 }
@@ -280,12 +276,11 @@ function productCard(p){
 function shopList(){
   const q=(state.shopQuery||'').trim().toLowerCase();
   const cat=state.shopCat||'all';
-  return allProducts.filter(p=>(cat==='all'||categoryOf(p)===cat)&&
-    (!q||[p.name,p.brand,p.colourName,typeName(p.type)].join(' ').toLowerCase().includes(q)));
+  return allProducts.filter(p=>(cat==='all'||categoryOf(p)===cat)&&matchesShopQuery(p,q,typeName(p.type)));
 }
 function paintShop(){
   const list=shopList(),grid=$('#shopGrid');if(!grid)return;
-  grid.innerHTML=list.length?list.map(productCard).join(''):`<div class="empty-state" style="grid-column:1/-1">${icon('search')}<h2>조건에 맞는 상품이 없어요</h2>다른 검색어나 카테고리로 찾아보세요.</div>`;
+  grid.innerHTML=list.length?list.map(productCard).join(''):`<div class="empty-state" style="grid-column:1/-1">${icon('search')}<h2>조건에 맞는 상품이 없어요</h2><p>검색어와 카테고리를 바꿔보세요.</p><button type="button" class="btn secondary small" data-action="clear-search">필터 초기화</button></div>`;
   const count=$('#shopCount');if(count)count.textContent=`${list.length}개 상품`;
 }
 
@@ -324,12 +319,10 @@ function viewProduct(route){
       <table class="measure-table"><thead><tr><th>부위</th><th id="sizeHead">${esc(size)}</th></tr></thead><tbody id="sizeMeasures">${measureRows(p,row)}</tbody></table>
       ${sourceText(p)?`<p class="section-note">실측 출처 · ${esc(sourceText(p))}</p>`:''}
       <div class="buy-bar">
-        <button class="btn primary block" data-action="tryon" data-id="${p.id}">${icon('cube','sm')} 가상 착용</button>
-        <div class="btn-row">
-          <button class="btn secondary" data-action="add-cart" data-id="${p.id}">장바구니</button>
-          <button class="btn primary" data-action="buy" data-id="${p.id}">구매하기</button>
-        </div>
-        <p class="buy-note">${p.price?'결제 연동 전 데모 상품이에요.':'브랜드 실측으로 등록된 상품이에요.'}</p>
+        <a class="btn primary block" id="product-tryon" href="${tryonHref(p,size)}">${icon('cube','sm')} 3D로 입어보기 · ${esc(size)}</a>
+        ${storeCatalog.get(p.id)?.url?`<a class="btn secondary block" href="${storeCatalog.get(p.id).url}" target="_blank" rel="noopener noreferrer">무신사에서 구매 ${icon('arrow','sm')}</a><p class="buy-note">가격과 재고는 판매처에서 확인해 주세요.</p>`:
+          p.demo?`<button class="btn secondary block" data-action="add-cart" data-id="${p.id}">테스트 장바구니 담기</button><p class="buy-note">테스트 상품은 실제 결제나 배송이 진행되지 않아요.</p>`:
+          '<p class="buy-note">이 옷은 피팅용으로 등록됐어요.</p>'}
       </div>
       <button class="compare-banner" data-nav="compare/${encodeURIComponent(p.id)}">
         ${icon('ruler')}
@@ -466,7 +459,7 @@ function fitAnalysis(deltas={}){
 }
 
 function closetItems(){
-  const own=references.map(r=>({id:r.id,name:r.name,brand:r.brand||'내 옷장',photo:r.photo,type:r.type,category:categoryOf(r.type),size:r.size,registered:true}));
+  const own=references.map(r=>({id:r.id,name:r.name,brand:r.brand||'내 옷장',photo:r.photo,type:r.type,category:categoryOf(r),size:r.size,registered:true}));
   const base=builtins.map(g=>({...g,size:g.sizes.find(s=>s.label==='M')||g.sizes[0],owned:true}));
   return [...own,...base];
 }
@@ -498,7 +491,7 @@ function paintCloset(){
 function viewMypage(){
   const styles=state.styles.map(id=>STYLES.find(s=>s.id===id)?.name).filter(Boolean);
   const items=closetItems();
-  const initial=(state.profile.name||'S').slice(0,1);
+  const profileName=state.profile.name||'게스트';
   const menu=[
     ['style-analysis','내 스타일 분석','sparkle'],
     ['closet','내 옷장','closet'],
@@ -511,8 +504,8 @@ function viewMypage(){
   <div class="mypage-grid">
     <section>
       <div class="profile">
-        <div class="avatar" aria-hidden="true">${esc(initial)}</div>
-        <div><h1>${esc(state.profile.name)}님</h1><p class="member">Selfit 멤버 · AI 퍼스널 스타일리스트</p></div>
+        <div class="avatar" aria-hidden="true">${icon('user')}</div>
+        <div><h2>${esc(profileName)}</h2><p class="member">이 브라우저의 피팅 프로필</p></div>
         <button class="edit" data-action="sheet" data-kind="profile">편집</button>
       </div>
       <dl class="stats">
@@ -522,6 +515,7 @@ function viewMypage(){
       </dl>
     </section>
     <nav class="menu" aria-label="마이페이지 메뉴">
+      <a class="menu-row" href="store.html#login">${icon('user')}<span>로그인 · 내 계정</span>${icon('right','sm chev')}</a>
       ${menu.map(([key,label,ic])=>key==='closet'
         ?`<a class="menu-row" href="#closet">${icon(ic)}<span>${label}</span>${icon('right','sm chev')}</a>`
         :`<button class="menu-row" data-action="sheet" data-kind="${key}">${icon(ic)}<span>${label}</span>${icon('right','sm chev')}</button>`).join('')}
@@ -568,12 +562,17 @@ function recCard(it){
 const VIEWS={splash:viewSplash,onboarding:viewOnboarding,home:viewHome,shop:viewShop,product:viewProduct,compare:viewCompare,closet:viewCloset,mypage:viewMypage,stylist:viewStylist};
 
 /* state helpers */
-function cartCount(){return state.cart.reduce((n,c)=>n+(c.qty||1),0);}
-function saveCart(){save();const badge=$('#cartBadge');if(badge){badge.textContent=cartCount();badge.hidden=!cartCount();}}
+function cartCount(){return readCart().reduce((n,c)=>n+c.quantity,0);}
+function paintCartCount(){
+  const badge=$('#cartBadge');
+  if(!badge)return;
+  const count=cartCount();
+  badge.textContent=count;badge.hidden=!count;
+}
 function addToCart(p,size){
-  const key=c=>c.id===p.id&&c.size===size;
-  state.cart=state.cart.some(key)?state.cart.map(c=>key(c)?{...c,qty:(c.qty||1)+1}:c):[...state.cart,{id:p.id,size,qty:1}];
-  saveCart();toast('장바구니에 담았어요.');
+  const error=addCartItem(readCart(),p.id,size);
+  if(error){toast(error);return;}
+  paintCartCount();toast('테스트 장바구니에 담았어요.');
 }
 function toggleSaved(id){
   const has=state.saved.includes(id);
@@ -640,21 +639,18 @@ function notificationsHtml(){
     `<div class="sheet-actions"><button class="btn primary block" data-action="open-look" data-id="office">오늘의 코디 보기</button></div>`;
 }
 function cartHtml(){
-  if(!state.cart.length)return `<div class="empty-state">${icon('bag')}<h2>장바구니가 비어 있어요</h2><p>마음에 드는 상품을 담아두고<br>3D로 입어본 뒤 결정해 보세요.</p><div class="sheet-actions"><button class="btn primary small" data-nav="shop">상품 둘러보기</button></div></div>`;
-  const rows=state.cart.map(c=>{
-    const p=byId.get(c.id);if(!p)return '';
-    return `<div class="sheet-row">
-      ${photoOf(p)?`<img src="${photoOf(p)}" alt="">`:''}
-      <div class="grow"><strong>${esc(p.name)}</strong><small>${esc(p.brand||'SELFIT')} · ${esc(c.size)} · ${c.qty}개</small><small>${priceText(p)}</small></div>
-      <button class="icon-btn" data-action="cart-remove" data-id="${p.id}" data-size="${esc(c.size)}" aria-label="${esc(p.name)} 삭제">${icon('trash','sm')}</button>
+  const cart=readCart();
+  if(!cart.length)return `<div class="empty-state">${icon('bag')}<h2>장바구니가 비어 있어요</h2><div class="sheet-actions"><button class="btn primary small" data-nav="shop">상품 둘러보기</button></div></div>`;
+  const rows=cart.map(row=>{
+    const p=byId.get(row.product);
+    return `<div class="sheet-row"><img src="${photoOf(p)}" alt="">
+      <div class="grow"><strong>${esc(p.name)}</strong><small>${esc(row.size)} · ${row.quantity}개 · ${priceText(p)}</small></div>
+      <button class="icon-btn" data-action="cart-remove" data-id="${p.id}" data-size="${esc(row.size)}" aria-label="${esc(p.name)} 삭제">${icon('trash','sm')}</button>
     </div>`;
   }).join('');
-  const total=state.cart.reduce((n,c)=>n+(byId.get(c.id)?.price||0)*(c.qty||1),0);
-  return `<h3>장바구니 ${cartCount()}개</h3><div class="sheet-list">${rows}</div>
-    <div class="total-row"><span>합계</span><span>${total?won(total):'가격 미정'}</span></div>
-    <p class="section-note">데모 스토어라 실제 결제는 이루어지지 않아요.</p>
-    <h3>주문 내역</h3><p>아직 주문한 내역이 없어요. 장바구니에 담아둔 상품부터 3D로 확인해 보세요.</p>
-    <div class="sheet-actions"><button class="btn primary block" data-nav="shop">쇼핑 계속하기</button></div>`;
+  const total=cart.reduce((sum,row)=>sum+byId.get(row.product).price*row.quantity,0);
+  return `<div class="sheet-list">${rows}</div><div class="total-row"><span>테스트 합계</span><strong>${won(total)}</strong></div>
+    <p class="section-note">실제 결제는 진행되지 않아요.</p><div class="sheet-actions"><a class="btn primary block" href="store.html#cart">장바구니에서 계속</a></div>`;
 }
 function savedHtml(){
   const items=state.saved.map(id=>byId.get(id)).filter(Boolean);
@@ -730,19 +726,6 @@ function openRefSheet(productId){
     <div class="sheet-actions"><button class="btn secondary block" data-action="add-item">새 옷 등록</button></div>`
     :`<div class="empty-state">${icon('hanger')}<h2>기준 옷이 없어요</h2><div class="sheet-actions"><button class="btn primary small" data-action="add-item">옷 등록하기</button></div></div>`);
 }
-function openBuySheet(productId){
-  const p=byId.get(productId);if(!p)return;
-  const size=defaultSize(p);
-  sheet('구매 준비',`<div class="sheet-row">
-    ${photoOf(p)?`<img src="${photoOf(p)}" alt="">`:''}
-    <div class="grow"><strong>${esc(p.name)}</strong><small>${esc(p.brand||'SELFIT')} · ${esc(size)} · ${priceText(p)}</small></div>
-  </div>
-  <p class="section-note">${p.price?'데모 스토어라 실제 결제는 진행되지 않아요. 장바구니에 담아두고 3D로 확인해 보세요.':'이 상품은 실측으로 등록된 옷이라 판매 정보가 아직 없어요. 3D로 입어보고 내 옷장에 담아둘 수 있어요.'}</p>
-  <div class="sheet-actions">
-    <button class="btn primary block" data-action="add-cart" data-id="${p.id}">장바구니 담기</button>
-    <button class="btn secondary block" style="margin-top:8px" data-action="tryon" data-id="${p.id}">${icon('cube','sm')} 가상 착용</button>
-  </div>`);
-}
 function openOwnedSheet(id){
   const r=references.find(x=>x.id===id);
   if(!r)return;
@@ -755,14 +738,14 @@ function openOwnedSheet(id){
 }
 function openSheet(kind,data={}){
   if(kind==='notifications')return sheet('알림',notificationsHtml());
-  if(kind==='cart'||kind==='orders')return sheet('주문 내역',cartHtml());
+  if(kind==='cart')return sheet('장바구니',cartHtml());
+  if(kind==='orders'){location.href='store.html#login';return;}
   if(kind==='saved')return sheet('관심 상품',savedHtml());
   if(kind==='settings')return sheet('설정',settingsHtml());
   if(kind==='profile')return sheet('프로필 편집',profileHtml());
   if(kind==='support')return sheet('고객센터',supportHtml());
   if(kind==='style-analysis')return sheet('내 스타일 분석',analysisHtml(state.styles));
   if(kind==='reference')return openRefSheet(data.id);
-  if(kind==='buy')return openBuySheet(data.id);
   if(kind==='owned')return openOwnedSheet(data.id);
   if(kind==='look')return openLookSheet(data.id);
 }
@@ -779,16 +762,15 @@ function addItem(){
 
 /* render */
 let currentRoute={name:'home',param:null,query:new URLSearchParams()};
-function renderTabs(active){
-  const bar=$('#tabbar');if(!bar)return;
-  bar.innerHTML=TABS.map(([key,label,ic])=>`<a href="#${key}" ${key===active?'aria-current="page"':''}>${icon(ic)}<span>${label}</span></a>`).join('');
-}
 function render(){
   currentRoute=parseRoute();
   const name=VIEWS[currentRoute.name]?currentRoute.name:'home';
   document.body.dataset.screen=name;
-  document.body.classList.toggle('has-tabs',['home','shop','closet','mypage'].includes(name));
-  renderTabs(name);
+  const immersive=name==='splash'||name==='onboarding';
+  document.body.classList.toggle('has-site-nav',!immersive);
+  const active=['product','compare'].includes(name)?'shop':name==='closet'?'mypage':name;
+  setSiteNav(active,{page:'app',hidden:immersive});
+  paintCartCount();
   const view=$('#view');
   view.innerHTML=VIEWS[name](currentRoute);
   document.title=TITLES[name]||'Selfit 2.0';
@@ -811,7 +793,6 @@ document.addEventListener('click',e=>{
   const product=d.id?byId.get(d.id):null;
   switch(a){
     case 'start':go('#onboarding');break;
-    case 'guest':state.onboarded=true;save();go('#home');break;
     case 'back-splash':go('#splash');break;
     case 'toggle-style':{
       const on=!state.styles.includes(d.id);
@@ -833,6 +814,7 @@ document.addEventListener('click',e=>{
       const row=product.sizes.find(s=>s.label===d.size);
       const body=$('#sizeMeasures');if(body)body.innerHTML=measureRows(product,row);
       const head=$('#sizeHead');if(head)head.textContent=d.size;
+      const tryon=$('#product-tryon');if(tryon){tryon.href=tryonHref(product,d.size);tryon.lastChild.textContent=' 3D로 입어보기 · '+d.size;}
       break;
     }
     case 'tryon':{
@@ -843,17 +825,20 @@ document.addEventListener('click',e=>{
     case 'add-cart':
       if(!product)break;
       addToCart(product,d.size||defaultSize(product));
-      if(currentRoute.name==='product'){/* badge is on shop header only */}
       break;
-    case 'buy':openBuySheet(d.id);break;
     case 'cart-remove':{
-      state.cart=state.cart.filter(c=>!(c.id===d.id&&c.size===d.size));saveCart();
+      writeCart(readCart().filter(row=>!(row.product===d.id&&row.size===d.size)));paintCartCount();
       openSheet('cart');break;
     }
     case 'shop-cat':{
       state.shopCat=d.cat;save();
       for(const b of $$('[data-action="shop-cat"]'))b.setAttribute('aria-pressed',String(b.dataset.cat===d.cat));
       paintShop();break;
+    }
+    case 'clear-search':{
+      state.shopCat='all';state.shopQuery='';save();
+      history.replaceState(null,'','#shop');
+      render();$('#shopSearch')?.focus();break;
     }
     case 'closet-cat':{
       state.closetCat=d.cat;save();
@@ -902,12 +887,6 @@ document.addEventListener('click',e=>{
 
 document.addEventListener('submit',e=>{
   const form=e.target;
-  if(form.id==='homeSearch'){
-    e.preventDefault();
-    const q=new FormData(form).get('q')?.toString().trim()||'';
-    state.shopQuery=q;save();
-    go('#shop'+(q?'?q='+encodeURIComponent(q):''));
-  }
   if(form.id==='chatForm'){
     e.preventDefault();
     const input=$('#chatInput');
@@ -919,10 +898,11 @@ document.addEventListener('submit',e=>{
 });
 
 /* boot */
-if(!location.hash||location.hash==='#')history.replaceState(null,'','#'+(state.onboarded?'home':'splash'));
+if(!location.hash||location.hash==='#')history.replaceState(null,'','#home');
 window.addEventListener('hashchange',()=>render());
 render();
 refreshReferences().then(()=>{
   if(['closet','mypage','compare'].includes(currentRoute.name))render();
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)render();});
+window.addEventListener('storage',paintCartCount);

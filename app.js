@@ -1,9 +1,11 @@
+import {setSiteNav} from './site-nav.mjs?v=2026-11-28a';
 import {openGarmentImport} from './garment-import.mjs?v=2026-11-27q';
 import {products as feedProducts} from './fit-matches.mjs?v=2026-11-27q';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27q';
 import {getReference,listReferences} from './reference-store.mjs?v=2026-11-27q';
 import {wearer,hoodieFit} from './hoodie-fit.mjs?v=2026-11-27q';
 import {adidas,builtins,measurementFields,pantsMeasurementFields,garmentTypes,listSamples,saveSample,removeSample,readProductPhoto} from './catalog-data.mjs?v=2026-11-27q';
+setSiteNav('fitting',{page:'fitting'});
 const $=id=>document.getElementById(id);
 const garmentUrls=new WeakMap();
 function garmentUrl(asset){
@@ -88,7 +90,7 @@ function renderShelf(){
   const items=scope==='mine'?ownSamples():collections();
   renderBrandChips(items);
   const shown=items.filter(item=>(filter==='all'||item.category===filter)&&(brand==='ALL'||brandName(item)===brand)&&[item.name,item.brand,item.code].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()));
-  $('shelfName').textContent=scope==='mine'?'내 샘플':'샘플 옷장';$('total').textContent=shown.length;
+  $('shelfName').textContent=scope==='mine'?'내 샘플':'피팅 가능한 옷';$('total').textContent=shown.length;
   $('allNav').classList.toggle('nav-on',scope==='all');$('ownNav').classList.toggle('nav-on',scope==='mine');
   document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.filter===filter));
   const shelf=$('samples');shelf.replaceChildren();
@@ -407,7 +409,7 @@ function choose(item){
 }
 function navigate(next){
   scope=next;query='';filter='all';brand='ALL';$('search').value='';renderShelf();
-  if(matchMedia('(max-width:680px)').matches)$('closet').scrollIntoView({behavior:'smooth',block:'start'});
+  if(matchMedia('(max-width:760px)').matches)$('closet').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function changeBodyView(show){
   if(bodyOnly===show)return;
@@ -421,8 +423,11 @@ $('dressedView').onclick=()=>changeBodyView(false);
 $('allNav').onclick=()=>navigate('all');$('ownNav').onclick=()=>navigate('mine');$('ownNavSmall').onclick=()=>navigate(scope==='mine'?'all':'mine');
 $('filters').onclick=e=>{const btn=e.target.closest('[data-filter]');if(btn){filter=btn.dataset.filter;renderShelf();}};
 $('searchToggle').onclick=()=>{const open=document.activeElement!==$('search');$('search').focus();$('searchToggle').setAttribute('aria-expanded',String(open));if(!open&&!$('search').value){query='';renderShelf();}};
+$('browseSamples').onclick=()=>{
+  $('closet').scrollIntoView({behavior:'smooth',block:'start'});
+};
 $('search').oninput=e=>{query=e.target.value;renderShelf();};
-$('samples').onclick=e=>{const btn=e.target.closest('[data-item]');if(!btn)return;choose(collections().find(i=>i.id===btn.dataset.item));if(matchMedia('(max-width:680px)').matches)$('fitting').scrollIntoView({behavior:'smooth',block:'start'});};
+$('samples').onclick=e=>{const btn=e.target.closest('[data-item]');if(!btn)return;choose(collections().find(i=>i.id===btn.dataset.item));if(matchMedia('(max-width:760px)').matches)$('fitting').scrollIntoView({behavior:'smooth',block:'start'});};
 $('sizes').onclick=e=>{
   const btn=e.target.closest('[data-size]');
   if(btn&&selected)setGarmentSize(isPants()?'bottom':'top',btn.dataset.size);

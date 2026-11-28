@@ -12,3 +12,5 @@ dialog{border:1px solid var(--line);border-radius:13px;max-width:min(94vw,570px)
 .account-button{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:0 8px;border:0;border-radius:7px;background:transparent;font-size:13px;font-weight:650;white-space:nowrap}
 .account-button:hover{background:var(--light)}
 @media(max-width:600px){.account-button{font-size:12px;padding-inline:5px}.account-button .ico{width:17px;height:17px}}
+:root{--paper:var(--selfit-paper);--surface:var(--selfit-surface);--ink:var(--selfit-ink);--muted:var(--selfit-muted);--olive:var(--selfit-accent);--line:var(--selfit-border);--light:var(--selfit-subtle)}
+@media(max-width:760px){body{padding-bottom:var(--selfit-mobile-height)}.look-actions button{min-height:44px}}

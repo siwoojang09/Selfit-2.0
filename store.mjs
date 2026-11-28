@@ -1,4 +1,6 @@
-import {shopProducts,byId,editorialLooks} from './shop-data.mjs?v=2026-11-27r';
+import {shopProducts,byId,editorialLooks,matchesShopQuery} from './shop-data.mjs?v=2026-11-28a';
+import {setSiteNav} from './site-nav.mjs?v=2026-11-28a';
+import {readCart,writeCart,addCartItem} from './shop-cart.mjs?v=2026-11-28a';
 
 const $=id=>document.getElementById(id);
 const paths={
@@ -15,13 +17,8 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const price=value=>new Intl.NumberFormat('ko-KR').format(value)+'원';
 const categories={all:'전체',outer:'아우터',top:'상의',bottom:'하의'};
 const tags=['캐주얼','미니멀','스트리트','오피스'];
-const state={user:null,online:null,looks:editorialLooks,category:'all',query:'',tab:'전체',cart:[]};
-try{
-  const saved=JSON.parse(localStorage.getItem('selfit.shop.cart')||'[]');
-  if(Array.isArray(saved))state.cart=saved.filter(row=>byId.get(row.product)?.demo
-    && byId.get(row.product).sizes.some(size=>size.label===row.size&&size.stock)
-    && Number.isInteger(row.quantity)&&row.quantity>0&&row.quantity<=5);
-}catch{}
+const state={user:null,online:null,looks:editorialLooks,category:'all',query:'',tab:'전체',cart:readCart()};
+let activeNav;
 let toastTimeout, resume, orderRequest;
 
 function toast(value){
@@ -49,11 +46,19 @@ function setUser(user) {
   state.user=user;
   $('account-label').textContent=user?'내 계정':'로그인';
 }
-function currentPage(){return ['shop','community'].includes(location.hash.slice(1))?location.hash.slice(1):'home';}
+function currentPage(){
+  if(location.hash==='#shop')return 'shop';
+  if(location.hash==='#home')return 'home';
+  return 'community';
+}
 function saveCart(){
-  try{localStorage.setItem('selfit.shop.cart',JSON.stringify(state.cart));}catch{}
+  writeCart(state.cart);
+  paintCartBadge();
+}
+function paintCartBadge(){
   const count=state.cart.reduce((sum,item)=>sum+item.quantity,0);
-  $('cart-count').hidden=!count;$('cart-count').textContent=count;
+  const badge=$('cart-count');
+  if(badge){badge.hidden=!count;badge.textContent=count;}
 }
 function total(){return state.cart.reduce((sum,row)=>sum+row.quantity*byId.get(row.product).price,0);}
 function fittingLink(id,size){return 'fitting.html?'+new URLSearchParams({item:id,size})+'#fit';}
@@ -81,8 +86,7 @@ function renderProducts(){
   const list=$('shop-results');
   if(!list)return;
   const query=state.query.toLowerCase().trim();
-  const results=shopProducts.filter(item=>(state.category==='all'||item.category===state.category)&&
-    (!query||[item.brand,item.name,item.color].join(' ').toLowerCase().includes(query)));
+  const results=shopProducts.filter(item=>(state.category==='all'||item.category===state.category)&&matchesShopQuery(item,query));
   list.innerHTML=results.map(productCard).join('');
   $('empty-shop').hidden=!!results.length;
 }
@@ -96,9 +100,12 @@ function community(){
 function render(){
   const page=currentPage();
   $('content').innerHTML=page==='shop'?shop():page==='community'?community():home();
-  for(const marker of document.querySelectorAll('[data-nav]')){
-    if(marker.dataset.nav===page)marker.setAttribute('aria-current','page');
-    else marker.removeAttribute('aria-current');
+  const nav=location.hash==='#login'||location.hash==='#cart'?'mypage':page;
+  if(activeNav!==nav){
+    setSiteNav(nav,{page:'store',account:true});
+    activeNav=nav;
+    setUser(state.user);
+    paintCartBadge();
   }
   if(page==='shop')renderProducts();
 }
@@ -180,9 +187,8 @@ function product(id){
 function addCart(id){
   const item=byId.get(id), size=$('detail-size')?.value;
   if(!item?.demo||!item.sizes.some(option=>option.label===size&&option.stock))return;
-  const existing=state.cart.find(row=>row.product===id&&row.size===size);
-  if(existing){if(existing.quantity>=5){toast('같은 상품은 5개까지 담을 수 있습니다.');return;}existing.quantity++;}
-  else{if(state.cart.length>=30){toast('장바구니에는 30종까지 담을 수 있습니다.');return;}state.cart.push({product:id,size,quantity:1});}
+  const error=addCartItem(state.cart,id,size);
+  if(error){toast(error);return;}
   orderRequest=null;saveCart();cart();
 }
 function cart(){
@@ -191,7 +197,7 @@ function cart(){
       const good=byId.get(item.product);
       return '<div class="cart-row"><img src="'+good.photo+'" alt=""><div><strong>'+esc(good.name)+'</strong><p class="note">'+esc(item.size)+' · '+price(good.price)+'</p></div><div><select data-quantity="'+i+'" aria-label="'+esc(good.name)+' 수량">'+[1,2,3,4,5].map(n=>'<option '+(n===item.quantity?'selected':'')+'>'+n+'</option>').join('')+'</select> <button class="text-button" type="button" data-action="remove-cart" data-id="'+i+'">삭제</button></div></div>';
     }).join('')+'<p class="cart-total">합계 '+price(total())+'</p><button class="primary" type="button" data-action="checkout">테스트 주문</button>':
-    '<p class="empty">장바구니가 비어 있습니다.</p><a class="secondary" href="#shop" data-action="go-shop">상품 둘러보기</a>');
+    '<p class="empty">장바구니가 비어 있습니다.</p><a class="secondary" href="index.html#shop">상품 둘러보기</a>');
   for(const quantity of $('sheet-content').querySelectorAll('[data-quantity]')){
     quantity.onchange=()=>{state.cart[Number(quantity.dataset.quantity)].quantity=Number(quantity.value);orderRequest=null;saveCart();cart();};
   }
@@ -250,7 +256,7 @@ const actions={
   category(id){state.category=id;render();},tag(id){state.tab=id;render();},
   product,cart,'add-cart':addCart,
   'remove-cart'(index){state.cart.splice(Number(index),1);orderRequest=null;saveCart();cart();},
-  checkout:()=>guard(checkout),'go-shop':()=>$('sheet').close(),
+  checkout:()=>guard(checkout),
   compose:()=>guard(compose), comments:id=>comments(id),
   'comment-login':id=>guard(()=>comments(id)),
   like:id=>guard(async()=>{await api('/looks/'+id+'/like',{});await refreshLooks();}),
@@ -274,8 +280,10 @@ document.addEventListener('input',event=>{
   if(event.target.id==='shop-search'){state.query=event.target.value;renderProducts();}
 });
 window.addEventListener('hashchange',()=>{
-  if(location.hash==='#login'){
-    account().catch(error=>toast(readableError(error)));
+  if(['#login','#cart'].includes(location.hash)){
+    render();
+    if(location.hash==='#cart')cart();
+    else account().catch(error=>toast(readableError(error)));
     return;
   }
   if(!['#home','#shop','#community',''].includes(location.hash))return;
@@ -284,10 +292,15 @@ window.addEventListener('hashchange',()=>{
   if(currentPage()==='community')refreshLooks().catch(error=>toast(readableError(error)));
 });
 $('sheet').addEventListener('close',()=>{
-  if(location.hash==='#login'&&!$('sheet').open)history.replaceState(null,'','#home');
+  if(['#login','#cart'].includes(location.hash)&&!$('sheet').open){history.replaceState(null,'','#community');render();}
+});
+window.addEventListener('storage',()=>{
+  state.cart=readCart();orderRequest=null;paintCartBadge();
+  if($('sheet').open&&$('sheet-title').textContent==='장바구니')cart();
 });
 saveCart();render();
 if(location.hash==='#login')account().catch(error=>toast(readableError(error)));
+if(location.hash==='#cart')cart();
 api('/session').then(data=>{
   state.online=true;setUser(data.user);
 }).catch(()=>{state.online=false;}).finally(()=>{
