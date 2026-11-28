@@ -15,6 +15,8 @@
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27q';
 import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27q';
 
+import {denimProperties,makePanel,legContact} from './denim-physics.mjs';
+
 const tau=2*Math.PI, columns=64, rows=96;
 const hipJoint=.93,kneeFromHip=.438;
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -599,14 +601,46 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         p.drapeS2[v]=Math.sin(foldB);p.drapeC2[v]=Math.cos(foldB);
       }
     }
+    // Bind UVs now, before a photograph can replace the display texture coordinates.
+    const compact=globalThis.matchMedia?.('(max-width: 760px)').matches;
+    const cageRows=compact?9:11,cageCols=compact?10:12,start=forkDrop/cutLength;
+    const cageRest=new Float64Array(cageRows*cageCols*3);
+    const cageFrame=new Uint8Array(cageRows*cageCols);
+    for(let row=0;row<cageRows;row++)for(let col=0;col<cageCols;col++){
+      const v=row*cageCols+col;
+      const point=section(mix(forkDrop,cutLength,row/(cageRows-1)),tau*col/cageCols);
+      cageRest.set([side*point.x,point.y,point.z],3*v);
+      cageFrame[v]=clamp(Math.round((point.y-low)/(high-low)*levels),0,levels);
+    }
+    for(const piece of pieces){
+      if(piece.rigid)continue;
+      const uv=piece.mesh.geometry.attributes.uv.array,n=piece.row.length;
+      piece.bindIndex=new Uint16Array(n);piece.bindX=new Float32Array(n);piece.bindY=new Float32Array(n);
+      for(let k=0;k<n;k++){
+        const u=((uv[2*k]%1+1)%1)*cageCols;
+        const v=clamp((1-uv[2*k+1]-start)/(1-start),0,1)*(cageRows-1);
+        const row=Math.min(Math.floor(v),cageRows-2);
+        piece.bindIndex[k]=row*cageCols+Math.floor(u);
+        piece.bindX[k]=u%1;piece.bindY[k]=v-row;
+      }
+    }
+    const cage={rest:cageRest,frames:cageFrame,goal:cageRest.slice(),offset:new Float64Array(cageRest.length),
+      model:makePanel(cageRest,cageRows,cageCols),cols:cageCols,contact:legContact(body.legs,i)};
     const probeIndex=[];
     for(let v=0;v<shell.row.length;v++)if(shell.row[v]<=6&&v%6===0)probeIndex.push(v);
-    return {side,i,pieces,frames,solver,target,ripple:new Float32Array(frames.length),shell,probeIndex};
+    return {side,i,pieces,frames,solver,target,cage,ripple:new Float32Array(frames.length),shell,probeIndex};
   });
 
-  let time=0,hem=0,peak=0,creaseAmp=0,kneeBend=0;
+  let time=0,hem=0,peak=0,creaseAmp=0,kneeBend=0,hemSpeed=0,kneeDisplacement=0;
 
-  function pose(phase,opt,dt){
+  let lastProfile,profile;
+  function pose(phase,opt,dt,display=true){
+    const usePanel=fabricName==='denim';
+    if(usePanel && (!profile||lastProfile!==opt.denimPreset)){
+      lastProfile=opt.denimPreset;
+      profile=denimProperties(lastProfile,opts.pants.fabricProperties);
+      for(const leg of legs)leg.cage.model.reset();
+    }
     const step=clamp(dt||0,0,.034);time+=step;
     const wind=clamp(Number(opt.wind)||0,0,30),direction=Number(opt.direction)||0;
     const gravity=clamp(Number(opt.gravity??9.81),0,30);
@@ -615,7 +649,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
     const a=body.legs[0].a,b=body.legs[2].a;
     const axis=Math.atan2(b.z-a.z,b.x-a.x),cs=Math.cos(axis),sn=Math.sin(axis);
     const hipX=(a.x+b.x)*.5,hipZ=(a.z+b.z)*.5,hipY=(a.y+b.y)*.5-.93;
-    hem=0;peak=0;creaseAmp=0;kneeBend=0;
+    hem=0;peak=0;creaseAmp=0;kneeBend=0;hemSpeed=0;kneeDisplacement=0;
     for(const leg of legs){
       const {i,pieces,frames,solver,target,ripple}=leg;
       const upper=body.legs[2*i],lower=body.legs[2*i+1];
@@ -634,9 +668,30 @@ export function makeMeasuredPants(T,group,body,mat,opts){
         const q=j*3;
         target[q]=f.x;target[q+1]=f.y;target[q+2]=f.z;
       }
-      if(live)solver.step(step,target,{wind,direction,gravity,turbulence,clock:time});
+      if(usePanel){
+        const cage=leg.cage;
+        for(let v=0;v<cage.frames.length;v++){
+          const q=3*v,f=frames[cage.frames[v]],x=cage.rest[q],z=cage.rest[q+2];
+          cage.goal[q]=cs*x-sn*z+f.x;cage.goal[q+1]=cage.rest[q+1]+f.y;cage.goal[q+2]=sn*x+cs*z+f.z;
+        }
+        if(live){
+          cage.model.step(step,cage.goal,profile,{wind,direction,gravity,turbulence,clock:time},cage.contact);
+          for(let q=0;q<cage.offset.length;q+=3){
+            for(let axis=0;axis<3;axis++)cage.offset[q+axis]=cage.model.position[q+axis]-cage.goal[q+axis];
+            const shift=Math.hypot(cage.offset[q],cage.offset[q+1],cage.offset[q+2]);
+            peak=Math.max(peak,shift);
+            if(Math.abs(cage.rest[q+1]-(hipJoint-kneeFromHip))<.06)kneeDisplacement=Math.max(kneeDisplacement,shift);
+            if(q>=cage.offset.length-cage.cols*3){
+              hem=Math.max(hem,shift);
+              const velocity=cage.model.velocity;
+              hemSpeed=Math.max(hemSpeed,Math.hypot(velocity[q],velocity[q+1],velocity[q+2]));
+            }
+          }
+        }else{cage.model.reset();cage.offset.fill(0);}
+      }else if(live)solver.step(step,target,{wind,direction,gravity,turbulence,clock:time});
       else solver.reset();
       peak=Math.max(peak,solver.peak);hem=Math.max(hem,solver.hem);
+      if(!display)continue;
       const spec=solver.spec;
       for(let j=0;j<frames.length;j++){
         ripple[j]=Math.min(.0021,.0072*Math.hypot(solver.velocity[j*3],solver.velocity[j*3+2]));
@@ -694,6 +749,15 @@ export function makeMeasuredPants(T,group,body,mat,opts){
           arr[q2]=cs*x-sn*z+mix(fa.x,fb.x,t)+solver.at(r,t,0);
           arr[q2+1]=rest[q2+1]+mix(fa.y,fb.y,t)+solver.at(r,t,1);
           arr[q2+2]=sn*x+cs*z+mix(fa.z,fb.z,t)+solver.at(r,t,2);
+          if(usePanel && live){
+            const {cols,offset}=leg.cage;
+            const a=piece.bindIndex[k],b=a%cols===cols-1?a-cols+1:a+1;
+            const u=piece.bindX[k],v=piece.bindY[k];
+            for(let axis=0;axis<3;axis++){
+              arr[q2+axis]+=mix(mix(offset[3*a+axis],offset[3*b+axis],u),
+                mix(offset[3*(a+cols)+axis],offset[3*(b+cols)+axis],u),v);
+            }
+          }
         }
         attr.needsUpdate=true;mesh.geometry.computeVertexNormals();
         // The ring closes on a duplicated column; without this the seam line
@@ -704,7 +768,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
   }
 
   const counts=legs.reduce((n,leg)=>n+leg.pieces.reduce((t,p)=>t+p.rest.length/3,0),0);
-  return {pose,reset(){time=0;hem=0;peak=0;creaseAmp=0;for(const leg of legs)leg.solver.reset();},
+  return {pose,reset(){time=0;hem=0;peak=0;creaseAmp=0;for(const leg of legs){leg.solver.reset();leg.cage.model.reset();}},
     // The photo unwrap needs the same section geometry the cloth is built from:
     // where the front/back centre lines sit, how far the seam reaches, and how
     // much of the row is still the seat rather than a single leg. Packed so the
@@ -722,7 +786,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
       return out;
     },
     landmarks:{cutLength,waistY,forkDrop,bandH,legX,columns,rows,length:fit.cutLength},
-    get secondary(){return {hem,peak,crease:creaseAmp,knee:kneeBend};},
+    get secondary(){return {hem,hemSpeed,kneeDisplacement,peak,crease:creaseAmp,knee:kneeBend,profile:profile?.label};},
     get probe(){return legs.map(leg=>leg.probeIndex.map(v=>{
       const a=leg.shell.mesh.geometry.attributes.position.array;
       return [a[v*3],a[v*3+1],a[v*3+2]];

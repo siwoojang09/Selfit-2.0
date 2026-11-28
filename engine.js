@@ -10,7 +10,7 @@
   window.DrapeEngine = {
     init(container, gestureSurface) {
       if (pending) return pending;
-      pending = import(new URL('scene.mjs?v=2026-11-27q', base)).then(({ createScene }) => {
+      pending = import(new URL('scene.mjs?v=2026-11-28denim', base)).then(({ createScene }) => {
         engine = createScene(container, options, gestureSurface);
         window.dispatchEvent(new CustomEvent('drape:ready', {detail: engine.stats()}));
         return true;
@@ -37,6 +37,7 @@
     getMotion() {
       return engine?.motion() || null;
     },
+    getTime() { return engine?.time || 0; },
     getStats() {
       return engine?.stats() || {};
     }

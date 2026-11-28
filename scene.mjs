@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-27q';
 import { attachSample } from './sample-garment.mjs?v=2026-11-27q';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-27q';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-28denim';
 import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-27q';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27q';
 import {wearer} from './hoodie-fit.mjs?v=2026-11-27q';
@@ -587,10 +587,10 @@ export function createScene(container, opts, gestureSurface = container) {
     zoomBy(Math.exp(-limit(pixels * (event.ctrlKey ? .01 : .0015), -.3, .3)));
   }, {passive:false});
 
-  function poseAndStep(dt) {
+  function poseAndStep(dt,display=true) {
     body.pose(phase, opts.walking, opts.bodyOnly);
     if(opts.bodyOnly)return;
-    wardrobe.pose(phase, opts, dt);
+    wardrobe.pose(phase, opts, dt,display);
     sampleGarment?.pose(phase,opts,dt);
   }
   function settle() {
@@ -752,12 +752,13 @@ export function createScene(container, opts, gestureSurface = container) {
     const delta = previous ? Math.min((now - previous)/1000, .06) : 0;
     previous = now;
     if (!width || !height || document.hidden) return;
-    if (opts.playing) {
+    const movingDenim=!opts.bodyOnly && opts.pants?.material==='denim' && opts.clothPhysics!==false;
+    if (opts.playing || movingDenim) {
       accumulator = Math.min(.12, accumulator + delta);
       while (accumulator >= stepSize) {
-        frameTime += stepSize;
-        if (opts.walking) phase += stepSize * tau * .83 * limit(Number(opts.speed) || 0, 0, 4);
-        poseAndStep(stepSize);
+        if(opts.playing)frameTime += stepSize;
+        if (opts.playing && opts.walking) phase += stepSize * tau * .83 * limit(Number(opts.speed) || 0, 0, 4);
+        poseAndStep(stepSize,accumulator<2*stepSize || Boolean(opts.sample));
         accumulator -= stepSize;
       }
       dirty = true;
@@ -794,6 +795,6 @@ export function createScene(container, opts, gestureSurface = container) {
       get topAsset(){ return topAssets[String(opts.sample?.id)] || null; }
     }, configurable: true});
   }
-  return {update, zoomBy, stats, motion, cloth, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
+  return {update, zoomBy, stats, motion, cloth, get time(){return frameTime;}, probe: () => ({lower: wardrobe?.probe||null, top: sampleGarment?.probe||null}),
     reset() {yaw = targetYaw = .045; pitch = targetPitch = .045;}};
 }

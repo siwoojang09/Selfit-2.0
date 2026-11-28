@@ -1,6 +1,6 @@
 // All garment dimensions and solver distances are in metres.
 import { makeSkirt } from './cloth.mjs?v=2026-11-27q';
-import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-27q';
+import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-28denim';
 import { getAvatarFit, bodyWidth } from './fit-body-sections.mjs?v=2026-11-27q';
 
 const TAU = 2 * Math.PI;
@@ -380,11 +380,11 @@ export function createWardrobe(T,body,materials,opts) {
   const topPieces=Array.isArray(tee)?tee:[tee];
   topPieces.forEach(m=>{m.visible=classic&&!opts.selectedOnly;});
   const shirt=classic||opts.selectedOnly?null:makeShirt(T,body,materials.top,opts.outfit,ky,wide);
-  const pose=(phase,options,dt)=>{
+  const pose=(phase,options,dt,display=true)=>{
     shirt?.pose();
     if(skirted){
       main.step(dt,options,body.legs,body.hipsFromPose);
-    } else main?.pose(phase,options,dt);
+    } else main?.pose(phase,options,dt,display);
   };
   const reset=()=>main?.reset();
   pose(0,opts,0);

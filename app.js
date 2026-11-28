@@ -1,3 +1,4 @@
+import {denimPresets,denimProperties} from './denim-physics.mjs';
 import {setSiteNav} from './site-nav.mjs?v=2026-11-28a';
 import {openGarmentImport} from './garment-import.mjs?v=2026-11-27q';
 import {products as feedProducts} from './fit-matches.mjs?v=2026-11-27q';
@@ -47,7 +48,7 @@ const bodyFields={height:'키',chest:'가슴둘레',waist:'허리둘레',hip:'�
 const fmt=n=>Number(n.toFixed(1)).toString();
 const signed=n=>(n>0?'+':'')+fmt(n);
 const currentWearer=()=>wearer(avatar,bodyInputsByModel[avatar]);
-const physics={gravity:9.81,wind:2.4,direction:0,turbulence:.18,speed:1,grid:false};
+const physics={denimPreset:"standard",gravity:9.81,wind:2.4,direction:0,turbulence:.18,speed:1,grid:false};
 const fabrics={linen:'리넨',cotton:'코튼',denim:'데님',silk:'실크'};
 const bottomPresets={none:'선택 없음',trousers:'리넨 팬츠',slacks:'슬랙스',shorts:'쇼츠',skirt:'미디스커트'};
 const colors={linen:'#e6ddc9',cotton:'#c4c1b8',denim:'#465569',silk:'#bc887d'};
@@ -172,7 +173,7 @@ function renderRecommended(){
 function setWornItem(){
   if(isPants()){
     activePants=selected;
-    pants={id:selected.id,type:'pants',color:selected.color,material:selected.material||'denim',measurements:measures()};
+    pants={id:selected.id,type:'pants',color:selected.color,material:selected.material||'denim',fabricProperties:selected.fabricProperties,measurements:measures()};
   }else{
     activeTop=selected;
     upper={id:selected.id,type:selected.type,color:selected.color,pattern:selected.pattern||'',material:selected.material||'cotton',image:selected.custom&&!selected.asset?selected.photo:null,assetUrl:garmentUrl(selected.asset),imported:Boolean(selected.asset),adidas:selected.assetKind==='catalog',measurements:measures()};
@@ -440,7 +441,7 @@ document.querySelector('.gender').onclick=e=>{
 function tick(){
   tickId=0;
   if(!playing)return;
-  const current=window.DrapeEngine.getStats().time||0;
+  const current=window.DrapeEngine.getTime();
   if(current>=8){
     window.DrapeEngine.set({time:loop?current%8:8});
     if(!loop){playing=false;apply();}
@@ -468,25 +469,35 @@ $('measureTable').onclick=()=>{
   modal(selected.name+' 실측표','<p>'+esc(selected.source)+' · 단위 cm</p><div class="table-wrap"><table><thead><tr><th>사이즈</th>'+measureFields.map(([,label])=>'<th>'+label+'</th>').join('')+'</tr></thead><tbody>'+selected.sizes.map(m=>'<tr class="'+(size===m.label?'current':'')+'"><th scope="row">'+esc(m.label)+'</th>'+measureFields.map(([k])=>'<td>'+(m[k]??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div><p>'+(isPants()?'허리·엉덩이·허벅지·밑단은 옷을 평평하게 놓고 잰 단면 너비입니다.':'가슴과 밑단은 옷을 평평하게 놓고 잰 단면 너비입니다.')+' — 표시는 미제공 치수입니다.</p>');
 };
 $('guide').onclick=()=>modal('드레싱룸 이용 가이드','<dl class="help"><dt>샘플 입어보기</dt><dd>옷장에서 샘플을 고르고 사이즈를 바꿔 보세요. 신체 치수에서 키와 가슴·허리·엉덩이둘레를 적용하면 그 몸에 맞춰 다시 입습니다.</dd><dt>3D 화면 조작</dt><dd>3D 화면을 한 손가락으로 밀거나 마우스로 드래그하면 모델이 회전합니다. 두 손가락을 벌리거나 오므리면 확대·축소되고, 두 손가락을 함께 움직이면 화면 속 위치를 옮길 수 있습니다. 마우스 휠로도 확대·축소할 수 있습니다.</dd><dt>옷장 찾기</dt><dd>분류(아우터·상의·하의)와 브랜드 칩으로 좁히고, 검색창에는 상품명·브랜드·품번을 넣습니다. 카드의 하트는 이 브라우저의 위시리스트에 담깁니다.</dd><dt>3D 체형</dt><dd>3D 체형을 누르면 기본 피팅복을 입고 팔을 벌린 인체 모델을 볼 수 있습니다. 드래그해 회전하거나 보행을 재생하세요. 착장을 누르면 같은 모델에 선택한 옷을 다시 입힙니다.</dd><dt>3D 착장</dt><dd>모든 샘플은 실물 사진에서 뜬 원단과 그래픽으로 3D에 입혀집니다. 사이즈를 바꾸면 같은 사진의 결이 그 사이즈 패턴에 다시 깔리고, 보행하면 밑단과 소매가 흔들립니다.</dd><dt>실제 옷 등록</dt><dd>정면 사진과 상품명을 입력한 뒤 의류 유형을 선택하세요. 바지는 총장·허리단면·엉덩이단면·허벅지단면·밑위·밑단단면을, 상의는 총장·어깨너비·가슴단면·소매길이를 cm로 입력합니다. 사진은 단색 배경에서 바르게 펼친 모습이 좋습니다.</dd><dt>샘플 보관</dt><dd>직접 등록한 사진과 실측은 이 브라우저의 내 샘플에 저장됩니다. 정확한 핏을 검증하려면 앞·뒤 패턴, 원단의 두께·무게·신축성과 실제 피팅 모델의 신체 치수가 추가로 필요합니다.</dd></dl>');
+function denimPropertyDetails(){
+  const profile=denimProperties(physics.denimPreset,pants?.fabricProperties);
+  const names={gsm:'면적당 무게 (g/m²)',warp:'세로 인장 유연도 (m/N)',weft:'가로 인장 유연도 (m/N)',
+    shear:'전단 유연도 (m/N)',bend:'굽힘 제약 유연도 (m/N)',thickness:'두께 (mm)',friction:'마찰 계수',
+    damping:'감쇠율 (1/s)',permeability:'공기 통과 비율'};
+  const source={default:'기본값',measured:'실측',description:'상품 설명 기반 추정'};
+  return Object.entries(names).map(([key,label])=>'<dt>'+label+'</dt><dd>'+
+    Number((profile[key]*(key==='thickness'?1000:1)).toPrecision(4))+' · '+source[profile.sources[key]]+'</dd>').join('');
+}
 function environment(){
   const sliders=[['gravity','중력',0,20,.01,'m/s²'],['wind','풍속',0,12,.1,'m/s'],['direction','풍향',0,360,5,'°'],['turbulence','난류',0,1,.05,''],['speed','보행 속도',.25,2,.05,'×']];
   modal('물리 환경 설정',sliders.map(([key,label,min,max,step,unit])=>'<label class="parameter">'+label+'<input data-parameter="'+key+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+physics[key]+'"><output>'+physics[key]+' '+unit+'</output></label>').join('')+
     '<label class="parameter">하의<select id="bottomPick">'+(pants?'<option selected value="measured">'+esc(activePants.name)+'</option>':'')+Object.entries(bottomPresets).map(([id,n])=>'<option value="'+id+'" '+(!pants&&id===bottom?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
     '<label class="parameter">하의 원단<select id="fabricPick" '+(pants||bottom==='none'?'disabled':'')+'>'+Object.entries(fabrics).map(([id,n])=>'<option value="'+id+'" '+(id===(pants?.material||lowerFabric)?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+    (pants?.material==='denim'?'<label class="parameter">데님 물성 비교<select id="denimPreset">'+Object.entries(denimPresets).map(([id,p])=>'<option value="'+id+'" '+(id===physics.denimPreset?'selected':'')+'>'+p.label+'</option>').join('')+'</select></label><p>의류 사이즈는 그대로 두고 원단을 비교합니다.</p><details><summary>물성값과 출처</summary><dl id="denimValues" class="help">'+denimPropertyDetails()+'</dl></details>':'')+
     '<label class="parameter">3D 시점<select id="viewPick">'+Object.entries({pants:'하체 핏',finish:'소맷단과 밑단',fit:'상반신 핏',study:'사선',front:'정면',side:'측면',back:'후면'}).map(([value,n])=>'<option value="'+value+'" '+(cameraView===value?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
     '<label class="parameter">보행 시간<input type="range" id="timeSeek" aria-label="보행 시간" min="0" max="8" step=".01" value="'+(window.DrapeEngine.getStats().time||0)+'"><output id="timeOut">'+(window.DrapeEngine.getStats().time||0).toFixed(2)+' s</output></label>'+
     '<div class="checks"><label class="check"><input type="checkbox" id="repeatPick" '+(loop?'checked':'')+'>반복 재생</label><label class="check"><input id="gridPick" type="checkbox" '+((bodyOnly?studyGrid:physics.grid)?'checked':'')+'>바닥 그리드</label><label class="check"><input id="wirePick" type="checkbox" '+(wire?'checked':'')+'>와이어프레임</label></div>');
   document.querySelectorAll('[data-parameter]').forEach((el,i)=>el.oninput=()=>{physics[el.dataset.parameter]=+el.value;el.nextElementSibling.textContent=el.value+' '+sliders[i][5];apply();});
+  if($('denimPreset'))$('denimPreset').onchange=e=>{physics.denimPreset=e.target.value;$('denimValues').innerHTML=denimPropertyDetails();apply();};
   $('bottomPick').onchange=e=>{
     if(e.target.value==='measured')return;
     const wasPants=isPants();
     pants=null;activePants=null;
     bottom=e.target.value;
     lowerFabric=({trousers:'linen',skirt:'linen',slacks:'cotton',shorts:'denim'})[bottom]||'linen';
-    $('fabricPick').value=lowerFabric;
-    $('fabricPick').disabled=bottom==='none';
+
     if(wasPants){selected=activeTop;size=upper?.measurements?.label||'';cameraView=fittingView();}
-    e.target.querySelector('[value="measured"]')?.remove();
+    environment();
     product();renderShelf();apply();
   };
   $('fabricPick').onchange=e=>{lowerFabric=e.target.value;apply();};
