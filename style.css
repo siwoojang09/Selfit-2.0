@@ -511,3 +511,15 @@ body{background:var(--selfit-paper)}
 }
 
 #waistWarning{margin:5px 0 0;padding:10px 14px;border-left:3px solid #964d24;border-radius:5px;background:#fff2e5;color:#582e19;font-size:14px;line-height:1.5}
+
+/* On a phone the quick size dock moves above the 3D stage: the size buttons and
+   the ease next to them stay in the same screen as the model, so a size can be
+   tapped and its fit watched without scrolling down to the fit card and back.
+   The dock and the undersized-waist warning stack onto the top edge of the
+   stage as one card, and the stage drops its top corners to meet them. */
+@media(max-width:760px){
+  .stage-shell{display:flex;flex-direction:column;reading-flow:flex-visual}
+  .stage-shell>.size-dock{display:flex;order:-3;padding:8px 10px 9px;gap:6px;border-radius:18px 18px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line-soft);box-shadow:none}
+  .stage-shell>#waistWarning{order:-2;margin:0;padding:9px 14px;border-left:0;border-radius:0}
+  .stage-shell:not(:fullscreen):has(>.size-dock:not([hidden]))>#stage{border-radius:0 0 18px 18px}
+}
