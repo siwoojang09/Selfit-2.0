@@ -45,8 +45,7 @@ ul{margin:0;padding:0;list-style:none}
 .kicker{font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
 
 /* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 20px;border-radius:12px;font-size:15px;font-weight:700;letter-spacing:-.02em;transition:transform .12s ease,background .15s}
-.btn:active{transform:scale(.99)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 20px;border-radius:12px;font-size:15px;font-weight:700;letter-spacing:-.02em;transition:background .15s}
 .btn.primary{background:var(--selfit-accent);color:#fff}
 .btn.primary:hover{background:#293d28}
 .btn.secondary{background:#fff;border:1px solid var(--line-strong);color:var(--ink)}

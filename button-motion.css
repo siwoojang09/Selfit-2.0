@@ -1,0 +1,29 @@
+@media (prefers-reduced-motion: no-preference) {
+  :is(button:enabled, a:is(.btn, .primary, .secondary, .site-access, .studio)):not([aria-disabled="true"]) {
+    transition: scale 180ms ease-out, translate 180ms ease-out,
+      background-color 150ms ease, border-color 150ms ease,
+      color 150ms ease, box-shadow 150ms ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :is(button:enabled, a):is(.btn, .primary, .secondary, .primary-pill, .site-access, .site-bag):not([aria-disabled="true"]):hover {
+      translate: 0 -2px;
+    }
+  }
+
+  :is(button:enabled, a:is(.btn, .primary, .secondary, .site-access, .studio)):not([aria-disabled="true"]):is(:active, [data-pressing]) {
+    translate: 0 1px;
+    scale: .97;
+    transition-duration: 75ms;
+  }
+
+  :is(#site-mobile, .bottomnav) a svg {
+    transition: scale 180ms ease-out, translate 180ms ease-out;
+  }
+
+  :is(#site-mobile, .bottomnav) a:is(:active, [data-pressing]) svg {
+    translate: 0 1px;
+    scale: .86;
+    transition-duration: 75ms;
+  }
+}
