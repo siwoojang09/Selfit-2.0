@@ -20,11 +20,29 @@ for(const denimPreset of ['standard','light','stretch']){
     gravity:9.81,wind:0,direction:0,turbulence:0};
   const pants=makeMeasuredPants(THREE,new THREE.Group(),body,mat,opts);
   let phase=0;
+  // Cast down onto the visible shoe triangles at rendered cuff vertices.
+  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),origin=new THREE.Vector3();
+  let overShoe=0;
+  function checkCuffs(){
+    for(const part of pants.parts.filter(p=>p.layer==='shell')){
+      const attr=part.mesh.geometry.attributes.position;
+      for(let i=0;i<attr.count;i+=7){
+        if(part.row[i]>16)continue;
+        origin.fromBufferAttribute(attr,i);
+        const y=origin.y;origin.y=.5;
+        ray.set(origin,down);
+        const hit=ray.intersectObjects(body.shoeMeshes,false)[0];
+        if(hit){overShoe++;assert(y>=hit.point.y-.0001,'Cuff cuts through visible footwear');}
+      }
+    }
+  }
   function run(frames,walking,wind){
     let maxHem=0,knee=0,lastMoving=0;
     for(let f=0;f<frames;f++){
       if(walking){phase+=Math.PI/36;body.pose(phase,true);}
-      opts.wind=wind;pants.pose(phase,opts,1/60,f===frames-1);
+      opts.wind=wind;const display=f%24===0||f===frames-1;
+      pants.pose(phase,opts,1/60,display);
+      if(display)checkCuffs();
       const stats=pants.secondary;
       maxHem=Math.max(maxHem,stats.hem);knee=Math.max(knee,stats.kneeDisplacement);
       if(stats.hemSpeed>.025)lastMoving=f+1;
@@ -38,6 +56,7 @@ for(const denimPreset of ['standard','light','stretch']){
   const gust=run(180,false,4),calm=run(240,false,0);
   assert(stop.endSpeed<.025 && calm.endSpeed<.025,JSON.stringify({stop,calm}));
   results.push({denimPreset,walk,stop,gust,calm});
+  assert(overShoe>0,'Expected cuff samples above footwear');
   pants.dispose();
 }
 assert(new Set(results.map(r=>r.gust.maxHem.toFixed(3))).size===3);

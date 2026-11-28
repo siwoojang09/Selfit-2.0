@@ -12,6 +12,7 @@
 // pockets, rivets and the hem cuff are surfaces offset from that same grid, so
 // they inherit the pose deformation, the solver's secondary motion and the wash
 // UVs of the cloth underneath them.
+import {shoeContacts} from './shoe-contact.mjs';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27q';
 import {createRowSolver} from './cloth-dynamics.mjs?v=2026-11-27q';
 
@@ -60,6 +61,7 @@ const limbAngle=(upper,lower)=>{
 };
 
 export function makeMeasuredPants(T,group,body,mat,opts){
+  const shoes=shoeContacts(T,body,group);
   const photo=Boolean(opts.photoDenim);
   const fit=pantsFit(opts.pants.measurements,opts.model,opts.person);
   const w=fit.w, S=w.base, sy=w.sy;
@@ -635,6 +637,7 @@ export function makeMeasuredPants(T,group,body,mat,opts){
 
   let lastProfile,profile;
   function pose(phase,opt,dt,display=true){
+    for(const shoe of shoes)shoe.update();
     const usePanel=fabricName==='denim';
     if(usePanel && (!profile||lastProfile!==opt.denimPreset)){
       lastProfile=opt.denimPreset;
@@ -758,6 +761,9 @@ export function makeMeasuredPants(T,group,body,mat,opts){
                 mix(offset[3*(a+cols)+axis],offset[3*(b+cols)+axis],u),v);
             }
           }
+          // Wrinkles and interpolation can push the display mesh back inside
+          // the shoe even when every coarse simulation particle is outside.
+          for(const shoe of shoes)shoe.project(arr,q2);
         }
         attr.needsUpdate=true;mesh.geometry.computeVertexNormals();
         // The ring closes on a duplicated column; without this the seam line

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import { weaveMapsFor, denimMapsFor, loadTwillField, applySheen, luminanceField, reliefNormals, reliefRoughness } from './fabric-pbr.mjs?v=2026-11-27q';
 import { attachSample } from './sample-garment.mjs?v=2026-11-27q';
-import { createWardrobe } from './wardrobe.mjs?v=2026-11-28denim';
+import { createWardrobe } from './wardrobe.mjs?v=2026-11-28shoe';
 import { projectWardrobe, garmentColors } from './projection.mjs?v=2026-11-27q';
 import {pantsFit} from './pants-fit.mjs?v=2026-11-27q';
 import {wearer} from './hoodie-fit.mjs?v=2026-11-27q';

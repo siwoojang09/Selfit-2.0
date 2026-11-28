@@ -132,7 +132,7 @@ function renderWorn(){
     const brandEl=document.createElement('small'),nameEl=document.createElement('strong'),sizeEl=document.createElement('span');
     brandEl.textContent=item?(item.virtual?'DRAPE STUDIO':brandName(item)):'—';
     nameEl.textContent=item?item.name:role+'를 골라보세요';
-    sizeEl.textContent=size?role+' · '+size+' 사이즈':role;
+    sizeEl.textContent=size?role+' · '+size+' 사이즈'+(role==='하의'&&waistShortfall()?' · 허리 치수 부족으로 미착용':''):role;
     meta.append(brandEl,nameEl,sizeEl);
     const go=document.createElement('span');go.className='worn-go';go.innerHTML=icon('chevron');
     row.append(thumb,meta,go);
@@ -354,7 +354,15 @@ $('bodyInputs').onclick=()=>{
   $('clearWearer').onclick=()=>finish(null);
   $('wearerForm').onsubmit=e=>{e.preventDefault();const data=new FormData(e.currentTarget);finish(Object.fromEntries(Object.keys(bodyFields).map(k=>[k,Number(data.get(k))])));};
 };
+function waistShortfall(){
+  return pants?.measurements?.waist>0?Math.max(0,currentWearer().waist-2*pants.measurements.waist):0;
+}
 function sync(){
+  const shortage=waistShortfall();
+  const warning=$('waistWarning');
+  warning.hidden=bodyOnly||!shortage;
+  const message=warning.hidden?'':pants.measurements.label+' 사이즈는 허리가 맞지 않아요. 바지 허리둘레가 모델보다 '+fmt(shortage)+' cm 작아요. 더 큰 사이즈를 선택해 주세요.';
+  if(warning.textContent!==message)warning.textContent=message;
   const detail=!bodyOnly&&cameraView===(isPants()?'pants':'finish');
   $('finishView').hidden=!selected||bodyOnly;
   $('finishView').setAttribute('aria-pressed',String(detail));
@@ -375,7 +383,8 @@ function sync(){
 }
 function options(){
   const outfit=bottom==='shorts'?'casual':bottom==='slacks'?'tailored':'classic';
-  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,selectedOnly:true,sample:upper,pants,model:avatar,bottom:pants?'trousers':bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing,walking:poseWalk,speed:physics.speed,view:cameraView,wireframe:wire};
+  const wearable=waistShortfall()?null:pants;
+  return {...physics,grid:bodyOnly?studyGrid:physics.grid,person:bodyInputsByModel[avatar],bodyOnly,selectedOnly:true,sample:upper,pants:wearable,model:avatar,bottom:pants?(wearable?'trousers':'none'):bottom,outfit:pants?'classic':outfit,fabric:pants?(pants.material||'denim'):lowerFabric,color:pants?pants.color:colors[lowerFabric],playing,walking:poseWalk,speed:physics.speed,view:cameraView,wireframe:wire};
 }
 async function apply(){
   sync();
@@ -436,7 +445,7 @@ $('sizes').onclick=e=>{
 document.querySelector('.gender').onclick=e=>{
   const b=e.target.closest('[data-model]');
   if(!b||avatar===b.dataset.model)return;
-  avatar=b.dataset.model;renderFitReport();renderSizeDock();apply();
+  avatar=b.dataset.model;renderWorn();renderFitReport();renderSizeDock();apply();
 };
 function tick(){
   tickId=0;

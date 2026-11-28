@@ -1,6 +1,6 @@
 // All garment dimensions and solver distances are in metres.
 import { makeSkirt } from './cloth.mjs?v=2026-11-27q';
-import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-28denim';
+import { makeMeasuredPants } from './measured-pants.mjs?v=2026-11-28shoe';
 import { getAvatarFit, bodyWidth } from './fit-body-sections.mjs?v=2026-11-27q';
 
 const TAU = 2 * Math.PI;
